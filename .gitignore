@@ -43,3 +43,12 @@ Thumbs.db
 .gemini/
 .agents/
 .antigravityignore
+
+# Local app logs & scratch files
+backend/logs/
+backend/TestingArray.ts
+backend/history/*
+
+
+#others
+tasks.md

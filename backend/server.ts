@@ -8,6 +8,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import axios from "axios";
 import { AskAI } from "./askAI.js";
+import { Logs } from "./Logs.js";
 
 dotenv.config();
 
@@ -18,18 +19,26 @@ const PORT = process.env.PORT || 3100;
 app.use(express.json());
 
 // JSON Parsing Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction): void => {
-  if (err instanceof SyntaxError && "status" in err && err.status === 400) {
-    console.error("❌ [JSON PARSING ERROR] Invalid JSON payload received:");
-    console.error("Method:", req.method);
-    console.error("Path:", req.path);
-    console.error("Headers:", req.headers);
-    console.error("Error Message:", err.message);
-    res.status(400).json({ error: "Invalid JSON payload" });
-    return;
-  }
-  next(err);
-});
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ): void => {
+    if (err instanceof SyntaxError && "status" in err && err.status === 400) {
+      Logs("Invalid JSON payload received", "error", {
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        errorMessage: err.message,
+      });
+      res.status(400).json({ error: "Invalid JSON payload" });
+      return;
+    }
+    next(err);
+  },
+);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,23 +48,24 @@ app.use(express.static(path.join(__dirname, "../frontend")));
 
 // --- 1. HEALTH CHECK ---
 app.get("/api/health", (req, res) => {
-  console.log("Health Checking!");
+  Logs("Health checking endpoint accessed", "info");
   res.json({ status: "OK", message: "Nexus v2 monolith is online!" });
 });
 
 // --- 2. HTTP CHAT & EXECUTION LOOP ---
 app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, session } = req.body;
   const wss: WebSocketServer = req.app.get("wss");
 
-  if (!message) {
+  if (!message || !session) {
     res.status(400).json({ error: "Message is required" });
     return;
   }
 
   try {
+    await Logs("Processing new chat message request", "info", { message });
     // TODO: Step 1. Call AI to get first command & response message
-    const { cmd, msg, terminalOutput } = await AskAI(message);
+    const { cmd, msg, terminalOutput } = await AskAI(message, session);
 
     // TODO: Step 2. Start a loop (e.g. while retry < 6)
     // TODO: Step 3. Execute command using execPromise(cmd)
@@ -68,6 +78,11 @@ app.post("/api/chat", async (req, res) => {
       msg: `Received: "${message}". Processing...`,
     });
 
+    await Logs("Successfully processed chat message", "info", {
+      lastAIMsg: msg,
+      lastCMD: cmd,
+    });
+
     res.json({
       lastAIMsg: msg,
       lastCMD: cmd,
@@ -75,7 +90,7 @@ app.post("/api/chat", async (req, res) => {
       terminalError: "",
     });
   } catch (error: any) {
-    console.error("Error in chat execution:", error);
+    await Logs(error, "error", { message });
     res.status(500).json({ error: error.message });
   }
 });

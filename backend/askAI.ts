@@ -1,4 +1,5 @@
 import { apiCall } from "./AICall.js";
+import { getHistory, setHistory } from "./AiLogs.js";
 import { executeCmd } from "./execute.js";
 
 interface AIResponse {
@@ -23,90 +24,109 @@ function extractJSON(text: string): any {
 
 export async function AskAI(
   message: string,
+  session: string,
   retries: number = 0,
   chatMessages: Array<{ role: string; content: string }> = [],
+  accumulatedTerminal: string = "",
 ): Promise<AIResponse> {
+  // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
     return {
       cmd: "",
       msg: "I'm sorry, I can't help you with that. The retries reached the maximum limit!",
-      terminalOutput: "Max retries reached",
+      terminalOutput: accumulatedTerminal || "Max retries reached",
     };
   }
 
-  // Initialize history on first call
-  if (chatMessages.length === 0) {
+  // 2. Initial Setup: Load existing chat history and append the user's new message
+  if (retries === 0) {
+    chatMessages = await getHistory(session, 0);
     chatMessages.push({ role: "user", content: message });
   }
+  console.log("Chat messages: ", chatMessages);
 
   let aiMsg: string = "";
   let command: string = "";
   let terminal: string = "";
+  let isSuccessState = true;
 
   try {
-    const data = await apiCall(message, chatMessages);
-    console.log("Data from AI proxy: ", data);
-
-    // Save the assistant response to the conversation history
+    // 3. Query the AI proxy for the next action/command
+    const data = await apiCall(chatMessages);
+    
     chatMessages.push({ role: "assistant", content: data });
-    console.log("Chat messages: ", chatMessages);
+    
+    await setHistory(chatMessages, session);
+
+    // 4. Parse the AI response to extract command instructions
     const parsed = extractJSON(data);
-    if (parsed) {
-      command = parsed.cmd || "";
-      aiMsg = parsed.msg || "";
-    } else {
-      aiMsg = data;
-      command = "";
-    }
+    aiMsg = parsed? parsed.msg || "" : data;
+    command = parsed? parsed.cmd || "" : "";
+    // if (parsed) {
+    //   aiMsg = parsed.msg || "";
+    //   command = parsed.cmd || "";
+    // } else {
+    //   aiMsg = data;
+    //   command = "";
+    // }
 
+    // 5. Execute the command if requested by the AI
     if (command) {
-      const { stdout, stderr, exitCode } = await executeCmd(command);
-      terminal = stdout ? stdout : stderr;
-      console.log("Terminal: ", terminal);
-
-      // Create feedback object
-      const feedbackContent = {
-        message:
-          exitCode === 0 ? "Command ran successfully" : "Error on the terminal",
-        terminaloutput: terminal,
-        cmdRunByAi: command,
-      };
-
-      // Append feedback to the history (must be stringified JSON string for LLM APIs)
-      chatMessages.push({
-        role: "user",
-        content: JSON.stringify(feedbackContent, null, 2),
-      });
-      console.log("ChatMessages: ", chatMessages);
-      console.log("Next Turn / Retry: ", retries + 1);
-      const response = await AskAI(message, retries + 1, chatMessages);
-      return response;
+      let exitCode = 0;
+      if (command === "history") {
+        // Shorthand intercept: load session history instead of executing shell commands
+        const chatHistory = await getHistory(session, 0);
+        terminal = JSON.stringify(chatHistory, null, 2);
+      } else {
+        // Execute the CMD/PowerShell command on the system
+        const result = await executeCmd(command);
+        terminal = result.stdout ? result.stdout : result.stderr;
+        exitCode = result.exitCode;
+      }
+      isSuccessState = (exitCode === 0);
     }
   } catch (error: any) {
-    console.log("[ASK AI ERROR]", error.message);
+    console.error("[ASK AI ERROR]", error.message);
     terminal = error.message;
+    isSuccessState = false;
+  }
 
-    // Create error feedback object
-    const errorFeedback = {
-      message: "Error on the terminal",
-      terminaloutput: error.message,
+  // 6. Feedback & Recursion: If a command was run or an error occurred, feed the result back to the AI
+  if (command || !isSuccessState) {
+    const feedbackContent = {
+      message: isSuccessState ? "Command ran successfully" : "Error on the terminal",
+      terminaloutput: terminal,
       cmdRunByAi: command,
     };
 
-    // Append error feedback to the history (must be stringified JSON string for LLM APIs)
+    // Append the feedback to the messages context list for the AI's next turn
     chatMessages.push({
       role: "user",
-      content: JSON.stringify(errorFeedback, null, 2),
+      content: JSON.stringify(feedbackContent, null, 2),
     });
 
-    retries++;
-    console.log("Retry: ", retries);
-    const response = await AskAI(message, retries, chatMessages);
+    console.log("ChatMessages: ", chatMessages);
+    console.log("Next Turn / Retry: ", retries + 1);
+
+    const nextAccumulated = accumulatedTerminal
+      ? `${accumulatedTerminal}\n${terminal}`
+      : terminal;
+
+    // Recurse to let the AI process the command output and decide the next action
+    const response = await AskAI(
+      message,
+      session,
+      retries + 1,
+      chatMessages,
+      nextAccumulated,
+    );
     return response;
   }
+
+  // 7. Final Response: No more commands to run (base case), return final messages
   return {
     cmd: command,
     msg: aiMsg,
-    terminalOutput: terminal,
+    terminalOutput: accumulatedTerminal || terminal,
   };
 }

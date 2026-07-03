@@ -62,7 +62,6 @@ function parseAIResponse(data: any): string {
 }
 
 export async function apiCall(
-  message: string,
   chatMessages: Array<{ role: string; content: string }>,
 ): Promise<string> {
   try {
