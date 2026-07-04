@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "hey"
+  },
+  {
+    "role": "assistant",
+    "content": "stream has been aborted"
+  },
+  {
+    "role": "user",
+    "content": "hello"
+  },
+  {
+    "role": "assistant",
+    "content": "stream has been aborted"
+  }
+]

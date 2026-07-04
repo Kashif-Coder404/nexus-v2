@@ -4,18 +4,21 @@ import { WebSocketServer, WebSocket } from "ws";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { exec } from "child_process";
-import { promisify } from "util";
-import axios from "axios";
-import { AskAI } from "./askAI.js";
+import chatRoutes from "./routes/chat.routes.js";
+import { extractJSON } from "./AI/askAI.js";
 import { Logs } from "./Logs.js";
+import cors from "cors";
+import { apiCall } from "./AI/AICall.js";
 
 dotenv.config();
-
-const execPromise = promisify(exec);
 const app = express();
 const PORT = process.env.PORT || 3100;
-
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // JSON Parsing Error Handler
@@ -47,53 +50,20 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 // --- 1. HEALTH CHECK ---
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   Logs("Health checking endpoint accessed", "info");
-  res.json({ status: "OK", message: "Nexus v2 monolith is online!" });
-});
-
-// --- 2. HTTP CHAT & EXECUTION LOOP ---
-app.post("/api/chat", async (req, res) => {
-  const { message, session } = req.body;
-  const wss: WebSocketServer = req.app.get("wss");
-
-  if (!message || !session) {
-    res.status(400).json({ error: "Message is required" });
-    return;
-  }
-
-  try {
-    await Logs("Processing new chat message request", "info", { message });
-    // TODO: Step 1. Call AI to get first command & response message
-    const { cmd, msg, terminalOutput } = await AskAI(message, session);
-
-    // TODO: Step 2. Start a loop (e.g. while retry < 6)
-    // TODO: Step 3. Execute command using execPromise(cmd)
-    // TODO: Step 4. Send live command execution stdout/stderr to WebSocket
-    // TODO: Step 5. Feed stdout back to the AI and check if there's a next command
-
-    // Broadcast status to web sockets as a test:
-    broadcast(wss, {
-      event: "system_status",
-      msg: `Received: "${message}". Processing...`,
-    });
-
-    await Logs("Successfully processed chat message", "info", {
-      lastAIMsg: msg,
-      lastCMD: cmd,
-    });
-
-    res.json({
-      lastAIMsg: msg,
-      lastCMD: cmd,
-      terminal: terminalOutput || "Success",
+  res.status(200).send({
+    role: "Nexus",
+    content: {
+      msg: "Hi there! What can I do for you?",
+      cmd: "",
+      terminal: "",
       terminalError: "",
-    });
-  } catch (error: any) {
-    await Logs(error, "error", { message });
-    res.status(500).json({ error: error.message });
-  }
+    },
+  });
 });
+
+app.use("/api/chat", chatRoutes);
 
 // --- 3. SERVER BOOT ---
 const server = http.createServer(app);
@@ -106,13 +76,6 @@ wss.on("connection", (ws: WebSocket) => {
 });
 
 // --- HELPER FUNCTION: BROADCAST TO WEBSOCKETS ---
-function broadcast(wssServer: WebSocketServer, data: object) {
-  wssServer.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
-    }
-  });
-}
 
 server.listen(PORT, () => {
   console.log(`🚀 HTTP Server: http://localhost:${PORT}`);

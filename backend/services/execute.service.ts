@@ -11,7 +11,9 @@ interface ExecutionResponse {
 
 export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
   try {
+    console.log("Executing the command !",cmd); // To be send to the frontend with ws
     const { stdout, stderr } = await exec(cmd);
+    console.log("Command done!"); // ws message
     return { stdout, stderr, exitCode: 0 };
   } catch (error: any) {
     return {

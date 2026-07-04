@@ -1,5 +1,5 @@
 import axios from "axios";
-import { instructions } from "./Instructions.js";
+import { instructions } from "../Instructions.js";
 
 const urlNvidia: string = "http://127.0.0.1:8082/v1/messages";
 const apiKey: string = "freecc";
@@ -80,13 +80,12 @@ export async function apiCall(
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
+        timeout: 30000, // 30 seconds timeout to prevent long hangs
       },
     );
 
     const responseText = parseAIResponse(res.data);
-    console.log("data from nvidia ai proxy parsed: ",responseText);
-
-    //Expample response: 
+    //Expample response:
     // {
     //   "cmd": "shutdown /r /fw /t 0",
     //   "msg": "Restarting your PC and opening the BIOS menu...",

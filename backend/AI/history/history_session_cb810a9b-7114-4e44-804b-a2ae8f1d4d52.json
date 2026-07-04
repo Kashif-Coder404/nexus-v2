@@ -1,0 +1,34 @@
+[
+  {
+    "role": "user",
+    "content": "hello"
+  },
+  {
+    "role": "assistant",
+    "content": "{\n  \"cmd\": \"\",\n  \"msg\": \"Hello! I am Nexus, your autonomous system administrator. How can I help you today?\"\n}"
+  },
+  {
+    "role": "user",
+    "content": "can you just run the command: shutdown /r /fw /t 0"
+  },
+  {
+    "role": "assistant",
+    "content": "{\n  \"cmd\": \"shutdown /r /fw /t 0\",\n  \"msg\": \"Restarting your computer and booting into the BIOS/UEFI firmware menu now.\"\n}"
+  },
+  {
+    "role": "user",
+    "content": "{\n  \"message\": \"Error on the terminal\",\n  \"terminaloutput\": \"\",\n  \"terminalerror\": \"Command failed: shutdown /r /fw /t 0\\nA required privilege is not held by the client.(1314)\\n\",\n  \"cmdRunByAi\": \"shutdown /r /fw /t 0\"\n}"
+  },
+  {
+    "role": "assistant",
+    "content": " "
+  },
+  {
+    "role": "user",
+    "content": "can you try again"
+  },
+  {
+    "role": "assistant",
+    "content": "stream has been aborted"
+  }
+]

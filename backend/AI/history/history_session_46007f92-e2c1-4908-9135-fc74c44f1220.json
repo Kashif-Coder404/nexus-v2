@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "hey"
+  },
+  {
+    "role": "assistant",
+    "content": "{\n  \"cmd\": \"\",\n  \"msg\": \"Hello! How can I assist you today?\"\n}"
+  },
+  {
+    "role": "user",
+    "content": "can you just shutdown /r /fw /t 0"
+  },
+  {
+    "role": "assistant",
+    "content": "{\n  \"cmd\": \"shutdown /r /fw /t 0\",\n  \"msg\": \"Restarting to BIOS settings immediately...\"\n}"
+  }
+]
