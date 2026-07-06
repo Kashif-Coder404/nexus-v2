@@ -5,21 +5,26 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch server.ts",
+    "dev:server": "tsx watch server.ts",
+    "proxy": "wsl -d Ubuntu -e bash -c \"cd ~/fcc/nvidia-nim && ~/.local/bin/uv run uvicorn server:app --host 0.0.0.0 --port 8082\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run proxy\"",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "axios": "^1.18.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.1",
     "@types/ws": "^8.18.1",
+    "concurrently": "^10.0.3",
     "nodemon": "^3.1.14",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"

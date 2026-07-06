@@ -8,14 +8,13 @@ import chatRoutes from "./routes/chat.routes.js";
 import { extractJSON } from "./AI/askAI.js";
 import { Logs } from "./Logs.js";
 import cors from "cors";
-import { apiCall } from "./AI/AICall.js";
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3100;
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000"],
     credentials: true,
   }),
 );

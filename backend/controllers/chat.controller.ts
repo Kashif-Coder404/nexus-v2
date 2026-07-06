@@ -28,7 +28,10 @@ export const sendMessage = async (req: any, res: any) => {
     });
 
     await Logs("Successfully processed chat message", "info", {
-      lastAIMsg: msg,
+      lastAIMsg:
+        msg === "connect ECONNREFUSED 127.0.0.1:8082"
+          ? "Please Start the Proxy Server"
+          : msg,
       lastCMD: cmd,
     });
 

@@ -3,7 +3,7 @@ import { instructions } from "../Instructions.js";
 
 const urlNvidia: string = "http://127.0.0.1:8082/v1/messages";
 const apiKey: string = "freecc";
-const activeModel: string = "claude-3-5-sonnet-20241022";
+const activeModel: string = "claude-3-5-haiku-20241022";
 
 function parseAIResponse(data: any): string {
   let responseText = "";
@@ -72,7 +72,7 @@ export async function apiCall(
         max_tokens: 400,
         system: instructions,
         messages: chatMessages,
-        stream: false, // Request a standard non-streaming JSON response
+        stream: true, // Request a standard non-streaming JSON response
       },
       {
         headers: {
@@ -80,7 +80,7 @@ export async function apiCall(
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
-        timeout: 30000, // 30 seconds timeout to prevent long hangs
+        timeout: 120000, // 120 seconds timeout to accommodate larger models
       },
     );
 

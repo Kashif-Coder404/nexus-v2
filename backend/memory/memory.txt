@@ -1,0 +1,2 @@
+nexus-app=D:\Coding\PROJECTS\NExt\Nexus(ts)\nexus-app
+desired_app_location=D:\Coding\PROJECTS\NExt\Nexus(ts)\nexus-app

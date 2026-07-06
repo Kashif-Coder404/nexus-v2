@@ -1,42 +1,31 @@
-# Nexus v2: Self-Build TypeScript Roadmap
+# Nexus v3: Next Phase Roadmap
 
-This checklist tracks your progress as you build the Nexus AI Assistant with a self-improving skill registry.
-
----
-
-## 🏗️ 1. Project Initialization & Infrastructure
-- [x] **Initialize Node Project:** Run `npm init -y` inside a new `backend` directory.
-- [x] **Install Core Dependencies:** 
-  - Production: `express`, `ws`, `dotenv`, `axios`
-  - Development: `typescript`, `@types/node`, `@types/express`, `@types/ws`, `tsx`, `nodemon`
-- [x] **Configure TypeScript:** Create and set up a strict `tsconfig.json` for NodeNext modules.
+This checklist tracks your upcoming tasks for the next phase of development for the Nexus AI Assistant (now powered by a React Native mobile frontend).
 
 ---
 
-## ⚙️ 2. Backend Core Services & Routing Foundation
-- [ ] **Refactor Routing & Controllers:** Separate raw routes in `server.ts` from the chat loop controller logic.
-- [ ] **Integrate WebSocket Live Streaming:**
-  - Create a WebSocket broadcaster helper.
-  - Pass the WebSocket client socket / broadcaster to the `AskAI` loop.
-  - Stream logs over WebSockets for each step: `ai_thinking` (AI is choosing a command), `cmd_output` (stdout/stderr of the shell), and `system_status` (what state the loop is in).
-- [ ] **Implement `skill.service.ts` (The Registry):**
-  - Read/write custom scripts to a new `backend/skills/` directory.
-  - Read/write metadata registry to `skills.json` (tracking skill names, descriptions, and file paths).
-- [ ] **Integrate Skill Installation in the `AskAI` Execution Loop:**
-  - Check if the AI wants to install a new skill (`parsed.installSkill`) before running commands.
-  - Save the script using `skill.service.ts`.
-  - Feed back registration results to the AI in the loop, allowing immediate execution in the next turn.
+## 🔌 1. Real-Time WebSocket Integration
+- [ ] **Backend WebSockets:** Implement live streaming in `AskAI.ts` so every time the AI runs a command, the stdout/stderr and current thought process are broadcasted to connected clients immediately.
+- [ ] **React Native WebSocket Client:** Upgrade the frontend `fetch` request to a live WebSocket connection (`ws://192.168.x.x:3100`).
+- [ ] **Terminal Drawer UI:** Add a visual "Terminal" or "Debug" panel in the mobile app that shows the live, scrolling shell commands and outputs as the AI executes them in real-time.
 
 ---
 
-## 🧠 3. Self-Improving Skills (Level 4 Agent)
-- [ ] **System Prompt Setup:** Inject the registry list from `skills.json` into the LLM prompt context at start. Guide the AI on how to request a new skill when a capability is missing.
-- [ ] **PowerShell COM Object Utilities:** Teach the AI to generate native commands using `WScript.Shell` for media key actions (mute, play/pause, volume control).
-- [ ] **Register Initial Skills:** Populate `skills.json` with a few default tools (e.g., directory list, disk check).
+## 🧠 2. Self-Improving Skills (Level 4 Agent)
+- [ ] **Skill Registry Setup:** Create a `skills.json` registry on the backend and a dedicated `backend/skills/` directory.
+- [ ] **Prompt Engineering:** Inject the list of available skills into the AI prompt so it knows what custom tools it has.
+- [ ] **Skill Installation Logic:** Teach the AI a new shorthand command (e.g., `install_skill`) that takes raw PowerShell or Node.js code, writes it to a file, and registers it to `skills.json` dynamically so it can use it in future turns.
 
 ---
 
-## 🎨 4. Premium Frontend UI (HTML/CSS/JS)
-- [ ] **Modern Layout:** Setup an `index.html` featuring a sidebar for registered skills, a central chat viewport, and a bottom terminal logs drawer.
-- [ ] **Glassmorphic Theme:** Design a dark-mode CSS with clean gradients, floating glass panels, custom scrollbars, and typing animations.
-- [ ] **WS Integrations:** Connect the frontend to the backend's WebSocket to render live execution feeds and dynamically refresh the sidebar's skill list.
+## 🎨 3. Premium Frontend UI Polish (React Native / Expo)
+- [ ] **Markdown Support:** Integrate a Markdown renderer (like `react-native-markdown-display`) so AI responses with lists and bold text are beautifully formatted.
+- [ ] **Animations & Feedback:** Add smooth typing indicators, Lottie animations, and haptic feedback when commands are executed successfully or fail.
+- [ ] **Persistent Chat History:** Use `AsyncStorage` or `expo-sqlite` to save chat sessions locally on the phone so the history remains after app restarts.
+
+---
+
+## 🔒 4. Production & Security
+- [ ] **Secure Storage for API Keys:** Move API keys (like the proxy/Nvidia key) into a `.env` file instead of hardcoding them in `AICall.ts`.
+- [ ] **Error Boundaries:** Implement robust error boundaries in React Native to prevent the app from crashing on unhandled network errors.
+- [ ] **Release Automation:** Automate the build process using Expo EAS (Expo Application Services) for easier distribution.
