@@ -8,16 +8,26 @@ interface AIResponse {
   terminalOutput: string;
   terminalError: string;
 }
-const maxLimit: number = 6;
+import { maxLimit } from "../Instructions.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    const jsonStr = text.substring(firstBrace, lastBrace + 1);
+    let jsonStr = text.substring(firstBrace, lastBrace + 1);
+    
+    // 1. Strip out bad control characters (raw newlines, tabs) that break JSON.parse inside string literals
+    jsonStr = jsonStr.replace(/[\x00-\x1F]+/g, " ");
+
     try {
       return JSON.parse(jsonStr);
     } catch (e) {
-      console.warn("Found JSON-like structure but failed to parse:", e);
+      // 2. Attempt to auto-fix missing commas between fields (e.g. before "msg":)
+      try {
+        jsonStr = jsonStr.replace(/"\s*(?="msg"\s*:|"cmd"\s*:)/g, '",');
+        return JSON.parse(jsonStr);
+      } catch (e2) {
+        console.warn("Found JSON-like structure but failed to parse even after auto-fix:", e2);
+      }
     }
   }
   return null;
@@ -30,6 +40,7 @@ export async function AskAI(
   chatMessages: Array<{ role: string; content: string }> = [],
   accumulatedTerminal: string = "",
   accumulatedError: string = "",
+  lastExecutedCmd: string = "",
 ): Promise<AIResponse> {
   // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
@@ -44,7 +55,10 @@ export async function AskAI(
   // 2. Initial Setup: Load existing chat history and append the user's new message
   if (retries === 0) {
     chatMessages = await getHistory(session, 20); // Limit history to last 20 messages to prevent infinite growth
-    chatMessages.push({ role: "user", content: message });
+    chatMessages.push({ 
+      role: "user", 
+      content: JSON.stringify({ msg: message, session_token: session }) 
+    });
   }
 
   let aiMsg: string = "";
@@ -119,13 +133,14 @@ export async function AskAI(
       chatMessages,
       nextAccumulated,
       nextAccumulatedErr,
+      command || lastExecutedCmd,
     );
     return response;
   }
 
   // 7. Final Response: No more commands to run (base case), return final messages
   return {
-    cmd: command,
+    cmd: command || lastExecutedCmd,
     msg: aiMsg,
     terminalOutput: accumulatedTerminal || terminal,
     terminalError: accumulatedError || terminalErr,
