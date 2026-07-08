@@ -14,7 +14,7 @@ export function extractJSON(text: string): any {
   const lastBrace = text.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     let jsonStr = text.substring(firstBrace, lastBrace + 1);
-    
+
     // 1. Strip out bad control characters (raw newlines, tabs) that break JSON.parse inside string literals
     jsonStr = jsonStr.replace(/[\x00-\x1F]+/g, " ");
 
@@ -26,10 +26,41 @@ export function extractJSON(text: string): any {
         jsonStr = jsonStr.replace(/"\s*(?="msg"\s*:|"cmd"\s*:)/g, '",');
         return JSON.parse(jsonStr);
       } catch (e2) {
-        console.warn("Found JSON-like structure but failed to parse even after auto-fix:", e2);
+        console.warn(
+          "Found JSON-like structure but failed to parse even after auto-fix:",
+          e2,
+        );
       }
     }
   }
+
+  // 3. Fallback: try to extract 'msg' and 'cmd' using Regex if JSON parsing completely fails.
+  let fallbackMsg: string | undefined = undefined;
+  let fallbackCmd: string | undefined = undefined;
+
+  const msgMatch = text.match(/"msg"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+  if (msgMatch) {
+    try {
+      fallbackMsg = JSON.parse('"' + msgMatch[1] + '"');
+    } catch {
+      fallbackMsg = msgMatch[1];
+    }
+  }
+
+  const cmdMatch = text.match(/"cmd"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+  if (cmdMatch) {
+    try {
+      fallbackCmd = JSON.parse('"' + cmdMatch[1] + '"');
+    } catch {
+      fallbackCmd = cmdMatch[1];
+    }
+  }
+
+  if (fallbackMsg !== undefined || fallbackCmd !== undefined) {
+    console.warn("Salvaged msg/cmd via regex fallback!");
+    return { msg: fallbackMsg || "", cmd: fallbackCmd || "" };
+  }
+
   return null;
 }
 
@@ -55,9 +86,9 @@ export async function AskAI(
   // 2. Initial Setup: Load existing chat history and append the user's new message
   if (retries === 0) {
     chatMessages = await getHistory(session, 20); // Limit history to last 20 messages to prevent infinite growth
-    chatMessages.push({ 
-      role: "user", 
-      content: JSON.stringify({ msg: message, session_token: session }) 
+    chatMessages.push({
+      role: "user",
+      content: JSON.stringify({ msg: message, session_token: session }),
     });
   }
 
@@ -69,15 +100,26 @@ export async function AskAI(
 
   try {
     // 3. Query the AI proxy for the next action/command
+    console.log("CHAT MESSAGES FOR AI: ", chatMessages);
     const data = await apiCall(chatMessages);
     chatMessages.push({ role: "assistant", content: data });
+    console.log("DATA BY API CALL OF AI: ", data);
 
     await setHistory(chatMessages, session);
 
     // 4. Parse the AI response to extract command instructions
     const parsed = extractJSON(data);
-    aiMsg = parsed ? parsed.msg || "" : data;
-    command = parsed ? parsed.cmd || "" : "";
+    if (parsed) {
+      aiMsg = parsed.msg || "";
+      command = parsed.cmd || "";
+    } else {
+      if (typeof data === "string" && (data.includes('{"cmd"') || data.includes('{"msg"'))) {
+        aiMsg = "I encountered an error generating my response due to a malformed output.";
+      } else {
+        aiMsg = data;
+      }
+      command = "";
+    }
 
     // 5. Execute the command if requested by the AI
     if (command) {
@@ -141,7 +183,7 @@ export async function AskAI(
   // 7. Final Response: No more commands to run (base case), return final messages
   return {
     cmd: command || lastExecutedCmd,
-    msg: aiMsg,
+    msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
     terminalOutput: accumulatedTerminal || terminal,
     terminalError: accumulatedError || terminalErr,
   };

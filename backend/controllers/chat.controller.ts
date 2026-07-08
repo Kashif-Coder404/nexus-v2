@@ -36,7 +36,7 @@ export const sendMessage = async (req: any, res: any) => {
     });
 
     res.json({
-      lastAIMsg: msg,
+      lastAIMsg: msg || "No message from AI",
       lastCMD: cmd,
       terminal: terminalOutput || (terminalError ? "" : "Success"),
       terminalError: terminalError || "",
