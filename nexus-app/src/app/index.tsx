@@ -66,24 +66,44 @@ export default function App() {
 
       console.log("Data from the server: ", data);
       if (data) {
+        let finalText = data.lastAIMsg || data.reply || "";
+        if (data.lastCMD) {
+          finalText += (finalText ? "\n\n" : "") + "> " + data.lastCMD;
+        }
+        if (data.terminal) {
+          finalText += (finalText ? "\n\n" : "") + data.terminal;
+        }
+        if (data.terminalError) {
+          finalText += (finalText ? "\n\n" : "") + "Error:\n" + data.terminalError;
+        }
+        if (!finalText) {
+          finalText = "No message received";
+        }
+
         setChatHistory((prev) => [
           ...prev,
           {
             id: Date.now().toString(),
             sender: "AI",
-            text: data.lastAIMsg || data.reply || "No message received",
+            text: finalText,
             status: "sent",
           },
         ]);
       }
     } catch (error: any) {
-      console.log("Error while sending: ", error);
-      // Update the specific message to error
-      setChatHistory((prev) =>
-        prev.map((msg) =>
+      console.error("Error while sending: ", error);
+      // Update the specific message to error and add an AI error message
+      setChatHistory((prev) => [
+        ...prev.map((msg) =>
           msg.id === newMsgId ? { ...msg, status: "error" } : msg,
         ),
-      );
+        {
+          id: Date.now().toString(),
+          sender: "AI",
+          text: "Server is not responding.",
+          status: "sent",
+        },
+      ]);
     } finally {
       setTempMsg("");
     }

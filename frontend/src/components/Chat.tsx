@@ -15,38 +15,54 @@ const Chat = () => {
       { id: Date.now(), role: "user", content: msg },
     ]);
     console.log("Sending message: ", msg, "\nSending Session: ", session);
-    const res: any = await fetch("http://localhost:3100/api/chat/message", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: msg, session: session }),
-    });
-    const data = await res.json();
-    console.log("Response: ", data);
-    //Example:
-    // {
-    // lastAIMsg: 'stream has been aborted',
-    // lastCMD: '',
-    // terminal: 'Success',
-    // terminalError: ''
-    // }
-    const aiMsg = data.lastAIMsg;
-    const cmd: string = data.lastCMD;
-    const terminal: string = data.terminal;
-    const terminalError: string = data.terminalError;
-    setChatHistory((prev: any) => [
-      ...prev,
-      {
-        role: "Nexus",
-        content: {
-          msg: aiMsg,
-          cmd: cmd || "",
-          terminal: terminal || "",
-          terminalError: terminalError || "",
+    try {
+      const res: any = await fetch("http://localhost:3100/api/chat/message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      },
-    ]);
+        body: JSON.stringify({ message: msg, session: session }),
+      });
+      const data = await res.json();
+      console.log("Response: ", data);
+      //Example:
+      // {
+      // lastAIMsg: 'stream has been aborted',
+      // lastCMD: '',
+      // terminal: 'Success',
+      // terminalError: ''
+      // }
+      const aiMsg = data.lastAIMsg;
+      const cmd: string = data.lastCMD;
+      const terminal: string = data.terminal;
+      const terminalError: string = data.terminalError;
+      setChatHistory((prev: any) => [
+        ...prev,
+        {
+          role: "Nexus",
+          content: {
+            msg: aiMsg,
+            cmd: cmd || "",
+            terminal: terminal || "",
+            terminalError: terminalError || "",
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Error: ", error);
+      setChatHistory((prev: any) => [
+        ...prev,
+        {
+          role: "Nexus",
+          content: {
+            msg: error,
+            cmd: "",
+            terminal: "",
+            terminalError: "",
+          },
+        },
+      ]);
+    }
     setMsg("");
     setIsSending(false);
   };
@@ -59,7 +75,7 @@ const Chat = () => {
           if (msg.role === "user") {
             return <UserBox key={key} message={msg.content} />;
           }
-          if (msg.role === "Nexus") {
+          if (msg.role === "nexus") {
             return (
               <AIBOX
                 key={key}
@@ -71,7 +87,10 @@ const Chat = () => {
             );
           }
         })}
-        {isLoading && <div className="loading">Nexus is typing...</div>}
+        {isLoading && chatHistory.length === 0 && (
+          <div className="loading">Connecting to server...</div>
+        )}
+        {isSending && <div className="loading">Nexus is typing...</div>}
       </div>
       <div className="input">
         <input

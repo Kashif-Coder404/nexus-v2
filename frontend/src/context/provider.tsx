@@ -2,8 +2,19 @@ import { createContext, useContext, useEffect, useState, useRef } from "react";
 
 const AppContext = createContext<any>(null);
 export const AppProvider = ({ children }: { children: any }) => {
+  interface ChatHistory {
+    id: number;
+    role: "nexus" | "user";
+    content: {
+      msg: string;
+      cmd: string;
+      terminal: string;
+      terminalError: string;
+    };
+  }
+
   const [isLoading, setIsLoading] = useState(true);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [msg, setMsg] = useState("");
   const [session, setSession] = useState("session_" + crypto.randomUUID());
 
@@ -17,10 +28,11 @@ export const AppProvider = ({ children }: { children: any }) => {
       try {
         const res: any = await fetch("http://localhost:3100/api/health");
         const data = await res.json();
+        console.log("First Message", data);
         // live status of server required!
         if (res.status === 200) {
           setChatHistory([data]);
-          setIsLoading(false); 
+          setIsLoading(false);
           return;
         }
         setIsLoading(false);
@@ -32,11 +44,17 @@ export const AppProvider = ({ children }: { children: any }) => {
           errorMsg = "Server is not responding";
         }
 
-        setChatHistory([
+        setChatHistory((prev: any) => [
+          ...prev,
           {
-            id: 0,
+            id: Date.now(),
             role: "nexus",
-            content: errorMsg,
+            content: {
+              msg: errorMsg,
+              cmd: "",
+              terminal: "",
+              terminalError: "",
+            },
           },
         ]);
         setIsLoading(false);

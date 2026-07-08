@@ -10,6 +10,9 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run proxy\"",
     "build": "tsc",
     "start": "node dist/server.js",
+    "frontend": "cd ../frontend && npm run dev",
+    "app": "cd ../nexus-app && npm run start",
+    "all": "concurrently \"npm run dev\" \"npm run frontend\" \"npm run app\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

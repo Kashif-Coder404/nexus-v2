@@ -47,8 +47,8 @@ Thumbs.db
 # Local app logs & scratch files
 backend/logs/
 backend/TestingArray.ts
-backend/history/*
-
+backend/AI/history/*
+backend/memory/*
 
 #others
 tasks.md

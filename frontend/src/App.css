@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
+  background-color: var(--color-bg);
 }
 
 .app-header {
@@ -29,7 +30,157 @@
 
 .app-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   position: relative;
+}
+
+/* Chat Container */
+.ChatCont {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1rem;
+}
+
+.ChatCont h1 {
+  display: none;
+}
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+/* Message Boxes */
+.UserCont, .AICont {
+  max-width: 80%;
+  padding: 1rem;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.UserCont {
+  align-self: flex-end;
+  background-color: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.AICont {
+  align-self: flex-start;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 2px;
+}
+
+.UserTitle, .AITitle {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.UserContent, .AIContent {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.AICmd {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #000;
+  color: #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.AITerminal {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #0d1117;
+  color: #4ade80;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid #30363d;
+  white-space: pre-wrap;
+}
+
+.AITerminalError {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #450a0a;
+  color: #f87171;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid #7f1d1d;
+  white-space: pre-wrap;
+}
+
+/* Input Area */
+.input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  margin-top: auto;
+}
+
+.input-text {
+  flex: 1;
+  padding: 0.75rem 1rem;
   background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.input-text:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.send {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.send:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 0.5rem 1rem;
 }
