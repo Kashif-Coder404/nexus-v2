@@ -5,10 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  StatusBar,
 } from "react-native";
 import ChatInput from "../components/ChatInput";
-import ChatMessage, { MessageItem } from "../components/ChatMessage";
-
+import ChatBox from "@/components/ChatBox";
+import { MessageItems } from "@/components/ChatBox";
+import { UserProp } from "@/components/UserBox";
+import { AIBoxProps } from "@/components/AiBox";
 export default function App() {
   const [message, setMessage] = useState("");
   const [tempMsg, setTempMsg] = useState("");
@@ -16,14 +19,7 @@ export default function App() {
   const [session, setSession] = useState<string>(
     Date.now().toString(36) + Math.random().toString(36).substring(2),
   );
-  const [chatHistory, setChatHistory] = useState<MessageItem[]>([
-    {
-      id: "1",
-      sender: "AI",
-      text: "Hello! I am your AI assistant.",
-      status: "sent",
-    },
-  ]);
+  const [chatHistory, setChatHistory] = useState<MessageItems[]>([]);
 
   const handleSend = async () => {
     if (!message) return;
@@ -32,14 +28,17 @@ export default function App() {
     setMessage("");
 
     const newMsgId = Date.now().toString();
-    const toSend = {
+    const UserChatMsg: UserProp = {
       id: newMsgId,
-      sender: "user",
-      text: message,
+      role: "user",
+      message: message,
+      time: Date.now().toString(),
       status: "sending",
     };
-    setChatHistory((prev) => [...prev, toSend]);
-
+    setChatHistory((prev: any) => {
+      return [...prev, UserChatMsg];
+    });
+    const apiKey: any = process.env.EXPO_PUBLIC_NEXUS_API_KEY;
     try {
       const response = await fetch(
         "http://192.168.31.116:3100/api/chat/message",
@@ -47,9 +46,10 @@ export default function App() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            message: message,
+            message: message.toLowerCase(),
             session: session,
           }),
         },
@@ -58,52 +58,51 @@ export default function App() {
       const data: any = await response.json(); // Parses the response from the server
 
       // Update the specific message to sent
-      setChatHistory((prev) =>
-        prev.map((msg) =>
+      setChatHistory((prev: any) => {
+        return prev.map((msg: any) =>
           msg.id === newMsgId ? { ...msg, status: "sent" } : msg,
-        ),
-      );
+        );
+      });
 
       console.log("Data from the server: ", data);
-      if (data) {
-        let finalText = data.lastAIMsg || data.reply || "";
-        if (data.lastCMD) {
-          finalText += (finalText ? "\n\n" : "") + "> " + data.lastCMD;
-        }
-        if (data.terminal) {
-          finalText += (finalText ? "\n\n" : "") + data.terminal;
-        }
-        if (data.terminalError) {
-          finalText += (finalText ? "\n\n" : "") + "Error:\n" + data.terminalError;
-        }
-        if (!finalText) {
-          finalText = "No message received";
-        }
-
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            sender: "AI",
-            text: finalText,
-            status: "sent",
-          },
-        ]);
-      }
+      const aiResponse: any = data.data;
+      const aiMsg: string = aiResponse.lastAIMsg;
+      const terminal: string =
+        aiResponse.terminal === "success" ? "" : aiResponse.terminal;
+      const cmd: string = aiResponse.lastCMD;
+      const terminalOutput: string =
+        aiResponse.terminalOutpt || aiResponse.terminalError;
+      const AIChatMsg: AIBoxProps = {
+        id: Date.now().toString(),
+        role: "nexus",
+        content: {
+          AiMsg: aiMsg,
+          terminal: terminal,
+          terminalOutput: terminalOutput,
+          cmd: cmd,
+        },
+      };
+      setChatHistory((prev) => [...prev, AIChatMsg]);
     } catch (error: any) {
       console.error("Error while sending: ", error);
       // Update the specific message to error and add an AI error message
-      setChatHistory((prev) => [
-        ...prev.map((msg) =>
-          msg.id === newMsgId ? { ...msg, status: "error" } : msg,
-        ),
-        {
-          id: Date.now().toString(),
-          sender: "AI",
-          text: "Server is not responding.",
-          status: "sent",
-        },
-      ]);
+      setChatHistory((prev: any) => {
+        return [
+          ...prev.map((msg: any) =>
+            msg.id === newMsgId ? { ...msg, status: "error" } : msg,
+          ),
+          {
+            id: Date.now().toString(),
+            role: "nexus",
+            content: {
+              AiMsg: "Server is not responding.",
+              terminal: "",
+              terminalOutput: "",
+              cmd: "",
+            },
+          },
+        ];
+      });
     } finally {
       setTempMsg("");
     }
@@ -115,7 +114,10 @@ export default function App() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <Text style={styles.header}>AI ChatApp</Text>
+      <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
+      <Text style={styles.header}>
+        NEXUS <Text style={styles.headerAccent}>CONSOLE</Text>
+      </Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -126,7 +128,7 @@ export default function App() {
         onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
         {chatHistory.map((item) => (
-          <ChatMessage key={item.id} item={item} />
+          <ChatBox key={item.id} item={item} />
         ))}
       </ScrollView>
 
@@ -143,18 +145,22 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-    backgroundColor: "#F0F4F8",
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    backgroundColor: "#0B0F19", // Deep dark space background
   },
   header: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#102A43",
-    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#F8FAFC",
+    marginBottom: 12,
     textAlign: "center",
+    letterSpacing: 2,
+  },
+  headerAccent: {
+    color: "#2563EB", // Accent blue matching buttons
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
 });

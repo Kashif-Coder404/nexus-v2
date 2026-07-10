@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppContext } from "../context/provider";
 import AIBOX from "./AIBox";
 import UserBox from "./UserBox";
@@ -7,6 +7,9 @@ const Chat = () => {
   const { isLoading, chatHistory, setChatHistory, msg, setMsg, session } =
     useAppContext();
   const [isSending, setIsSending] = useState(false);
+  useEffect(() => {
+    console.log(chatHistory);
+  }, [chatHistory]);
   const sendMessage = async () => {
     if (!msg) return;
     setIsSending(true);
@@ -16,30 +19,30 @@ const Chat = () => {
     ]);
     console.log("Sending message: ", msg, "\nSending Session: ", session);
     try {
+      const apiKey = import.meta.env.VITE_NEXUS_API_KEY || "";
       const res: any = await fetch("http://localhost:3100/api/chat/message", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({ message: msg, session: session }),
       });
       const data = await res.json();
       console.log("Response: ", data);
-      //Example:
-      // {
-      // lastAIMsg: 'stream has been aborted',
-      // lastCMD: '',
-      // terminal: 'Success',
-      // terminalError: ''
-      // }
-      const aiMsg = data.lastAIMsg;
-      const cmd: string = data.lastCMD;
-      const terminal: string = data.terminal;
-      const terminalError: string = data.terminalError;
+      // lastAIMsg: "connect ECONNREFUSED 127.0.0.1:8082";
+      // lastCMD: "";
+      // terminal: "Success";
+      // terminalError: "";
+      const aiResponse = data.data;
+      const aiMsg = aiResponse.lastAIMsg;
+      const cmd: string = aiResponse.lastCMD;
+      const terminal: string = aiResponse.terminal;
+      const terminalError: string = aiResponse.terminalError;
       setChatHistory((prev: any) => [
         ...prev,
         {
-          role: "Nexus",
+          role: "nexus",
           content: {
             msg: aiMsg,
             cmd: cmd || "",
@@ -48,12 +51,13 @@ const Chat = () => {
           },
         },
       ]);
+      console.log(chatHistory);
     } catch (error) {
       console.error("Error: ", error);
       setChatHistory((prev: any) => [
         ...prev,
         {
-          role: "Nexus",
+          role: "nexus",
           content: {
             msg: error,
             cmd: "",

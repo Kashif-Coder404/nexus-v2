@@ -1,14 +1,15 @@
 import { Logs } from "../Logs.js";
-import { WebSocketServer } from "ws";
 import { AskAI } from "../AI/askAI.js";
-import { broadcast } from "../services/ws.service.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { message, session } = req.body;
-  const wss: WebSocketServer = req.app.get("wss");
 
   if (!message || !session) {
-    res.status(400).json({ error: "Message is required" });
+    res.status(400).json({
+      success: false,
+      message: "Message and session are required",
+      data: null
+    });
     return;
   }
   try {
@@ -21,11 +22,7 @@ export const sendMessage = async (req: any, res: any) => {
     // TODO: Step 4. Send live command execution stdout/stderr to WebSocket
     // TODO: Step 5. Feed stdout back to the AI and check if there's a next command
 
-    // Broadcast status to web sockets as a test:
-    broadcast(wss, {
-      event: "system_status",
-      msg: `Received: "${message}". Processing...`,
-    });
+
 
     await Logs("Successfully processed chat message", "info", {
       lastAIMsg:
@@ -36,23 +33,34 @@ export const sendMessage = async (req: any, res: any) => {
     });
 
     res.json({
-      lastAIMsg: msg || "No message from AI",
-      lastCMD: cmd,
-      terminal: terminalOutput || (terminalError ? "" : "Success"),
-      terminalError: terminalError || "",
+      success: true,
+      message: "Chat message processed successfully",
+      data: {
+        lastAIMsg: msg || "No message from AI",
+        lastCMD: cmd,
+        terminal: terminalOutput || (terminalError ? "" : "Success"),
+        terminalError: terminalError || "",
+      }
     });
   } catch (error: any) {
     await Logs(error, "error", { message });
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message || "An unexpected error occurred",
+      data: null
+    });
   }
 };
 
 export const chatRouteChecker = async (req: any, res: any) => {
   const { message, session } = req.body;
-  const wss: WebSocketServer = req.app.get("wss");
 
   if (!message || !session) {
-    res.status(400).json({ error: "Message is required" });
+    res.status(400).json({
+      success: false,
+      message: "Message and session are required",
+      data: null
+    });
     return;
   }
 
@@ -70,16 +78,21 @@ export const chatRouteChecker = async (req: any, res: any) => {
     }
     console.log("Data sending: ", resMsg);
     res.status(200).json({
-      lastAIMsg: resMsg,
-      lastCMD: "",
-      terminal: "",
-      terminalError: "",
+      success: true,
+      message: "Message processed successfully",
+      data: {
+        lastAIMsg: resMsg,
+        lastCMD: "",
+        terminal: "",
+        terminalError: "",
+      }
     });
     return;
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({
-      status: "Failed",
-      aiMsg: `Error while getting answer: \n${err}`,
+      success: false,
+      message: err.message || String(err),
+      data: null
     });
     return;
   }

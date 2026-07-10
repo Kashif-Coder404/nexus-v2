@@ -100,10 +100,8 @@ export async function AskAI(
 
   try {
     // 3. Query the AI proxy for the next action/command
-    console.log("CHAT MESSAGES FOR AI: ", chatMessages);
     const data = await apiCall(chatMessages);
     chatMessages.push({ role: "assistant", content: data });
-    console.log("DATA BY API CALL OF AI: ", data);
 
     await setHistory(chatMessages, session);
 
@@ -113,8 +111,12 @@ export async function AskAI(
       aiMsg = parsed.msg || "";
       command = parsed.cmd || "";
     } else {
-      if (typeof data === "string" && (data.includes('{"cmd"') || data.includes('{"msg"'))) {
-        aiMsg = "I encountered an error generating my response due to a malformed output.";
+      if (
+        typeof data === "string" &&
+        (data.includes('{"cmd"') || data.includes('{"msg"'))
+      ) {
+        aiMsg =
+          "I encountered an error generating my response due to a malformed output.";
       } else {
         aiMsg = data;
       }
@@ -127,6 +129,14 @@ export async function AskAI(
       if (command === "history") {
         const chatHistory = await getHistory(session, 20);
         terminal = JSON.stringify(chatHistory, null, 2);
+      } else if (command.includes("Delete History")) {
+        await setHistory([], session);
+        return {
+          cmd: "",
+          msg: "History file Deleted SuccessFully",
+          terminalOutput: "",
+          terminalError: "",
+        };
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;

@@ -85,12 +85,6 @@ export async function apiCall(
     );
 
     const responseText = parseAIResponse(res.data);
-    //Expample response:
-    // {
-    //   "cmd": "shutdown /r /fw /t 0",
-    //   "msg": "Restarting your PC and opening the BIOS menu...",
-    //   "done": true
-    // }
     return responseText;
   } catch (error: any) {
     console.log("[API CALL ERROR]\n");

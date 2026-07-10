@@ -28,6 +28,7 @@ export async function setHistory(
     const logFilePath = getFilePath(session);
 
     if (await fileExists(logFilePath)) {
+      console.log("Updated history with data: ", data);
       console.log(`History file updated for session: ${session}`);
     } else {
       console.log(`Creating new history file for session: ${session}`);
@@ -53,35 +54,5 @@ export async function getHistory(
   } catch (error) {
     console.log("No history found for session: ", session);
     return [];
-  }
-}
-
-export async function appendHistory(
-  data: Array<{ role: string; content: string }>,
-  session: string,
-): Promise<boolean> {
-  try {
-    const logFilePath = getFilePath(session);
-    // Get existing history or start with an empty array if not present
-    const latestData = await getHistory(session);
-    latestData.push(...data);
-
-    await fs.mkdir(path.dirname(logFilePath), { recursive: true });
-    await fs.writeFile(logFilePath, JSON.stringify(latestData, null, 2));
-    console.log(`Appended history for session: ${session}`);
-    return true;
-  } catch (error) {
-    console.error("Error appending history:", error);
-    return false;
-  }
-}
-
-export async function deleteHistory(session: string): Promise<boolean> {
-  try {
-    const logFilePath = getFilePath(session);
-    await fs.unlink(logFilePath);
-    return true;
-  } catch (error) {
-    return false;
   }
 }

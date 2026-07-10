@@ -30,8 +30,24 @@ export const AppProvider = ({ children }: { children: any }) => {
         const data = await res.json();
         console.log("First Message", data);
         // live status of server required!
+        const aiResponse = data.data;
+        const aiMsg = aiResponse.lastAIMsg;
+        const cmd: string = aiResponse.lastCMD;
+        const terminal: string = aiResponse.terminal;
+        const terminalError: string = aiResponse.terminalError;
+        const chatData: ChatHistory = {
+          id: Date.now(),
+          role: "nexus",
+          content: {
+            msg: aiMsg,
+            cmd: cmd || "",
+            terminal: terminal || "",
+            terminalError: terminalError || "",
+          },
+        };
         if (res.status === 200) {
-          setChatHistory([data]);
+          setChatHistory([chatData]);
+          console.log(chatHistory);
           setIsLoading(false);
           return;
         }
