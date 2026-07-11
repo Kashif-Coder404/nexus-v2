@@ -8,7 +8,8 @@ interface AIResponse {
   terminalOutput: string;
   terminalError: string;
 }
-import { maxLimit } from "../Instructions.js";
+import { maxLimit } from "./instructions/Instructions.js";
+import { broadCastMessage } from "../services/websocket.service.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -100,9 +101,9 @@ export async function AskAI(
 
   try {
     // 3. Query the AI proxy for the next action/command
-    const data = await apiCall(chatMessages);
+    const data: any = await apiCall(chatMessages);
+    console.log("data from ai: ", data);
     chatMessages.push({ role: "assistant", content: data });
-
     await setHistory(chatMessages, session);
 
     // 4. Parse the AI response to extract command instructions
@@ -121,6 +122,17 @@ export async function AskAI(
         aiMsg = data;
       }
       command = "";
+    }
+    if (parsed.workingon) {
+      broadCastMessage({
+        type: "ai_data",
+        data: { workingon: parsed.workingon },
+      });
+    } else if (!parsed.workingon) {
+      broadCastMessage({
+        type: "ai_done",
+        data: { workingon: parsed.workingon },
+      });
     }
 
     // 5. Execute the command if requested by the AI

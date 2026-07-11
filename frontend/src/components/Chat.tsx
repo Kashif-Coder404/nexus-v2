@@ -6,10 +6,33 @@ import UserBox from "./UserBox";
 const Chat = () => {
   const { isLoading, chatHistory, setChatHistory, msg, setMsg, session } =
     useAppContext();
+  const [workingOn, setWorkingOn] = useState("");
   const [isSending, setIsSending] = useState(false);
   useEffect(() => {
-    console.log(chatHistory);
-  }, [chatHistory]);
+    const wss = new WebSocket("ws://192.168.31.116:3100");
+    wss.onopen = () => {
+      console.log("Connected to Nexus Server");
+    };
+    wss.onmessage = (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        console.log("Data from broadcasting!: ", data);
+
+        if (data.type === "ai_data") {
+          setWorkingOn(data.data.workingon);
+        }
+        if (data.type === "ai_done") {
+          setWorkingOn(data.data.workingon);
+        }
+      } catch (error) {
+        console.error("Error: ", error);
+      }
+    };
+    return () => {
+      wss.close();
+    };
+  }, []);
   const sendMessage = async () => {
     if (!msg) return;
     setIsSending(true);
@@ -83,18 +106,25 @@ const Chat = () => {
             return (
               <AIBOX
                 key={key}
-                message={msg.content.msg || msg.content.aiMsg}
-                cmd={msg.content.cmd}
-                terminal={msg.content.terminal}
-                terminalError={msg.content.terminalError}
+                message={msg.content?.msg || msg.content?.aiMsg}
+                cmd={msg.content?.cmd || ""}
+                terminal={msg.content?.terminal || ""}
+                terminalError={msg.content?.terminalError || ""}
               />
             );
           }
         })}
+        {workingOn && (
+          <div className="w-full flex justify-center my-2">
+            <span className="text-sm italic text-gray-400 animate-pulse loading">
+              {workingOn}...
+            </span>
+          </div>
+        )}
         {isLoading && chatHistory.length === 0 && (
           <div className="loading">Connecting to server...</div>
         )}
-        {isSending && <div className="loading">Nexus is typing...</div>}
+        {isSending && <div className="loading">Sending the Request...</div>}
       </div>
       <div className="input">
         <input

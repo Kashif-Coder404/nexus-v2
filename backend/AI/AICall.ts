@@ -1,5 +1,5 @@
 import axios from "axios";
-import { instructions } from "../Instructions.js";
+import { instructions } from "./instructions/Instructions.js";
 
 const urlNvidia: string = "http://127.0.0.1:8082/v1/messages";
 const apiKey: string = "freecc";
