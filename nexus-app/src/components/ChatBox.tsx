@@ -6,10 +6,11 @@ import {
   View,
   Text,
 } from "react-native";
-import UserBox, { UserProp } from "./UserBox";
-import AiBox, { AIBoxProps } from "./AiBox";
-import { MessageItems, useAppContext } from "@/context/provider";
+import UserBox from "./UserBox";
+import AiBox from "./AiBox";
+import { useAppContext } from "@/context/provider"; // from chats.ts!
 import initWebsocket from "../../services/websocket.service";
+import { AIBoxProps, MessageItems, UserProp } from "@/types/chat";
 
 const ChatBox = () => {
   const scrollViewRef = useRef<ScrollView>(null);
