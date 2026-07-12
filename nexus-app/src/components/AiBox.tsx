@@ -1,5 +1,13 @@
+import { useAppContext } from "@/context/provider";
 import React from "react";
-import { Text, View, StyleSheet, Platform } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 
 export interface AIBoxProps {
   id: string;
@@ -7,30 +15,52 @@ export interface AIBoxProps {
   content: {
     AiMsg: string;
     terminal: string;
-    terminalOutput: string;
+    terminalError: string;
     cmd: string;
   };
 }
 
-const AiBox = ({ role, content }: AIBoxProps) => {
-  const { AiMsg, terminal, terminalOutput, cmd } = content;
+const AiBox = ({ id, role, content }: AIBoxProps) => {
+  const {
+    AiMsg = "",
+    terminal = "",
+    terminalError = "",
+    cmd = "",
+  } = content || {};
   return (
-    <View style={styles.mainBox}>
+    <View style={styles.mainBox} key={id}>
       <View style={styles.box}>
         <Text style={styles.roleText}>{role}</Text>
         <View style={styles.terminalCont}>
           <Text style={styles.aiMsg}>{AiMsg}</Text>
-          <>
+          <View>
             {cmd && (
               <View style={styles.cmdCont}>
                 <Text style={styles.prompt}>{"$>"}</Text>
                 <Text style={styles.cmd}>{cmd}</Text>
               </View>
             )}
-            {terminalOutput && (
-              <Text style={styles.terminalOutput}>{terminalOutput}</Text>
-            )}
-          </>
+            {terminal ? (
+              <ScrollView
+                style={styles.terminalScroll}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                persistentScrollbar={true}
+              >
+                <Text style={styles.terminalOutput}>{terminal}</Text>
+              </ScrollView>
+            ) : null}
+            {terminalError ? (
+              <ScrollView
+                style={styles.terminalScroll}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                persistentScrollbar={true}
+              >
+                <Text style={styles.terminalError}>{terminalError}</Text>
+              </ScrollView>
+            ) : null}
+          </View>
         </View>
       </View>
     </View>
@@ -90,14 +120,23 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
     flex: 1,
   },
+  terminalScroll: {
+    maxHeight: 150,
+    marginTop: 4,
+    borderRadius: 6,
+    backgroundColor: "#080C14",
+    padding: 8,
+  },
   terminalOutput: {
     color: "#34D399", // Neon emerald terminal output
     fontSize: 12,
     fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    backgroundColor: "#080C14",
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 4,
+    lineHeight: 16,
+  },
+  terminalError: {
+    color: "#EF4444", // Bright red for error output
+    fontSize: 12,
+    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
     lineHeight: 16,
   },
 });

@@ -10,7 +10,7 @@ export interface UserProp {
   status: "sent" | "sending" | "error";
 }
 
-const UserBox = ({ role, message, time, status }: UserProp) => {
+const UserBox = ({ id, role, message, time, status }: UserProp) => {
   const displayTime = isNaN(Number(time))
     ? time
     : new Date(Number(time)).toLocaleTimeString([], {
@@ -19,7 +19,7 @@ const UserBox = ({ role, message, time, status }: UserProp) => {
       });
 
   return (
-    <View style={styles.userCont} className="user-cont">
+    <View style={styles.userCont} className="user-cont" key={id}>
       <View style={styles.box} className="box">
         <Text style={styles.senderName} className="sender-name capitalize">
           {role}
@@ -34,7 +34,15 @@ const UserBox = ({ role, message, time, status }: UserProp) => {
         </Text>
       </View>
       <View style={styles.statusCont}>
-        <Text style={styles.statusText}>{status.toUpperCase()}</Text>
+        <Text
+          style={[
+            styles.statusText,
+            status === "sending" && styles.statusSendingText,
+            status === "error" && styles.statusErrorText,
+          ]}
+        >
+          {status ? status.toUpperCase() : ""}
+        </Text>
       </View>
     </View>
   );
@@ -85,15 +93,13 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#29ab30ff",
+    color: "#22c55e", // Tailwind green-500 for sent
   },
   statusErrorText: {
-    fontSize: 10,
-    color: "#94A3B8",
+    color: "#ef4444", // Tailwind red-500 for error
   },
   statusSendingText: {
-    fontSize: 10,
-    color: "#1e4a88ff",
+    color: "#94a3b8", // Tailwind slate-400 for sending
   },
 });
 

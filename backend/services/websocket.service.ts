@@ -5,11 +5,11 @@ let wss: WebSocketServer;
 const initWebsocket = (server: Server) => {
   wss = new WebSocketServer({ server });
   wss.on("connection", (ws: WebSocket, req) => {
-    ws.on("message", (event) => {
+    ws.on("message", (event: any) => {
       const data = event.toString();
 
       //BroadCasting!
-      wss.clients.forEach((client) => {
+      wss.clients.forEach((client: WebSocket) => {
         if (client.readyState === 1) {
           client.send(data);
         }
@@ -24,10 +24,10 @@ const initWebsocket = (server: Server) => {
 const broadCastMessage = (data: any) => {
   if (!wss) return;
 
-  const message = typeof data === "string" ? data : JSON.stringify(data);
-  wss.clients.forEach((client) => {
+  const dataStr = typeof data === "string" ? data : JSON.stringify(data);
+  wss.clients.forEach((client: WebSocket) => {
     if (client.readyState === 1) {
-      client.send(message);
+      client.send(dataStr);
     }
   });
 };

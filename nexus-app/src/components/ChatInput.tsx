@@ -1,3 +1,4 @@
+import { useAppContext } from "@/context/provider";
 import React from "react";
 import {
   View,
@@ -8,20 +9,10 @@ import {
   Platform,
 } from "react-native";
 
-type ChatInputProps = {
-  message: string;
-  setMessage: (text: string) => void;
-  tempMsg: string;
-  onSend: () => void;
-};
 
-export default function ChatInput({
-  message,
-  setMessage,
-  tempMsg,
-  onSend,
-}: ChatInputProps) {
-  const isSendDisabled = !message || !!tempMsg;
+export default function ChatInput() {
+  const { message, setMessage, handleSend } = useAppContext();
+  const isSendDisabled = !message;
 
   return (
     <View style={styles.inputContainer}>
@@ -31,21 +22,15 @@ export default function ChatInput({
         placeholder="Type a message..."
         placeholderTextColor="#64748B" // Slate placeholder
         onChangeText={setMessage}
-        onSubmitEditing={!isSendDisabled ? onSend : undefined}
+        onSubmitEditing={!isSendDisabled ? handleSend : undefined}
         keyboardAppearance="dark" // Sleek iOS dark keyboard
       />
       <TouchableOpacity
-        style={[
-          styles.sendButton,
-          isSendDisabled && styles.sendButtonDisabled,
-          !!tempMsg && styles.sendingButtonState,
-        ]}
-        onPress={onSend}
+        style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
+        onPress={handleSend}
         disabled={isSendDisabled}
       >
-        <Text style={styles.sendButtonText}>
-          {tempMsg ? "..." : "Send"}
-        </Text>
+        <Text style={styles.sendButtonText}>Send</Text>
       </TouchableOpacity>
     </View>
   );
@@ -105,4 +90,3 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
-

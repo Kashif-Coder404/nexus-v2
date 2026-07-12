@@ -143,6 +143,10 @@ export async function AskAI(
         terminal = JSON.stringify(chatHistory, null, 2);
       } else if (command.includes("Delete History")) {
         await setHistory([], session);
+        broadCastMessage({
+          type: "ai_done",
+          data: { workingon: "" },
+        });
         return {
           cmd: "",
           msg: "History file Deleted SuccessFully",

@@ -1,5 +1,6 @@
 import { Logs } from "../Logs.js";
 import { AskAI } from "../AI/askAI.js";
+import { broadCastMessage } from "../services/websocket.service.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { message, session } = req.body;
@@ -8,10 +9,16 @@ export const sendMessage = async (req: any, res: any) => {
     res.status(400).json({
       success: false,
       message: "Message and session are required",
-      data: null
+      data: null,
     });
     return;
   }
+  broadCastMessage({
+    type: "acknowledged",
+    status: "received",
+    message: message,
+  });
+
   try {
     await Logs("Processing new chat message request", "info", { message });
     const { cmd, msg, terminalOutput, terminalError } = await AskAI(
@@ -21,8 +28,6 @@ export const sendMessage = async (req: any, res: any) => {
 
     // TODO: Step 4. Send live command execution stdout/stderr to WebSocket
     // TODO: Step 5. Feed stdout back to the AI and check if there's a next command
-
-
 
     await Logs("Successfully processed chat message", "info", {
       lastAIMsg:
@@ -40,14 +45,14 @@ export const sendMessage = async (req: any, res: any) => {
         lastCMD: cmd,
         terminal: terminalOutput || (terminalError ? "" : "Success"),
         terminalError: terminalError || "",
-      }
+      },
     });
   } catch (error: any) {
     await Logs(error, "error", { message });
     res.status(500).json({
       success: false,
       message: error.message || "An unexpected error occurred",
-      data: null
+      data: null,
     });
   }
 };
@@ -59,7 +64,7 @@ export const chatRouteChecker = async (req: any, res: any) => {
     res.status(400).json({
       success: false,
       message: "Message and session are required",
-      data: null
+      data: null,
     });
     return;
   }
@@ -85,14 +90,14 @@ export const chatRouteChecker = async (req: any, res: any) => {
         lastCMD: "",
         terminal: "",
         terminalError: "",
-      }
+      },
     });
     return;
   } catch (err: any) {
     res.status(500).json({
       success: false,
       message: err.message || String(err),
-      data: null
+      data: null,
     });
     return;
   }
