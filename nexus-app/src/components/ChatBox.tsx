@@ -85,6 +85,7 @@ const ChatBox = () => {
 
   return (
     <ScrollView
+      style={{ flex: 1 }}
       contentContainerStyle={styles.scrollContent}
       ref={scrollViewRef}
       onContentSizeChange={() => {

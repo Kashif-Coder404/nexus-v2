@@ -1,3 +1,6 @@
 nexus-app=D:\Coding\PROJECTS\NExt\Nexus\nexus-app
 desired_app_location=D:\Coding\PROJECTS\NExt\Nexus\nexus-app
 chromeInstallationStatus=false 
+nexus-app=D:\Coding\PROJECTS\NExt\Nexus\nexus-app
+desired_app_location=D:\Coding\PROJECTS\NExt\Nexus\nexus-app
+chromeInstallationStatus=false 

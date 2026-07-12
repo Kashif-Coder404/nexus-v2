@@ -8,17 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
-
-export interface AIBoxProps {
-  id: string;
-  role: "nexus";
-  content: {
-    AiMsg: string;
-    terminal: string;
-    terminalError: string;
-    cmd: string;
-  };
-}
+import { AIBoxProps } from "@/types/chat";
 
 const AiBox = ({ id, role, content }: AIBoxProps) => {
   const {

@@ -1,14 +1,6 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
-
-export interface UserProp {
-  id: string;
-  role: "user";
-  message: string;
-  content?: never;
-  time: string;
-  status: "sent" | "sending" | "error";
-}
+import { UserProp } from "@/types/chat";
 
 const UserBox = ({ id, role, message, time, status }: UserProp) => {
   const displayTime = isNaN(Number(time))
