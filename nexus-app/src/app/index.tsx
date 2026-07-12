@@ -12,10 +12,8 @@ import ChatBox from "@/components/ChatBox";
 import BiometricDemo from "@/components/BiometricDemo";
 
 export default function App() {
-  const [isTesting, setIsTesting] = useState(true);
-  return isTesting ? (
-    <BiometricDemo />
-  ) : (
+  const [isTesting, setIsTesting] = useState(false);
+  return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}

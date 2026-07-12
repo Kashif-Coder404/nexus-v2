@@ -53,17 +53,31 @@ const ChatBox = () => {
     };
   }, []);
 
+  const isError = /fail|error/i.test(isWorkingOn);
+  const isSuccess = /success/i.test(isWorkingOn);
+  const hideSpinner = isError || isSuccess || /authenticate/i.test(isWorkingOn);
+
   const workingBOX = (
     <View style={styles.mainBox}>
       <View style={styles.box}>
         <Text style={styles.roleText}>Nexus</Text>
         <View style={styles.workingCont}>
-          <ActivityIndicator
-            size="small"
-            color="#38BDF8"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.workingText}>{isWorkingOn}...</Text>
+          {!hideSpinner && (
+            <ActivityIndicator
+              size="small"
+              color="#38BDF8"
+              style={{ marginRight: 8 }}
+            />
+          )}
+          <Text
+            style={[
+              styles.workingText,
+              isError && styles.errorText,
+              isSuccess && styles.successText,
+            ]}
+          >
+            {isWorkingOn}...
+          </Text>
         </View>
       </View>
     </View>
@@ -140,6 +154,16 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 14,
     fontStyle: "italic",
+  },
+  errorText: {
+    color: "#F87171", // Soft vibrant red
+    fontWeight: "bold",
+    fontStyle: "normal",
+  },
+  successText: {
+    color: "#4ADE80", // Soft vibrant green
+    fontWeight: "bold",
+    fontStyle: "normal",
   },
   header: {
     fontSize: 20,

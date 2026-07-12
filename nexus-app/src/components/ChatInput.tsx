@@ -9,10 +9,9 @@ import {
   Platform,
 } from "react-native";
 
-
 export default function ChatInput() {
-  const { message, setMessage, handleSend } = useAppContext();
-  const isSendDisabled = !message;
+  const { message, setMessage, handleSend, isResponsed } = useAppContext();
+  const isSendDisabled = !message || !isResponsed;
 
   return (
     <View style={styles.inputContainer}>
