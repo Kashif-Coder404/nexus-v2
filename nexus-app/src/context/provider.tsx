@@ -28,8 +28,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const handleSend = async () => {
     if (!message) return;
-
-    console.log("Message: ", message);
     const lowerCasedMsg: string = message.toLowerCase();
     if (
       (lowerCasedMsg.includes("shutdown") ||

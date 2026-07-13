@@ -1,11 +1,8 @@
-import { useAppContext } from "@/context/provider";
-import React from "react";
 import {
   Text,
   View,
   StyleSheet,
   Platform,
-  ActivityIndicator,
   ScrollView,
 } from "react-native";
 import { AIBoxProps } from "@/types/chat";
