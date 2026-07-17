@@ -85,10 +85,9 @@ export async function apiCall(
     );
 
     const responseText = parseAIResponse(res.data);
+    console.log("AI RESPONSE FROM API: ", responseText);
     return responseText;
   } catch (error: any) {
-    console.log("[API CALL ERROR]\n");
-    console.log("Error: ", error.message);
     return error.message;
   }
 }

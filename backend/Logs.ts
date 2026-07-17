@@ -63,18 +63,6 @@ export async function Logs(
     // Append to file as a JSON Line
     await fs.appendFile(logFilePath, JSON.stringify(logEntry) + "\n", "utf8");
 
-    // Color code console outputs for better readability in terminal
-    let color = "\x1b[32m"; // green (info)
-    if (level === "error") color = "\x1b[31m"; // red
-    if (level === "warn") color = "\x1b[33m"; // yellow
-    if (level === "debug") color = "\x1b[36m"; // cyan
-    const reset = "\x1b[0m";
-
-    console.log(
-      `[${logEntry.timestamp}] ${color}[${level.toUpperCase()}]${reset} ${message}`,
-      data ? JSON.stringify(data) : ""
-    );
-
     return true;
   } catch (error) {
     console.error("Failed to write JSON log:", error);

@@ -24,7 +24,7 @@ const AiBox = ({ id, role, content }: AIBoxProps) => {
             {cmd && (
               <View style={styles.cmdCont}>
                 <Text style={styles.prompt}>{"$>"}</Text>
-                <Text style={styles.cmd}>{cmd}</Text>
+                <Text style={styles.cmd}>{typeof cmd === "string" ? cmd : JSON.stringify(cmd, null, 2)}</Text>
               </View>
             )}
             {terminal ? (

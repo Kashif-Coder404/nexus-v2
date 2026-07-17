@@ -38,7 +38,7 @@ export default function ChatInput() {
 const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
-    paddingVertical: 12,
+    paddingVertical: 5,
     paddingHorizontal: 16,
     backgroundColor: "#0D111A", // Dark container matching background
     borderTopWidth: 1,

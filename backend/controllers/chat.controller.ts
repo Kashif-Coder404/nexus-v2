@@ -21,11 +21,22 @@ export const sendMessage = async (req: any, res: any) => {
 
   try {
     await Logs("Processing new chat message request", "info", { message });
+    broadCastMessage({
+      type: "ai_data",
+      data: {
+        workingon: `Working on...`,
+      },
+    });
     const { cmd, msg, terminalOutput, terminalError } = await AskAI(
       message,
       session,
     );
-
+    broadCastMessage({
+      type: "ai_done",
+      data: {
+        workingon: "",
+      },
+    });
     // TODO: Step 4. Send live command execution stdout/stderr to WebSocket
     // TODO: Step 5. Feed stdout back to the AI and check if there's a next command
 
@@ -81,7 +92,6 @@ export const chatRouteChecker = async (req: any, res: any) => {
         resMsg = "Opening the vscode for you!";
       }
     }
-    console.log("Data sending: ", resMsg);
     res.status(200).json({
       success: true,
       message: "Message processed successfully",

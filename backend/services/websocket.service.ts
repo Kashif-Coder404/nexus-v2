@@ -16,7 +16,6 @@ const initWebsocket = (server: Server) => {
       });
     });
     ws.on("close", (code: number, reason: Buffer) => {
-      console.log(`Connection Closed code ${code}, Reason: ${reason}`);
     });
   });
 };

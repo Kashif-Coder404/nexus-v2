@@ -10,6 +10,7 @@ interface AIResponse {
 }
 import { maxLimit } from "./instructions/Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
+import { search_app, SearchOutput } from "../services/search.service.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -102,12 +103,12 @@ export async function AskAI(
   try {
     // 3. Query the AI proxy for the next action/command
     const data: any = await apiCall(chatMessages);
-    console.log("data from ai: ", data);
     chatMessages.push({ role: "assistant", content: data });
     await setHistory(chatMessages, session);
-
+    console.log("DATA: ", data);
     // 4. Parse the AI response to extract command instructions
     const parsed = extractJSON(data);
+
     if (parsed) {
       aiMsg = parsed.msg || "";
       command = parsed.cmd || "";
@@ -123,19 +124,13 @@ export async function AskAI(
       }
       command = "";
     }
-    if (parsed.workingon) {
-      broadCastMessage({
-        type: "ai_data",
-        data: { workingon: parsed.workingon },
-      });
-    } else if (!parsed.workingon) {
-      broadCastMessage({
-        type: "ai_done",
-        data: { workingon: parsed.workingon },
-      });
-    }
+    broadCastMessage({
+      type: parsed?.workingon ? "ai_data" : "ai_done",
+      data: { workingon: parsed?.workingon || "" },
+    });
 
     // 5. Execute the command if requested by the AI
+
     if (command) {
       let exitCode = 0;
       if (command === "history") {
@@ -153,6 +148,19 @@ export async function AskAI(
           terminalOutput: "",
           terminalError: "",
         };
+      } else if (
+        (typeof command === "string" && command.includes('"search"') && command.includes('"path"')) ||
+        (typeof command === "object" && command !== null && "search" in command)
+      ) {
+        const parsedCMD: { path: string[]; expected: string[] } =
+          typeof command === "string" ? JSON.parse(command).search : (command as any).search;
+        const path: string[] = parsedCMD.path;
+        const expected_names: string[] = parsedCMD.expected;
+        const searchResults: SearchOutput = await search_app(
+          path,
+          expected_names,
+        );
+        terminal = JSON.stringify(searchResults.stdout || searchResults.stderr);
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;
@@ -162,7 +170,7 @@ export async function AskAI(
       isSuccessState = exitCode === 0;
     }
   } catch (error: any) {
-    console.error("[ASK AI ERROR]", error.message);
+    console.error("[ASK AI ERROR]", error.message, error);
     terminalErr = error.message;
     isSuccessState = false;
   }
@@ -183,8 +191,6 @@ export async function AskAI(
       role: "user",
       content: JSON.stringify(feedbackContent, null, 2),
     });
-
-    console.log("Next Turn / Retry: ", retries + 1);
 
     const nextAccumulated = accumulatedTerminal
       ? `${accumulatedTerminal}\n${terminal}`

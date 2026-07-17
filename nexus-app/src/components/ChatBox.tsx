@@ -20,6 +20,7 @@ const ChatBox = () => {
     messageID,
     setIsWorkingOn,
     isWorkingOn,
+    isResponsed,
   } = useAppContext();
 
   const messageIDRef = useRef(messageID);
@@ -28,38 +29,54 @@ const ChatBox = () => {
   }, [messageID]);
 
   useEffect(() => {
-    const socket: WebSocket = initWebsocket();
-
-    socket.onmessage = (event: any) => {
-      const data = JSON.parse(event.data);
-      console.log("Broadcast data; ", data);
-      if (data.status === "received") {
-        setChatHistory((prev: MessageItems[]) => {
-          return prev.map((msg) =>
-            msg.id === messageIDRef.current && msg.role === "user"
-              ? ({ ...msg, status: "sent" } as UserProp)
-              : msg,
-          );
-        });
-      }
-      if (data.type === "ai_data") {
-        setIsWorkingOn(data.data.workingon);
-      }
-      if (data.type === "ai_done") {
-        setIsWorkingOn("");
-      }
+    const connect = () => {
+      const socket: WebSocket = initWebsocket();
+      let reconnectTimeout: NodeJS.Timeout;
+      let isComponentMounted = true;
+      socket.onmessage = (event: any) => {
+        const data = JSON.parse(event.data);
+        console.log("Broadcast data; ", data);
+        if (data.status === "received") {
+          setChatHistory((prev: MessageItems[]) => {
+            return prev.map((msg) =>
+              msg.id === messageIDRef.current && msg.role === "user"
+                ? ({ ...msg, status: "sent" } as UserProp)
+                : msg,
+            );
+          });
+        }
+        if (data.type === "ai_data") {
+          setIsWorkingOn(data.data.workingon);
+        }
+        if (data.type === "ai_done") {
+          setIsWorkingOn("");
+        }
+      };
+      socket.onclose = (event: any) => {
+        console.log("Retrying to connect websocket...");
+        if (!event.wasClean && isComponentMounted) {
+          reconnectTimeout = setTimeout(connect, 3000);
+        }
+      };
+      return () => {
+        isComponentMounted = false;
+        clearTimeout(reconnectTimeout);
+        if (socket) {
+          socket.close();
+        }
+      };
     };
-    return () => {
-      socket.close();
-    };
+    connect();
   }, []);
 
   const isError = /fail|error/i.test(isWorkingOn);
   const isSuccess = /success/i.test(isWorkingOn);
   const hideSpinner = isError || isSuccess || /authenticate/i.test(isWorkingOn);
 
+  const showLoading = isWorkingOn !== "" || !isResponsed;
+  const statusText = isWorkingOn || "Thinking";
+
   const workingBOX = (
-    <View style={styles.mainBox}>
       <View style={styles.box}>
         <Text style={styles.roleText}>Nexus</Text>
         <View style={styles.workingCont}>
@@ -77,11 +94,10 @@ const ChatBox = () => {
               isSuccess && styles.successText,
             ]}
           >
-            {isWorkingOn}...
+            {statusText}...
           </Text>
         </View>
       </View>
-    </View>
   );
 
   return (
@@ -115,7 +131,11 @@ const ChatBox = () => {
           )}
         </View>
       ))}
-      {isWorkingOn ? <View style={styles.container}>{workingBOX}</View> : null}
+      {showLoading ? (
+        <View style={styles.mainBox}>
+          {workingBOX}
+        </View>
+      ) : null}
     </ScrollView>
   );
 };
@@ -180,7 +200,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 32,
   },
 });
 

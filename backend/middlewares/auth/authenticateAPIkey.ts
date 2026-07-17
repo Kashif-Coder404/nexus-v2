@@ -4,7 +4,6 @@ dotenv.config();
 
 const authAPI: RequestHandler = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("AUTH HEADERS: ", authHeader);
   if (!authHeader) {
     res.status(401).json({
       success: false,
@@ -28,7 +27,6 @@ const authAPI: RequestHandler = (req, res, next) => {
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.substring(7)
     : authHeader;
-  console.log("TOKEN: ", token);
   if (token !== authenticateKey) {
     res.status(401).json({
       success: false,

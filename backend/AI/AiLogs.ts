@@ -27,13 +27,6 @@ export async function setHistory(
   try {
     const logFilePath = getFilePath(session);
 
-    if (await fileExists(logFilePath)) {
-      console.log("Updated history with data: ", data);
-      console.log(`History file updated for session: ${session}`);
-    } else {
-      console.log(`Creating new history file for session: ${session}`);
-    }
-
     await fs.mkdir(path.dirname(logFilePath), { recursive: true });
     await fs.writeFile(logFilePath, JSON.stringify(data, null, 2));
     return true;
@@ -52,7 +45,6 @@ export async function getHistory(
     const data = await fs.readFile(logFilePath, "utf-8");
     return JSON.parse(data).slice(-nMsg);
   } catch (error) {
-    console.log("No history found for session: ", session);
     return [];
   }
 }
