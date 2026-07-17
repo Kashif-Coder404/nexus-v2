@@ -105,7 +105,6 @@ export async function AskAI(
     const data: any = await apiCall(chatMessages);
     chatMessages.push({ role: "assistant", content: data });
     await setHistory(chatMessages, session);
-    console.log("DATA: ", data);
     // 4. Parse the AI response to extract command instructions
     const parsed = extractJSON(data);
 
