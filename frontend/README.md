@@ -1,32 +1,67 @@
-# React + TypeScript + Vite
+# 🖥️ Nexus Web Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A responsive, high-performance web dashboard built to monitor and interact with the Nexus AI console in real time. It offers developers a full-featured visual log of active agent processes, terminal executions, and conversational command controls.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ⚡ Key Features
 
-## React Compiler
+- **💬 Real-Time Console Interface**: Custom UI panels displaying messages, executing commands, and formatted shell inputs/outputs.
+- **🔌 WebSocket Live Sync**: Establishes a persistent client-side WebSocket connection directly to the server to stream agent state changes (e.g. tracking what task the AI is currently working on).
+- **🛡️ Secure Communication**: Integrated security headers including authorization headers (`Bearer token`) mapped to your active Nexus workspace settings.
+- **📊 Comprehensive Output Diagnostics**:
+  - Displays user prompts (`UserBox`).
+  - Renders agent actions (`AIBox`), broken down into conversational feedback, exact shell commands run, terminal output (`stdout`), and detailed execution logs (`stderr`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- **Framework**: React 19 (TypeScript)
+- **Build Tool**: Vite
+- **Linter**: Oxlint (ultra-fast linter configuration)
+- **Styling**: Pure CSS for custom layouts
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+---
+
+## 📂 Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── AIBox.tsx      # Renders detailed AI outputs, commands, and terminals
+│   │   ├── Chat.tsx       # Manages web socket hooks, messages, and state bindings
+│   │   └── UserBox.tsx    # Renders the user messages
+│   ├── context/
+│   │   └── provider.tsx   # React global application state provider
+│   ├── App.tsx            # Main component root
+│   ├── main.tsx           # Application entry point
+│   ├── App.css            # Component-level layout styles
+│   └── index.css          # Core design tokens and global styles
+├── index.html             # HTML Shell
+└── vite.config.ts         # Vite build configuration
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## ⚙️ Configuration (`.env`)
+
+Configure the environment file `frontend/.env` to point to your backend:
+
+```env
+VITE_NEXUS_API_KEY=your_secure_bearer_token
+```
+
+*Note: The frontend chat connects to the backend API at `http://localhost:3100` and receives WebSocket frames on `ws://192.168.31.116:3100` by default (update the connection URL in [Chat.tsx](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/frontend/src/components/Chat.tsx) if your network setup differs).*
+
+---
+
+## 🏃 Run Commands
+
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Runs the Vite development server locally. |
+| `npm run build` | Compiles and builds the production-ready static bundle (`dist/`). |
+| `npm run lint` | Runs the Oxlint static analysis linter. |
+| `npm run preview` | Previews the production build locally. |
