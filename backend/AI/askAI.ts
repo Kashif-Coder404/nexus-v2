@@ -20,6 +20,9 @@ export function extractJSON(text: string): any {
     // 1. Strip out bad control characters (raw newlines, tabs) that break JSON.parse inside string literals
     jsonStr = jsonStr.replace(/[\x00-\x1F]+/g, " ");
 
+    // Auto-escape unescaped backslashes (frequent issue with Windows paths from AI)
+    jsonStr = jsonStr.replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, "\\\\");
+
     try {
       return JSON.parse(jsonStr);
     } catch (e) {
@@ -66,6 +69,17 @@ export function extractJSON(text: string): any {
   return null;
 }
 
+const searchParse = (
+  command: string,
+): { paths: string[]; expected_names: string[] } => {
+  const cmdParsed = command.split("|").map((item: any) => item.trim());
+  if (cmdParsed.length < 3) return { paths: [], expected_names: [] };
+  const paths = cmdParsed[1].split(",").map((item: any) => item.trim());
+  const expected_names = cmdParsed[2]
+    .split(",")
+    .map((item: any) => item.trim());
+  return { paths, expected_names };
+};
 export async function AskAI(
   message: string,
   session: string,
@@ -135,7 +149,10 @@ export async function AskAI(
       if (command === "history") {
         const chatHistory = await getHistory(session, 20);
         terminal = JSON.stringify(chatHistory, null, 2);
-      } else if (command.includes("Delete History")) {
+      } else if (
+        typeof command === "string" &&
+        command.includes("Delete History")
+      ) {
         await setHistory([], session);
         broadCastMessage({
           type: "ai_done",
@@ -147,26 +164,31 @@ export async function AskAI(
           terminalOutput: "",
           terminalError: "",
         };
-      } else if (
-        (typeof command === "string" && command.includes('"search"') && command.includes('"path"')) ||
-        (typeof command === "object" && command !== null && "search" in command)
-      ) {
-        const parsedCMD: { path: string[]; expected: string[] } =
-          typeof command === "string" ? JSON.parse(command).search : (command as any).search;
-        const path: string[] = parsedCMD.path;
-        const expected_names: string[] = parsedCMD.expected;
-        const searchResults: SearchOutput = await search_app(
+      } else if (typeof command === "string" && command.startsWith("search |")) {
+        const parsedCMD: any = searchParse(command);
+        const path: string[] = parsedCMD.paths;
+        const expected_names: string[] = parsedCMD.expected_names;
+        const searchResults: any = await search_app(
           path,
           expected_names,
         );
-        terminal = JSON.stringify(searchResults.stdout || searchResults.stderr);
+        console.log("Search Results: ", searchResults);
+        isSuccessState =
+          !!searchResults.stdout && searchResults.stdout !== "[];";
+        
+        try {
+          const parsed = JSON.parse(searchResults.stdout);
+          terminal = JSON.stringify(parsed.results || parsed.error || searchResults.stderr);
+        } catch (e) {
+          terminal = searchResults.stdout || searchResults.stderr;
+        }
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;
         terminalErr = result.stderr;
         exitCode = result.exitCode;
+        isSuccessState = exitCode === 0;
       }
-      isSuccessState = exitCode === 0;
     }
   } catch (error: any) {
     console.error("[ASK AI ERROR]", error.message, error);

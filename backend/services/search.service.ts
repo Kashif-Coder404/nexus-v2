@@ -1,4 +1,9 @@
 import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 export type SearchOutput = {
   stdout: string;
   stderr: string;
@@ -13,11 +18,19 @@ export async function search_app(
     let stderr: string = "";
     let cmd: string = "";
 
-    const pythonProcess = spawn("python3", [
-      "../tools/search.py",
-      `${paths}`,
-      `${expected_names}`,
-    ]);
+    const scriptPath = path.join(__dirname, "../tools/search/search.py");
+
+    // Construct Everything SDK query
+    // e.g. "D:\Coding"|"C:\" Projects|nexus
+    const normalizedPaths = paths
+      .map((p) => `"${p.replace(/\//g, "\\")}"`)
+      .join("|");
+    console.log("Normalized Paths: ", normalizedPaths);
+    const searchTerms = expected_names.join("|");
+    console.log("Search Terms: ", searchTerms);
+    const query = `${normalizedPaths} ${searchTerms}`.trim();
+
+    const pythonProcess = spawn("python", [scriptPath, query, "20"]);
 
     // Collect stdout
     pythonProcess.stdout.on("data", (data) => {
@@ -41,11 +54,16 @@ export async function search_app(
   });
 }
 
-// const command = `
-// {
-// "search": {
-//   "path": ["C:","D:/Coding"],
-//   "expected": ["PROJECTS"]
+// try {
+//   console.log("Running search test...");
+//   const result = await search_app(
+//     ["D:/Coding/Leetcode/JS"],
+//     ["Leetcode", "valide", "Valide"],
+//   );
+//   console.log("Search Output:\n", JSON.parse(result.stdout));
+//   if (result.stderr) {
+//     console.error("Search Error:\n", result.stderr);
 //   }
+// } catch (e) {
+//   console.error("Failed to run test:", e);
 // }
-// `;

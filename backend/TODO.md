@@ -12,6 +12,7 @@
 
 ## 🛠️ 3. Desktop Tools (under `backend/tools/`)
 - [X] **Search Tool:** Complete python search implementation (`search.py`)
+- [ ] **Search App Tool:** Complete python search implementation (`search.py`)
 - [ ] **Volume Controls:** Implement OS-level volume controls (mute/unmute, set volume)
 - [ ] **System Info:** Expose CPU, RAM, and OS status indicators
 - [ ] **Open Application:** Implement safe application launching by name

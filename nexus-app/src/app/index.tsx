@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   StatusBar,
+  View,
 } from "react-native";
 import ChatInput from "../components/ChatInput";
 import ChatBox from "@/components/ChatBox";
@@ -16,7 +17,7 @@ export default function App() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
       <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
@@ -24,7 +25,9 @@ export default function App() {
         NEXUS <Text style={styles.headerAccent}>CONSOLE</Text>
       </Text>
 
-      <ChatBox />
+      <View style={{ flex: 1 }}>
+        <ChatBox />
+      </View>
       <ChatInput />
     </KeyboardAvoidingView>
   );
