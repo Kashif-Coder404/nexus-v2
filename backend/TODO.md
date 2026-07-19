@@ -11,8 +11,8 @@
 - [X] Feedback Loop (Automatically feed command output back into AskAI for the next turn)
 
 ## 🛠️ 3. Desktop Tools (under `backend/tools/`)
-- [X] **Search Tool:** Complete python search implementation (`search.py`)
-- [ ] **Search App Tool:** Complete python search implementation (`search.py`)
+- [X] **Search Tool:** Complete python search implementation (`search.py`) #Everything start on startup (todo)
+- [ ] **Search App Tool:** Complete python search implementation to search apps efficiently (`search.py`)
 - [ ] **Volume Controls:** Implement OS-level volume controls (mute/unmute, set volume)
 - [ ] **System Info:** Expose CPU, RAM, and OS status indicators
 - [ ] **Open Application:** Implement safe application launching by name

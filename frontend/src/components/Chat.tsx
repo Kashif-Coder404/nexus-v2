@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAppContext } from "../context/provider";
 import AIBOX from "./AIBox";
 import UserBox from "./UserBox";
@@ -8,6 +8,12 @@ const Chat = () => {
     useAppContext();
   const [workingOn, setWorkingOn] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory, workingOn, isLoading, isSending]);
+
   useEffect(() => {
     const wss = new WebSocket("ws://192.168.31.116:3100");
     wss.onopen = () => {
@@ -125,6 +131,7 @@ const Chat = () => {
           <div className="loading">Connecting to server...</div>
         )}
         {isSending && <div className="loading">Sending the Request...</div>}
+        <div ref={messagesEndRef} />
       </div>
       <div className="input">
         <input

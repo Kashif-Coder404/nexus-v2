@@ -9,28 +9,24 @@ export type SearchOutput = {
   stderr: string;
   cmd: string;
 };
-export async function search_app(
-  paths: string[],
-  expected_names: string[],
-): Promise<SearchOutput> {
-  return new Promise<SearchOutput>((resolve, reject) => {
+export async function search(
+  path_arg: string,
+  expected_name: string,
+  extension: string = "",
+): Promise<any> {
+  return new Promise<any>((resolve, reject) => {
     let stdout: string = "";
     let stderr: string = "";
-    let cmd: string = "";
 
     const scriptPath = path.join(__dirname, "../tools/search/search.py");
 
-    // Construct Everything SDK query
-    // e.g. "D:\Coding"|"C:\" Projects|nexus
-    const normalizedPaths = paths
-      .map((p) => `"${p.replace(/\//g, "\\")}"`)
-      .join("|");
-    console.log("Normalized Paths: ", normalizedPaths);
-    const searchTerms = expected_names.join("|");
-    console.log("Search Terms: ", searchTerms);
-    const query = `${normalizedPaths} ${searchTerms}`.trim();
+    const args = [scriptPath, path_arg, expected_name];
+    if (extension) {
+      args.push(extension);
+    }
+    args.push("20");
 
-    const pythonProcess = spawn("python", [scriptPath, query, "20"]);
+    const pythonProcess = spawn("python", args);
 
     // Collect stdout
     pythonProcess.stdout.on("data", (data) => {
@@ -44,7 +40,16 @@ export async function search_app(
 
     // Resolve the promise when the process exits
     pythonProcess.on("close", (code) => {
-      resolve({ stdout, stderr, cmd });
+      try {
+        const json = JSON.parse(stdout);
+        if (json.success) {
+          resolve(json);
+        } else {
+          reject(json.error);
+        }
+      } catch (e) {
+        reject(new Error(`Failed to parse Python script output: ${stdout}`));
+      }
     });
 
     // Handle spawn error (e.g. python3 not installed or path incorrect)
@@ -54,16 +59,51 @@ export async function search_app(
   });
 }
 
-// try {
-//   console.log("Running search test...");
-//   const result = await search_app(
-//     ["D:/Coding/Leetcode/JS"],
-//     ["Leetcode", "valide", "Valide"],
-//   );
-//   console.log("Search Output:\n", JSON.parse(result.stdout));
-//   if (result.stderr) {
-//     console.error("Search Error:\n", result.stderr);
-//   }
-// } catch (e) {
-//   console.error("Failed to run test:", e);
-// }
+export const search_app = async (
+  isDeapSearch: boolean = false,
+  name: string,
+  extension: string = ".lnk",
+) => {
+  // Desktop search
+  let desktopResult: any = [];
+  try {
+    desktopResult = (await search("C:/Users/Kashif/Desktop/", name, extension))
+      .results;
+  } catch (e) {
+    console.error("Desktop search failed:", e);
+  }
+
+  // Desktop/APPS search
+  let appsResult: any = [];
+  let publicDesktopResult: any = [];
+  if (isDeapSearch) {
+    try {
+      appsResult = (
+        await search("C:/Users/Kashif/Desktop/APPS", name, extension)
+      ).results;
+    } catch (e) {
+      console.error("Desktop/APPS search failed:", e);
+    }
+
+    try {
+      publicDesktopResult = (
+        await search("C:/Users/Public/Desktop", name, extension)
+      ).results;
+    } catch (e) {
+      console.error("Public/Desktop search failed:", e);
+    }
+  }
+  type ResultType = {
+    name: string;
+    path: string;
+    folder: string;
+    extension: string;
+    size: number;
+  };
+  let totalResult: ResultType[] = [
+    ...desktopResult,
+    ...publicDesktopResult,
+    ...appsResult,
+  ];
+  return totalResult;
+};

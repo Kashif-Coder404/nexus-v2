@@ -83,7 +83,6 @@ export async function apiCall(
         timeout: 120000, // 120 seconds timeout to accommodate larger models
       },
     );
-
     const responseText = parseAIResponse(res.data);
     console.log("AI RESPONSE FROM API: ", responseText);
     return responseText;

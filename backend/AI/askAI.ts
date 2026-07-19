@@ -10,7 +10,11 @@ interface AIResponse {
 }
 import { maxLimit } from "./instructions/Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
-import { search_app, SearchOutput } from "../services/search.service.js";
+import {
+  search,
+  search_app,
+  SearchOutput,
+} from "../services/search.service.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -69,16 +73,32 @@ export function extractJSON(text: string): any {
   return null;
 }
 
+export async function handle_app_search(command: string) {
+  function search_app_parse(command: string): {
+    isDeapSearch: boolean;
+    name: string;
+    extension: string;
+  } {
+    const cmdParsed: any = command.split("|").map((item: any) => item.trim());
+
+    const isDeapSearch: boolean = cmdParsed[1] === "true" ? true : false;
+    const name: string = cmdParsed[2];
+    const extension: string = cmdParsed[3] === undefined ? "" : cmdParsed[3];
+    return { isDeapSearch, name, extension };
+  }
+  const { isDeapSearch, name, extension } = search_app_parse(command);
+  const searchResults: any = await search_app(isDeapSearch, name, extension);
+  return JSON.stringify(searchResults, null, 2);
+}
+
 const searchParse = (
   command: string,
-): { paths: string[]; expected_names: string[] } => {
-  const cmdParsed = command.split("|").map((item: any) => item.trim());
-  if (cmdParsed.length < 3) return { paths: [], expected_names: [] };
-  const paths = cmdParsed[1].split(",").map((item: any) => item.trim());
-  const expected_names = cmdParsed[2]
-    .split(",")
-    .map((item: any) => item.trim());
-  return { paths, expected_names };
+): { path: string; expected_name: string } => {
+  const cmdParsed = command.split("|");
+  if (cmdParsed.length < 3) return { path: "", expected_name: "" };
+  const path = cmdParsed[1].trim();
+  const expected_name = cmdParsed[2].trim();
+  return { path, expected_name };
 };
 export async function AskAI(
   message: string,
@@ -164,24 +184,31 @@ export async function AskAI(
           terminalOutput: "",
           terminalError: "",
         };
-      } else if (typeof command === "string" && command.startsWith("search |")) {
+      } else if (
+        typeof command === "string" &&
+        command.startsWith("search |")
+      ) {
         const parsedCMD: any = searchParse(command);
-        const path: string[] = parsedCMD.paths;
-        const expected_names: string[] = parsedCMD.expected_names;
-        const searchResults: any = await search_app(
-          path,
-          expected_names,
-        );
-        console.log("Search Results: ", searchResults);
-        isSuccessState =
-          !!searchResults.stdout && searchResults.stdout !== "[];";
-        
         try {
-          const parsed = JSON.parse(searchResults.stdout);
-          terminal = JSON.stringify(parsed.results || parsed.error || searchResults.stderr);
-        } catch (e) {
-          terminal = searchResults.stdout || searchResults.stderr;
+          const searchResults: any = await search(
+            parsedCMD.path,
+            parsedCMD.expected_name,
+          );
+          console.log("Search Results: ", searchResults);
+          terminal = JSON.stringify(searchResults.results || searchResults, null, 2);
+          isSuccessState = searchResults.results && searchResults.results.length > 0;
+        } catch (e: any) {
+          terminal = e.message || String(e);
+          isSuccessState = false;
         }
+      } else if (
+        typeof command === "string" &&
+        command.startsWith("search_app |")
+      ) {
+        const results: any = await handle_app_search(command);
+        terminal = results;
+        terminalErr = "";
+        isSuccessState = !!results && results !== "[]";
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;

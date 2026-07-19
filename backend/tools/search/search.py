@@ -92,26 +92,58 @@ def configure_sdk(everything: WinDLL) -> None:
 
 def main():
     try:
-        if len(sys.argv) < 2:
-            print_error("Missing search query argument.")
+        if len(sys.argv) < 3:
+            print_error("Missing arguments for path and name.")
             sys.exit(1)
             
-        query = sys.argv[1].strip()
-        if not query:
-            print_error("Search query cannot be empty.")
-            sys.exit(1)
+        path_arg = sys.argv[1].strip()
+        name_arg = sys.argv[2].strip()
         
-        # Parse limit argument
+        ext_arg = ""
+        limit_str = ""
+        
+        if len(sys.argv) >= 4:
+            arg3 = sys.argv[3].strip()
+            if arg3.isdigit() and len(sys.argv) == 4:
+                limit_str = arg3
+            else:
+                ext_arg = arg3
+                
+        if len(sys.argv) >= 5:
+            limit_str = sys.argv[4].strip()
+            
         limit = 20
-        if len(sys.argv) >= 3:
+        if limit_str:
             try:
-                limit = int(sys.argv[2])
+                limit = int(limit_str)
                 if limit > 100:
                     limit = 100
                 elif limit < 1:
                     limit = 20
             except ValueError:
                 limit = 20
+                
+        query = ""
+        if path_arg and not name_arg:
+            clean_path = path_arg.replace('/', '\\')
+            if clean_path.endswith('\\') and len(clean_path) > 3:
+                clean_path = clean_path.rstrip('\\')
+            query = f'parent:"{clean_path}"'
+        elif not path_arg and name_arg:
+            query = f'nopath:{name_arg}'
+        elif path_arg and name_arg:
+            clean_path = path_arg.replace('/', '\\')
+            if clean_path.endswith('\\') and len(clean_path) > 3:
+                clean_path = clean_path.rstrip('\\')
+            query = f'parent:"{clean_path}" nopath:{name_arg}'
+        else:
+            print_error("Both path and name cannot be empty.")
+            sys.exit(1)
+            
+        if ext_arg:
+            # Strip dot if user provides it (e.g. ".lnk" -> "lnk")
+            clean_ext = ext_arg.lstrip('.')
+            query += f' ext:{clean_ext}'
 
         # Load SDK
         everything = load_everything_dll()
