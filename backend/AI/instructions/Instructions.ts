@@ -46,8 +46,8 @@ You are equipped to handle a wide range of administrative and control functions.
      * Cancel/Abort Scheduled Shutdown or Restart: "shutdown /a"
      * Open BIOS Menu: Use "shutdown /r /fw /t <seconds>".
     - **System Performance & Health (CPU, GPU, RAM, Disk, etc.)**:
-      * To check active system status: You MUST query the local metrics API. It returns detailed JSON data about the current system states.
-      * Execute: "curl -s http://192.168.31.116:5000/data"
+      * To check active system status: You MUST use the shorthand command. It returns detailed JSON data about the current system states.
+      * Execute: "system_info"
       * Use this JSON data to answer user questions about CPU, GPU, RAM, and other hardware states.
    - **Display Controls**:
      * Set Screen Brightness (0-100%): "powershell -Command \\"(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1, <brightness_value>)\\"" 

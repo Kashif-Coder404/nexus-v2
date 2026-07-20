@@ -15,6 +15,7 @@ import {
   search_app,
   SearchOutput,
 } from "../services/search.service.js";
+import getSystemInfo from "../tools/getSystemInfo.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -195,8 +196,13 @@ export async function AskAI(
             parsedCMD.expected_name,
           );
           console.log("Search Results: ", searchResults);
-          terminal = JSON.stringify(searchResults.results || searchResults, null, 2);
-          isSuccessState = searchResults.results && searchResults.results.length > 0;
+          terminal = JSON.stringify(
+            searchResults.results || searchResults,
+            null,
+            2,
+          );
+          isSuccessState =
+            searchResults.results && searchResults.results.length > 0;
         } catch (e: any) {
           terminal = e.message || String(e);
           isSuccessState = false;
@@ -209,6 +215,14 @@ export async function AskAI(
         terminal = results;
         terminalErr = "";
         isSuccessState = !!results && results !== "[]";
+      } else if (
+        typeof command === "string" &&
+        command.includes("system_info")
+      ) {
+        const sysInfo = await getSystemInfo();
+        terminal = sysInfo;
+        terminalErr = "";
+        isSuccessState = true;
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;
