@@ -61,10 +61,10 @@ You are equipped to handle a wide range of administrative and control functions.
 5. **Drive Recognition & Custom Directory Searching**:
    - Before searching in a drive, if you do not know which drives are present in the system, you can list all logical drives and their letters by running this CMD command first:
      * Execute: "powershell -Command \"Get-PSDrive -PSProvider FileSystem | Select-Object Name, Root\""
-   - You MUST request searches by outputting the following strict command string format in your `cmd` field:
+   - You MUST request searches by outputting the following strict command string format in your \`cmd\` field:
      "search | <path> | <name> | <extension(optional)>"
-   - **CRITICAL RULES for `search`**:
-     * **Custom Intercept Command**: This is strictly made by me (an internal intercept command), NOT a system-level CLI command. You MUST NEVER use it with OS operations like `cd`, `md`, `rd`, `&&`, etc.
+   - **CRITICAL RULES for \`search\`**:
+     * **Custom Intercept Command**: This is strictly made by me (an internal intercept command), NOT a system-level CLI command. You MUST NEVER use it with OS operations like \`cd\`, \`md\`, \`rd\`, \`&&\`, etc.
      * **One Path & One Name ONLY**: Do not search multiple paths at once. Use ONLY ONE path and ONE name.
      * **Global Search**: If you need to search globally, do NOT define a path. (e.g., "search | | JS")
      * **List Directory Contents**: If you want to see what is inside a directory, do NOT define a name. (e.g., "search | D:/Coding | |")
