@@ -172,7 +172,7 @@ export async function AskAI(
         terminal = JSON.stringify(chatHistory, null, 2);
       } else if (
         typeof command === "string" &&
-        command.includes("Delete History")
+        command.includes("delete_history")
       ) {
         await setHistory([], session);
         broadCastMessage({
