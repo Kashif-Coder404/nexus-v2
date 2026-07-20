@@ -15,13 +15,13 @@ import BiometricDemo from "@/components/BiometricDemo";
 
 export default function App() {
   const [isTesting, setIsTesting] = useState(false);
-  const Container = Platform.OS === "ios" ? KeyboardAvoidingView : View;
+  const Container = KeyboardAvoidingView;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0B0F19" }}>
       <Container
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />

@@ -160,7 +160,7 @@ export async function AskAI(
     }
     broadCastMessage({
       type: parsed?.workingon ? "ai_data" : "ai_done",
-      data: { workingon: parsed?.workingon || "" },
+      data: { workingon: parsed?.workingon || "", msg: parsed?.msg || aiMsg },
     });
 
     // 5. Execute the command if requested by the AI
