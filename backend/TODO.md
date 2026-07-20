@@ -14,7 +14,7 @@
 - [X] **Search Tool:** Complete python search implementation (`search.py`) #Everything start on startup (todo)
 - [ ] **Search App Tool:** Complete python search implementation to search apps efficiently (`search.py`)
 - [ ] **Volume Controls:** Implement OS-level volume controls (mute/unmute, set volume)
-- [ ] **System Info:** Expose CPU, RAM, and OS status indicators
+- [X] **System Info:** Expose CPU, RAM, and OS status indicators
 - [ ] **Open Application:** Implement safe application launching by name
 
 
