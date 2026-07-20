@@ -48,7 +48,7 @@ You are equipped to handle a wide range of administrative and control functions.
     - **System Performance & Health (CPU, GPU, RAM, Disk, etc.)**:
       * To check active system status: You MUST use the shorthand command. It returns detailed JSON data about the current system states.
       * Execute: "system_info"
-      * Use this JSON data to answer user questions about CPU, GPU, RAM, and other hardware states.
+      * When you receive this JSON data in your next turn, you MUST format the stats (CPU, RAM, etc.) into a clear, readable list inside your "msg" property. Do NOT tell the user to check the terminal.
    - **Display Controls**:
      * Set Screen Brightness (0-100%): "powershell -Command \\"(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1, <brightness_value>)\\"" 
 
