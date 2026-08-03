@@ -31,7 +31,7 @@ const ChatBox = () => {
   useEffect(() => {
     const connect = () => {
       const socket: WebSocket = initWebsocket();
-      let reconnectTimeout: NodeJS.Timeout;
+      let reconnectTimeout: ReturnType<typeof setTimeout>;
       let isComponentMounted = true;
       socket.onmessage = (event: any) => {
         const data = JSON.parse(event.data);
@@ -76,6 +76,15 @@ const ChatBox = () => {
   const showLoading = isWorkingOn !== "" || !isResponsed;
   const statusText = isWorkingOn || "Thinking";
 
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      const timeoutId = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [chatHistory.length, showLoading]);
+
   const workingBOX = (
       <View style={styles.box}>
         <Text style={styles.roleText}>Nexus</Text>
@@ -105,22 +114,6 @@ const ChatBox = () => {
       style={{ flex: 1 }}
       contentContainerStyle={styles.scrollContent}
       ref={scrollViewRef}
-      onContentSizeChange={() => {
-        if (
-          scrollViewRef.current &&
-          typeof scrollViewRef.current.scrollToEnd === "function"
-        ) {
-          scrollViewRef.current.scrollToEnd({ animated: true });
-        }
-      }}
-      onLayout={() => {
-        if (
-          scrollViewRef.current &&
-          typeof scrollViewRef.current.scrollToEnd === "function"
-        ) {
-          scrollViewRef.current.scrollToEnd({ animated: true });
-        }
-      }}
     >
       {chatHistory.map((item) => (
         <View key={item.id} style={styles.container}>
@@ -200,7 +193,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 60,
+    paddingBottom: 16,
   },
 });
 

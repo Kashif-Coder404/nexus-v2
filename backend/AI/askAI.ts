@@ -220,6 +220,7 @@ export async function AskAI(
         command.includes("system_info")
       ) {
         const sysInfo = await getSystemInfo();
+
         terminal = sysInfo;
         terminalErr = "";
         isSuccessState = true;
