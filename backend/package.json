@@ -20,6 +20,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "https-proxy-agent": "^9.1.0",
+    "mongoose": "^9.9.1",
     "ts-node": "^10.9.2",
     "ws": "^8.21.0"
   },
@@ -30,7 +32,7 @@
     "@types/ws": "^8.18.1",
     "concurrently": "^10.0.3",
     "nodemon": "^3.1.14",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.11",
     "typescript": "^6.0.3"
   }
 }

@@ -1,18 +1,16 @@
 {
-  "name": "nexus-app",
+  "name": "nexus_app_v2",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.8",
     "expo": "~57.0.9",
-    "expo-build-properties": "~57.0.8",
-    "expo-constants": "~57.0.3",
+    "expo-constants": "~57.0.8",
     "expo-device": "~57.0.1",
-    "expo-font": "~57.0.0",
+    "expo-font": "~57.0.1",
     "expo-glass-effect": "~57.0.1",
     "expo-image": "~57.0.1",
     "expo-linking": "~57.0.4",
-    "expo-local-authentication": "~57.0.2",
     "expo-router": "~57.0.9",
     "expo-splash-screen": "~57.0.5",
     "expo-status-bar": "~57.0.1",
@@ -31,15 +29,13 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "eslint": "^9.0.0",
-    "eslint-config-expo": "~57.0.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },

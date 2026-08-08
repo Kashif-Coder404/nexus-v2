@@ -8,7 +8,9 @@ import { Logs } from "./Logs.js";
 import cors from "cors";
 import { finalLog, logging } from "./middlewares/logs/logging.js";
 import authAPI from "./middlewares/auth/authenticateAPIkey.js";
-
+import { connectDB } from "./db/connectDB.js";
+import { updateMemory } from "./services/memory.service.js";
+connectDB();
 dotenv.config();
 const app = express();
 
@@ -48,9 +50,6 @@ app.use(
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve frontend assets
-app.use(express.static(path.join(__dirname, "../frontend")));
-
 // --- 1. HEALTH CHECK ---
 app.get("/api/health", async (req, res) => {
   Logs("Health checking endpoint accessed", "info");
@@ -67,5 +66,8 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.use("/api/chat", logging, authAPI, finalLog, chatRoutes);
-
+app.post("/api/memory", async (req, res) => {
+  const { category, value, alias } = req.body;
+  return res.json({ response: await updateMemory(alias, value, category) });
+});
 export default app;

@@ -1,4 +1,4 @@
-import { apiCall } from "./AICall.js";
+import { nvidiaApiCall } from "./Providers/nvidiaAPICall.js";
 import { getHistory, setHistory } from "./AiLogs.js";
 import { executeCmd } from "../services/execute.service.js";
 
@@ -16,6 +16,8 @@ import {
   SearchOutput,
 } from "../services/search.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
+import { accessMemory } from "../services/memory.service.js";
+import { geminiAICall } from "./Providers/geminiAI.js";
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -101,6 +103,46 @@ const searchParse = (
   const expected_name = cmdParsed[2].trim();
   return { path, expected_name };
 };
+type ChatMessageType = {
+  role: string;
+  content: string;
+};
+type CallNvidiaReturnType = {
+  aiMsg: string;
+  command: string;
+  workingOn: string;
+};
+const callNvidia = async (
+  workingOn: string,
+  chatMessages: ChatMessageType[],
+  session: string,
+  aiMsg: string,
+  command: string,
+): Promise<CallNvidiaReturnType> => {
+  const data = await nvidiaApiCall(chatMessages);
+  chatMessages.push({ role: "assistant", content: data });
+  await setHistory(chatMessages, session);
+  // 4. Parse the AI response to extract command instructions
+  const parsed = extractJSON(data);
+
+  if (parsed) {
+    aiMsg = parsed.msg || "";
+    command = parsed.cmd || "";
+  } else {
+    if (
+      typeof data === "string" &&
+      (data.includes('{"cmd"') || data.includes('{"msg"'))
+    ) {
+      aiMsg =
+        "I encountered an error generating my response due to a malformed output.";
+    } else {
+      aiMsg = data;
+    }
+    command = "";
+  }
+  workingOn = parsed?.workingon || "";
+  return { aiMsg, command, workingOn };
+};
 export async function AskAI(
   message: string,
   session: string,
@@ -109,6 +151,7 @@ export async function AskAI(
   accumulatedTerminal: string = "",
   accumulatedError: string = "",
   lastExecutedCmd: string = "",
+  localAITurn: number = 0,
 ): Promise<AIResponse> {
   // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
@@ -122,7 +165,7 @@ export async function AskAI(
 
   // 2. Initial Setup: Load existing chat history and append the user's new message
   if (retries === 0) {
-    chatMessages = await getHistory(session, 20); // Limit history to last 20 messages to prevent infinite growth
+    chatMessages = await getHistory(session, 2); // Limit history to last 20 messages to prevent infinite growth
     chatMessages.push({
       role: "user",
       content: JSON.stringify({ msg: message, session_token: session }),
@@ -134,33 +177,71 @@ export async function AskAI(
   let terminal: string = "";
   let terminalErr: string = "";
   let isSuccessState = true;
+  let workingOn: string = "";
 
   try {
     // 3. Query the AI proxy for the next action/command
-    const data: any = await apiCall(chatMessages);
-    chatMessages.push({ role: "assistant", content: data });
-    await setHistory(chatMessages, session);
-    // 4. Parse the AI response to extract command instructions
-    const parsed = extractJSON(data);
 
-    if (parsed) {
-      aiMsg = parsed.msg || "";
-      command = parsed.cmd || "";
-    } else {
-      if (
-        typeof data === "string" &&
-        (data.includes('{"cmd"') || data.includes('{"msg"'))
-      ) {
-        aiMsg =
-          "I encountered an error generating my response due to a malformed output.";
-      } else {
-        aiMsg = data;
-      }
-      command = "";
-    }
+    // if (localAITurn > 0) {
+    //   broadCastMessage({
+    //     type: "ai_data",
+    //     data: { workingon: "Thinking in Nvidia..." },
+    //   });
+    //   const nvidiaResponse: CallNvidiaReturnType = await callNvidia(
+    //     workingOn,
+    //     chatMessages,
+    //     session,
+    //     aiMsg,
+    //     command,
+    //   );
+    //   command = nvidiaResponse.command;
+    //   aiMsg = nvidiaResponse.aiMsg;
+    //   workingOn = nvidiaResponse.workingOn;
+    // } else {
+    //   broadCastMessage({
+    //     type: "ai_data",
+    //     data: { workingon: "Thinking in OpenCode..." },
+    //   });
+    //   const openCodeResponse: any = await openCodeAICall(chatMessages);
+    //   command = openCodeResponse.content.cmd || "";
+    //   aiMsg = openCodeResponse.content.msg || "";
+    //   workingOn = openCodeResponse.content.workingon || "";
+    //   if (!openCodeResponse.success) {
+    //     return AskAI(
+    //       message,
+    //       session,
+    //       retries + 1,
+    //       chatMessages,
+    //       accumulatedTerminal,
+    //       accumulatedError,
+    //       lastExecutedCmd,
+    //       localAITurn + 1,
+    //     );
+    //   }
+    // }
     broadCastMessage({
-      type: parsed?.workingon ? "ai_data" : "ai_done",
-      data: { workingon: parsed?.workingon || "", msg: parsed?.msg || aiMsg },
+      type: "ai_data",
+      data: { workingon: "Thinking in Gemini..." },
+    });
+    const geminiResponse: any = await geminiAICall(chatMessages);
+    command = geminiResponse.content.cmd || "";
+    aiMsg = geminiResponse.content.msg || "";
+    workingOn = geminiResponse.content.workingon || "";
+    // if (!openCodeResponse.success) {
+    //   return AskAI(
+    //     message,
+    //     session,
+    //     retries + 1,
+    //     chatMessages,
+    //     accumulatedTerminal,
+    //     accumulatedError,
+    //     lastExecutedCmd,
+    //     localAITurn + 1,
+    //   );
+    // }
+    broadCastMessage({
+      type: workingOn ? "ai_data" : "ai_done",
+      data: { workingon: workingOn || "" },
     });
 
     // 5. Execute the command if requested by the AI
@@ -224,6 +305,16 @@ export async function AskAI(
         terminal = sysInfo;
         terminalErr = "";
         isSuccessState = true;
+      } else if (command.startsWith("memory")) {
+        const result: string = await accessMemory(command);
+        const parsedResult = JSON.parse(result);
+        terminal = JSON.stringify(
+          parsedResult.document || parsedResult,
+          null,
+          2,
+        );
+        terminalErr = "";
+        isSuccessState = parsedResult.success;
       } else {
         const result = await executeCmd(command);
         terminal = result.stdout;
@@ -278,7 +369,7 @@ export async function AskAI(
   // 7. Final Response: No more commands to run (base case), return final messages
   return {
     cmd: command || lastExecutedCmd,
-    msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
+    msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE! 2",
     terminalOutput: accumulatedTerminal || terminal,
     terminalError: accumulatedError || terminalErr,
   };
