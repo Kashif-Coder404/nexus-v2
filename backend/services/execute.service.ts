@@ -41,8 +41,8 @@ export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
   }
 }
 async function testExec() {
-  console.log("testExec");
+  // console.log("testExec");
   const result = await executeCmd("cd memory && type memory.txt");
-  console.log("results: ", result);
+  // console.log("results: ", result);
 }
 // testExec();

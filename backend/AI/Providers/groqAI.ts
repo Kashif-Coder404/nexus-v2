@@ -56,8 +56,6 @@ async function checkGroqApi() {
         httpsAgent: agent,
       },
     );
-
-    console.log("Response:", response.data.choices[0].message.content);
   } catch (error: any) {
     console.error("--- API STATUS: FAILED ---");
     // Axios captures API error details in error.response.data
@@ -96,10 +94,7 @@ export const groqAICall = async (
     };
   }
 
-  const model = [
-    "openai/gpt-oss-120b",
-    "llama-3.3-70b-versatile",
-  ];
+  const model = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
   const current_key = getNextGroqKey();
   // From your screenshot: Webshare's Rotating Proxy Endpoint
   // This single endpoint automatically assigns a random IP on every request!

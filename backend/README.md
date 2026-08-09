@@ -1,31 +1,40 @@
 # 🔌 Nexus Backend
 
-The core intelligence and execution engine of the Nexus Ecosystem. This service orchestrates AI agent interactions, executes system command instructions, handles local application searching, and manages real-time status broadcasting to connected interfaces via WebSockets.
+The core intelligence and execution engine of the Nexus Ecosystem. This service orchestrates AI agent interactions, executes system command instructions, handles local application searching, manages real-time status broadcasting via WebSockets, and handles database persistence for chat history and memory.
 
 ---
 
 ## 🚀 Key Features
 
-- **🧠 Self-Correcting AI Engine (`AskAI`)**: Coordinates conversation history, processes user requests via an LLM client, runs generated terminal commands locally, and feeds stdout/stderr back into the model in a feedback loop (up to a configurable retry limit) for automatic self-correction.
-- **🔌 Robust Middleware Stack**:
-  - **Structured Logger**: Monitors and logs all incoming requests (method, route, timestamp).
-  - **Auth Guard (`authenticateAPIkey`)**: Secure token-based access verifying bearer API keys.
-  - **Error Handlers**: Gracefully handles malformed JSON requests and prevents server crashes.
-- **⚡ Live WebSocket Status Streaming**: Broadcasts live worker-state frames (e.g., `ai_data` signaling `workingon` status, and `ai_done` completion indicator) to ensure active visual feedback on clients.
-- **🛠️ Desktop Systems Integrations**:
-  - **App Search Tool**: Automatically triggers `search.py` via Python 3 to scan directory paths (`dir /b`) and locate specific files or executables matching expected queries.
-  - **Terminal Executor (`executeCmd`)**: Executes system shell commands directly on the host OS.
-  - **Session Database Control**: Clears or loads session-based chat records dynamically, including a "Delete History" capability.
-- **💡 Robust JSON & Regex Parsing Recovery**: Salvages message responses and command parameters from malformed or unstructured LLM output via regex-based fallbacks.
+- **🧠 Self-Correcting AI Engine (`AskAI`)**: Coordinates conversation context, executes user commands on the host system, intercepts terminal stdout/stderr, and feeds errors back into the model in a feedback loop (up to 3 automatic retries) for self-correction.
+- **🤖 Multi-Provider AI Architecture**: Modular AI provider layer supporting multiple model backends:
+  - **Gemini AI** (`geminiAI.ts`)
+  - **Groq AI** (`groqAI.ts`)
+  - **NVIDIA NIM** (`nvidiaAPICall.ts`)
+  - **OpenCode AI** (`openCodeAI.ts`)
+- **🗄️ Database & Memory Persistence**:
+  - **MongoDB Integration (`mongoose`)**: Database connection ([connectDB.ts](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/db/connectDB.ts)) storing chat histories ([chat-schema.ts](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/db/schema/chat-schema.ts)) and key-value memory entities ([memory-schema.ts](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/db/schema/memory-schema.ts)).
+  - **Session History Persistence**: File-based session JSON logging ([AiLogs.ts](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/AI/AiLogs.ts)) for short-term conversation context.
+  - **Memory Service (`memory.service.ts`)**: Saves and retrieves user aliases, preferred folder paths, and frequently accessed memories with usage counters.
+- **⚡ Live WebSocket Status Streaming**: Real-time WebSocket broadcasting ([websocket.service.ts](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/services/websocket.service.ts)) sending state updates (`acknowledged`, `ai_data`, `ai_done`) to connected frontend clients.
+- **🛠️ Desktop Systems & Shell Integration**:
+  - **App Search Engine (`search.service.ts`)**: Triggers `search.py` via Python 3 to locate local executables and directories.
+  - **System Command Executor (`execute.service.ts`)**: Executes host terminal commands safely.
+  - **Telemetry Tool (`getSystemInfo.ts`)**: Gathers host CPU, RAM, OS, and platform metrics.
+- **🔌 Middleware & Security Stack**:
+  - **API Key Guard (`authenticateAPIkey.ts`)**: Secure Bearer token verification guarding backend endpoints.
+  - **Centralized Logger (`Logs.ts`)**: Structured console & file logging.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Runtime**: Node.js with TypeScript (`tsx watch` development suite)
-- **Framework**: Express.js
+- **Runtime**: Node.js ES Modules with TypeScript (`tsx watch` development suite)
+- **Framework**: Express.js 5.x
+- **Database**: MongoDB with Mongoose ORM (`mongoose`)
 - **Real-Time Communication**: `ws` (WebSocket library)
-- **External Scripting**: Python 3 (used for desktop search functionality)
+- **AI Integrations**: Google Generative AI, Groq SDK, NVIDIA NIM (Uvicorn / WSL proxy), OpenCode
+- **External Scripting**: Python 3 (used for local application indexing & desktop search)
 
 ---
 
@@ -33,18 +42,33 @@ The core intelligence and execution engine of the Nexus Ecosystem. This service 
 
 ```
 backend/
-├── AI/                     # AI Orchestration layer
-│   ├── AICall.ts           # External LLM Proxy/API calls
-│   ├── AiLogs.ts           # Session history persistence (JSON)
-│   ├── askAI.ts            # Self-correcting loop and command processing
-│   └── instructions/       # Agent prompts & constraint configurations
-├── controllers/            # Route controllers (e.g., chat.controller.ts)
-├── middlewares/            # Authentication, logging, and recovery filters
-├── routes/                 # API endpoint mappings
-├── services/               # Command execution and WebSocket broadcasting services
-├── tools/                  # Python helper scripts (e.g., search.py)
-├── app.ts                  # App configuration and core middleware wire-up
-└── server.ts               # HTTP & WS server entry point
+├── AI/                     # AI Orchestration & Provider Layer
+│   ├── Providers/          # Provider adapters (geminiAI, groqAI, nvidiaAPICall, openCodeAI)
+│   ├── instructions/       # Agent prompts & constraint rules (Instructions.ts)
+│   ├── AiLogs.ts           # File-based session log persistence (JSON)
+│   ├── askAI.ts            # Self-correcting AI loop & tool orchestration
+│   ├── Parsers.ts          # LLM response parser & command interceptors
+│   └── Types.ts            # AI payload interface definitions
+├── controllers/            # Route controllers (chat.controller.ts)
+├── db/                     # MongoDB Database setup & Schemas
+│   ├── schema/             # Mongoose schemas (chat-schema.ts, memory-schema.ts)
+│   └── connectDB.ts        # Database connection initializer
+├── middlewares/            # Middleware modules
+│   ├── auth/               # Bearer API Key authentication guard (authenticateAPIkey.ts)
+│   └── logs/               # Request logger & error handlers
+├── routes/                 # Express API routes (chat.routes.ts)
+├── services/               # Core execution and business services
+│   ├── chat.history.service.ts  # Database chat persistence operations
+│   ├── execute.service.ts       # Host terminal command execution runner
+│   ├── memory.service.ts        # MongoDB short-term & long-term memory operations
+│   ├── search.service.ts        # Desktop application search runner
+│   └── websocket.service.ts     # Real-time WebSocket broadcasting service
+├── tools/                  # Python & system utilities
+│   ├── search/             # Python search scripts (search.py)
+│   └── getSystemInfo.ts    # Host system resource telemetry (CPU/RAM/OS)
+├── Logs.ts                 # Centralized server logging system
+├── app.ts                  # Express application setup & middleware configuration
+└── server.ts               # HTTP & WS server entry point + DB connector
 ```
 
 ---
@@ -55,8 +79,13 @@ Create a `.env` file in the `backend/` directory:
 
 ```env
 PORT=3100
+MONGODB_URI=mongodb://localhost:27017/nexus
 NEXUS_API_KEY=your_secure_bearer_token
-# Additional variables used by AICall.ts (e.g. LLM endpoints/tokens)
+
+# AI Provider API Keys
+GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
+NVIDIA_API_KEY=your_nvidia_api_key
 ```
 
 ---
@@ -68,8 +97,11 @@ Run all scripts from the `backend/` folder:
 | Command | Action |
 | :--- | :--- |
 | `npm run dev:server` | Starts the Express/WS server in watch mode (`tsx watch`). |
-| `npm run proxy` | Launches the local NIM proxy (e.g. running uvicorn inside Ubuntu WSL). |
+| `npm run proxy` | Launches the local NIM proxy (running uvicorn inside Ubuntu WSL). |
 | `npm run dev` | Runs the Node server and Python/NIM proxy concurrently. |
-| `npm run build` | Compiles the TypeScript codebase (`tsc`). |
-| `npm run start` | Launches the production compiled bundle (`node dist/server.js`). |
-| `npm run all` | Starts the backend, python proxy, web frontend, and mobile Expo app in parallel. |
+| `npm run build` | Compiles TypeScript codebase into `dist/`. |
+| `npm run start` | Launches compiled production bundle (`node dist/server.js`). |
+| `npm run frontend` | Launches Web frontend client (`../frontend`). |
+| `npm run app` | Launches Mobile Expo app (`../nexus-app`). |
+| `npm run all` | Starts backend, python proxy, web frontend, and mobile app concurrently. |
+

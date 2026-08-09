@@ -28,4 +28,4 @@ const memorySchema = new Schema({
   },
 });
 type Memory = InferSchemaType<typeof memorySchema>;
-export const MemoryModal = model("Memory", memorySchema);
+export const MemoryModel = model<Memory>("Memory", memorySchema);

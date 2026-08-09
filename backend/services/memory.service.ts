@@ -1,4 +1,5 @@
-import { MemoryModal } from "../db/schema/memory-schema.js";
+import { MemoryModel } from "../db/schema/memory-schema.js";
+
 const categoryClean = async (category: string) => {
   let cleanCategory = category.toLowerCase().trim();
   if (cleanCategory.includes("app") || cleanCategory === "software")
@@ -36,7 +37,7 @@ export async function updateMemory(
     if (!cleanedCategory) throw "[UPDATE MEMORY] Category part is Empty";
     if (!cleanedAlias) throw "[UPDATE MEMORY] Alias part is Empty";
     if (!cleanedValue) throw "[UPDATE MEMORY] Value part is Empty";
-    const memoryUpdate: object = await MemoryModal.findOneAndUpdate(
+    const memoryUpdate: object = await MemoryModel.findOneAndUpdate(
       { value: cleanedValue },
       {
         $addToSet: {
@@ -92,7 +93,7 @@ export async function getMemory(
         document: null,
       };
     }
-    const dbResults = await MemoryModal.find({
+    const dbResults = await MemoryModel.find({
       $or: orConditions,
     } as any);
     if (dbResults.length === 0) {
@@ -166,7 +167,7 @@ export const deleteMemory = async (
 
   try {
     // 4. Single database hit using $or to evaluate all conditions at once
-    const deletedMemory = await MemoryModal.findOneAndDelete({
+    const deletedMemory = await MemoryModel.findOneAndDelete({
       $or: orConditions,
     });
 
@@ -189,45 +190,6 @@ export const deleteMemory = async (
   }
 };
 
-const testDocuments = [
-  {
-    value: "C:/Users/Kashif/Desktop/Roblox Player.lnk",
-    aliases: ["roblox", "rbx"],
-    category: ["game", "app"],
-    useCount: 0,
-    createdAt: new Date("2026-08-08T07:07:48.261Z"),
-    lastAccessedAt: new Date("2026-08-08T07:07:48.261Z"),
-  },
-  {
-    value: "C:/Users/Kashif/Desktop/YouTube.lnk",
-    aliases: ["yt", "youtube", "youtube_app"],
-    category: ["app"],
-    useCount: 16,
-    createdAt: new Date("2026-08-07T17:55:16.717Z"),
-    lastAccessedAt: new Date(),
-  },
-  {
-    value: "D:/Coding/PROJECTS/NExt/Nexus_v2",
-    aliases: ["nexus", "nexus folder", "project folder"],
-    category: ["folder"],
-    useCount: 42,
-    createdAt: new Date("2026-08-01T12:00:00.000Z"),
-    lastAccessedAt: new Date(),
-  },
-  {
-    value: "C:/Users/Kashif/AppData/Local/Discord/Update.exe",
-    aliases: ["discord", "dc"],
-    category: ["app"],
-    useCount: 5,
-    createdAt: new Date("2026-08-05T09:15:00.000Z"),
-    lastAccessedAt: new Date(),
-  },
-];
-
-// To insert them quickly in your tempRun function:
-// await MemoryModal.insertMany(testDocuments);
-// console.log("✅ Seeded test documents!");
-
 export async function accessMemory(command: string): Promise<string> {
   if (!command)
     return JSON.stringify({
@@ -243,13 +205,10 @@ export async function accessMemory(command: string): Promise<string> {
   const category = commands[3] || "";
   if (action === "memory_write" || action.includes("write")) {
     results = await updateMemory(alias, value, category);
-    console.log("UPDATE MEMORY RESULTS: \n", results, " \n");
   } else if (action === "memory_read" || action.includes("read")) {
     results = await getMemory(alias, category);
-    console.log("GET MEMORY RESULTS: \n", results, " \n");
   } else if (action === "memory_delete" || action.includes("delete")) {
     results = await deleteMemory(value, alias, category);
-    console.log("Delete Memory RESULTS: \n", results, " \n");
   }
   if (results) {
     return JSON.stringify(results);
@@ -260,69 +219,3 @@ export async function accessMemory(command: string): Promise<string> {
     document: null,
   });
 }
-async function tempRun() {
-  // const cmd = "<main_action> | <alias> | <value> | <category>"; // HERE IS THE FORMAT FOR THE INSTRUCTIONS
-  // 1. Way to Write in the Memory:
-  const accessResult1 = await accessMemory(
-    "memory_write | favourite_color | blue | fact ",
-  );
-  //2. Way to Read from the memory
-  const accessResult2 = await accessMemory("memory_read | | | fact ");
-
-  //3. Way to Delete from the memory:
-  const accessResult3 = await accessMemory("memory_delete |  |  | ");
-
-  /* 
-//EXAMPLE OUTPUT:
-UPDATE MEMORY RESULTS: 
- {
-  success: true,
-  msg: 'Saved to Memory: [favourite_color] -> "blue" as fact',
-  document: {
-    _id: new ObjectId('6a772de02c4d4fc58d2ef33e'),
-    value: 'blue',
-    __v: 0,
-    aliases: [ 'favourite_color' ],
-    category: [ 'fact' ],
-    createdAt: 2026-08-08T13:23:44.760Z,
-    lastAccessedAt: 2026-08-08T13:23:44.760Z,
-    useCount: 0
-  }
-}  
-
-GET MEMORY RESULTS: 
- {
-  success: true,
-  msg: 'Memory Search Results for: "" | "fact"',
-  document: [ { value: 'blue', alias: [Array], category: [Array] } ]
-}  
-
-Delete Memory RESULTS: 
- {
-  success: true,
-  msg: 'Document deleted successfully!',
-  deletedDocument: {
-    _id: new ObjectId('6a772de02c4d4fc58d2ef33e'),
-    value: 'blue',
-    __v: 0,
-    aliases: [ 'favourite_color' ],
-    category: [ 'fact' ],
-    createdAt: 2026-08-08T13:23:44.760Z,
-    lastAccessedAt: 2026-08-08T13:23:44.760Z,
-    useCount: 0
-  }
-}  
-
-ACCESS RESULTS: 
-
-
- {"success":true,"msg":"Saved to Memory: [favourite_color] -> \"blue\" as fact","document":{"_id":"6a772de02c4d4fc58d2ef33e","value":"blue","__v":0,"aliases":["favourite_color"],"category":["fact"],"createdAt":"2026-08-08T13:23:44.760Z","lastAccessedAt":"2026-08-08T13:23:44.760Z","useCount":0}} 
-
- {"success":true,"msg":"Memory Search Results for: \"\" | \"fact\"","document":[{"value":"blue","alias":["favourite_color"],"category":["fact"]}]} 
-
- {"success":true,"msg":"Document deleted successfully!","deletedDocument":{"_id":"6a772de02c4d4fc58d2ef33e","value":"blue","__v":0,"aliases":["favourite_color"],"category":["fact"],"createdAt":"2026-08-08T13:23:44.760Z","lastAccessedAt":"2026-08-08T13:23:44.760Z","useCount":0}} 
-
-  
-*/
-}
-// tempRun();

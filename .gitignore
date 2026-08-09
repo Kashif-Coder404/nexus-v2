@@ -52,3 +52,5 @@ backend/memory/*
 
 #others
 tasks.md
+TODO.md
+backend/TODO.md

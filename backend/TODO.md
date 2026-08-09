@@ -10,18 +10,24 @@
 - [X] Live WebSocket Streaming (Broadcast real-time stdout/stderr of command execution)
 - [X] Feedback Loop (Automatically feed command output back into AskAI for the next turn)
 
-## 🛠️ 3. Desktop Tools (under `backend/tools/`)
+## 🗄️ 3. Chat History & Database Persistence
+- [X] **MongoDB Connection:** Established Mongoose database connection (`connectDB.ts`).
+- [X] **Chat Schema:** Defined Mongoose `ChatModel` schema (`chat-schema.ts`) for message role & content tracking.
+- [X] **Chat History Service:** Implemented CRUD helpers (`chat.history.service.ts`) for MongoDB chat persistence.
+- [X] **Session File Logs:** Implemented automatic per-session JSON history logging (`AiLogs.ts`).
+- [ ] **Dedicated Session Model:** Implement `SessionModel` (`session-schema.ts`) with `sessionId`, `userId` reference, and metadata to support upcoming user authentication & login.
+
+## 🛠️ 4. Desktop Tools (under `backend/tools/`)
 - [X] **Search Tool:** Complete python search implementation (`search.py`) #Everything start on startup (todo)
-- [ ] **Search App Tool:** Complete python search implementation to search apps efficiently (`search.py`)
+- [X] **Search App Tool:** Complete python search implementation to search apps efficiently (`search.py`)
 - [ ] **Volume Controls:** Implement OS-level volume controls (mute/unmute, set volume)
 - [X] **System Info:** Expose CPU, RAM, and OS status indicators
 - [ ] **Open Application:** Implement safe application launching by name
 
-
-## 📱 4. Mobile Tools
+## 📱 5. Mobile Tools
 - [ ] **Voice App:** Integrate voice input/output processing
 - [ ] **Voice App (Advanced):** Integrate the Assistant type voice features to the app like the gemini or google assistant
-- [ ] **Internal AI (GROG or Openrouter):** : Provide and internal AI which let you answer withotu the AI call to the pc if the server on the pc is not running.
-- [ ] **Wake Up (PC Call):**Wake up pc from mobile app using AI Voice feature or button.
-- [ ] **Connect / Disconnect** : Connect / Disconnect from mobile app to pc.
-- [ ] **External WakeUP App:** : This Provide the api to wake up the pc which gives you the information that pc is waken up or not
+- [ ] **Internal AI (GROQ or Openrouter):** Provide an internal AI which lets you answer without the AI call to the PC if the server on the PC is not running.
+- [ ] **Wake Up (PC Call):** Wake up PC from mobile app using AI Voice feature or button.
+- [ ] **Connect / Disconnect:** Connect / Disconnect from mobile app to PC.
+- [ ] **External WakeUP App:** Provide the API to wake up the PC which gives information on PC status.
