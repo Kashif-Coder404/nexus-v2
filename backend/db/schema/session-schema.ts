@@ -6,7 +6,7 @@ const SessionSchema = new Schema({
     required: true,
   },
   userId: {
-    type: 
+    type: String,
   }
 });
 

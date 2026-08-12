@@ -1,8 +1,13 @@
 const AIBOX = ({ message, cmd, terminal, terminalError }: any) => {
+  const displayText =
+    typeof message === "string"
+      ? message
+      : message?.msg || message?.aiMsg || (message ? String(message) : "");
+
   return (
     <div className="AICont">
       <div className="AITitle">Nexus</div>
-      <p className="AIContent">{message}</p>
+      <p className="AIContent">{displayText}</p>
       {cmd && (
         <>
           <h3>Command</h3>

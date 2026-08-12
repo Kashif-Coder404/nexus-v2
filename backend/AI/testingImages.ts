@@ -19,7 +19,7 @@ export const imageCheck = async (): Promise<{
     return { success: false, buffer: null, error: error.message || "" };
   }
 };
-export const imageSet = async (chatMessages: ChatMessageType[]) => {
+export const imageSet = async (chatMessages: ChatMessageType[]): Promise<string | false> => {
   const isImage = await imageCheck();
   if (!isImage.success) return false;
   const imageBuffer = isImage.buffer;
@@ -39,20 +39,17 @@ export const imageSet = async (chatMessages: ChatMessageType[]) => {
   const response = await geminiAICall(
     chatToPass,
     0,
-    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
     imageInstructions,
     false,
   );
   if (!response.success) return false;
-  chatMessages.push({
-    role: "assistant",
-    content: `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`,
-  });
+  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
   console.log(
-    "CHAT MESSAGES AFTER THE IMAGE SENT WITH THE SUMMARIZED MESSAGE: ",
-    chatMessages,
+    "IMAGE SUMMARIZED SUCCESSFULLY: ",
+    summary,
   );
-  return true;
+  return summary;
 };
 
 //After screenshot of the screen....

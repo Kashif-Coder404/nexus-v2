@@ -268,17 +268,13 @@ export const commandParser = async (
       };
     },
     capture_screen: async () => {
-      const isTaken: boolean = await imageSet(chatMessages);
+      const summaryOrFalse = await imageSet(chatMessages);
       return {
         cmd: cmd,
         msg: "",
-        terminalOutput: JSON.stringify(
-          isTaken ? "Image Taken Successfully" : "Image Not Taken",
-          null,
-          2,
-        ),
+        terminalOutput: summaryOrFalse || "Image Not Taken",
         terminalError: "",
-        isSuccess: isTaken || true,
+        isSuccess: !!summaryOrFalse,
       };
     },
   };

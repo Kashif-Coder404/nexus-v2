@@ -13,10 +13,22 @@ export const AppProvider = ({ children }: { children: any }) => {
     };
   }
 
+  const generateUUID = () => {
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return crypto.randomUUID();
+    }
+    return (
+      Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9)
+    );
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [msg, setMsg] = useState("");
-  const [session, setSession] = useState("session_" + crypto.randomUUID());
+  const [session, setSession] = useState("session_" + generateUUID());
 
   const hasFetched = useRef(false);
 
@@ -26,7 +38,7 @@ export const AppProvider = ({ children }: { children: any }) => {
 
     async function handleHealthCheck() {
       try {
-        const res: any = await fetch("http://localhost:3100/api/health");
+        const res: any = await fetch("http://192.168.31.116:3100/api/health");
         const data = await res.json();
         console.log("First Message", data);
         // live status of server required!

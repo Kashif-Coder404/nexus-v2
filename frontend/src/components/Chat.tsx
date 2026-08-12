@@ -15,7 +15,11 @@ const Chat = () => {
   }, [chatHistory, workingOn, isLoading, isSending]);
 
   useEffect(() => {
-    const wss = new WebSocket("ws://192.168.31.116:3100");
+    const host =
+      typeof window !== "undefined" && window.location.hostname
+        ? window.location.hostname
+        : "localhost";
+    const wss = new WebSocket(`ws://${host}:3100`);
     wss.onopen = () => {
       console.log("Connected to Nexus Server");
     };
@@ -57,8 +61,9 @@ const Chat = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
           },
-        body: JSON.stringify({ message: msg, session: session }),
-      });
+          body: JSON.stringify({ message: msg, session: session }),
+        },
+      );
       const data = await res.json();
       // lastAIMsg: "connect ECONNREFUSED 127.0.0.1:8082";
       // lastCMD: "";
