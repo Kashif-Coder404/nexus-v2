@@ -1,6 +1,10 @@
 import { InferSchemaType, Schema, model } from "mongoose";
 
 const chatSchema: Schema = new Schema({
+  sessionid: {
+    type:String,
+    required:true,
+  },
   role: {
     type: String,
     required: true,

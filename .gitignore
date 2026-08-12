@@ -49,6 +49,8 @@ backend/logs/
 backend/TestingArray.ts
 backend/AI/history/*
 backend/memory/*
+backend/AI/chats/*
+backend/screenshot.png
 
 #others
 tasks.md

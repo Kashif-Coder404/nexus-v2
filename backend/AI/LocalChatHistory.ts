@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper function to get history file path
+// Helper function to get chat History file path
 function getFilePath(session: string): string {
-  return path.join(__dirname, "history", `history_${session}.json`);
+  return path.join(__dirname, "chats", `chat_${session}.json`);
 }
 
 // Helper to check if file exists
@@ -42,9 +42,13 @@ export async function getHistory(
 ): Promise<Array<{ role: string; content: string }>> {
   try {
     const logFilePath = getFilePath(session);
+    if (!(await fileExists(logFilePath))) {
+      return [];
+    }
     const data = await fs.readFile(logFilePath, "utf-8");
     return JSON.parse(data).slice(-nMsg);
   } catch (error) {
+    console.error("Error getting history:", error);
     return [];
   }
 }

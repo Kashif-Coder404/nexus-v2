@@ -19,18 +19,12 @@ export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
       },
     });
     const { stdout, stderr } = await exec(cmd);
-    broadCastMessage({
-      type: "ai_data",
-      data: {
-        workingon: "",
-      },
-    });
     return { stdout, stderr, exitCode: 0 };
   } catch (error: any) {
     broadCastMessage({
       type: "ai_data",
       data: {
-        workingon: `Error: ${error.message}`,
+        workingon: "",
       },
     });
     return {

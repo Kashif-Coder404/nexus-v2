@@ -49,16 +49,17 @@ const Chat = () => {
     console.log("Sending message: ", msg, "\nSending Session: ", session);
     try {
       const apiKey = import.meta.env.VITE_NEXUS_API_KEY || "";
-      const res: any = await fetch("http://localhost:3100/api/chat/message", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
+      const res: any = await fetch(
+        "http://192.168.31.116:3100/api/chat/message",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
         body: JSON.stringify({ message: msg, session: session }),
       });
       const data = await res.json();
-      console.log("Response: ", data);
       // lastAIMsg: "connect ECONNREFUSED 127.0.0.1:8082";
       // lastCMD: "";
       // terminal: "Success";

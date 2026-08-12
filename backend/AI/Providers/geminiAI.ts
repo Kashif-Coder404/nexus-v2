@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { instructions } from "../instructions/Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { GeminiResponse } from "../Types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,14 +16,10 @@ const GEMINI_API_KEY = process.env.GEMINI_API;
 export const geminiAICall = async (
   chatMessages: Array<{ role: string; content: string }>,
   retryCount: number = 0,
-): Promise<{
-  content: {
-    cmd: string;
-    msg: string;
-    workingon: string;
-  };
-  success: boolean;
-}> => {
+  model: string = "gemini-3.5-flash",
+  instructionString: string = instructions,
+  isJson: boolean = true,
+): Promise<GeminiResponse> => {
   if (retryCount >= 2) {
     return {
       success: false,
@@ -34,17 +31,16 @@ export const geminiAICall = async (
     };
   }
 
-  // Use a valid Gemini model for the OpenAI-compatible endpoint
-  const model = "gemini-3.1-flash-lite";
+  // const model = "gemini-3.1-flash-lite";
+  // const model = "gemini-1.5-pro";
 
   // From your screenshot: Webshare's Rotating Proxy Endpoint
   const proxy = `http://ykowtycz-rotate:9g9v96c9zsux@p.webshare.io:80/`;
-  const agent = new HttpsProxyAgent(proxy);
-
+  // const agent = new HttpsProxyAgent(proxy);
   const MessageToAI = [
     {
       role: "system",
-      content: instructions,
+      content: instructionString,
     },
     ...chatMessages,
   ];
@@ -55,9 +51,11 @@ export const geminiAICall = async (
         model: model,
         messages: MessageToAI,
         temperature: 0.5,
-        response_format: {
-          type: "json_object",
-        },
+        ...(isJson && {
+          response_format: {
+            type: "json_object",
+          },
+        }),
       },
       {
         headers: {
@@ -70,24 +68,58 @@ export const geminiAICall = async (
     );
 
     const messageContent = response.data.choices[0].message.content;
-    const parsedContent =
-      typeof messageContent === "string"
-        ? JSON.parse(messageContent)
-        : messageContent;
-
+    let parsedContent;
+    if (isJson) {
+      let cleanStr = messageContent.trim();
+      if (cleanStr.startsWith("```json")) {
+        cleanStr = cleanStr
+          .replace(/^```json/, "")
+          .replace(/```$/, "")
+          .trim();
+      } else if (cleanStr.startsWith("```")) {
+        cleanStr = cleanStr.replace(/^```/, "").replace(/```$/, "").trim();
+      }
+      try {
+        parsedContent = JSON.parse(cleanStr);
+      } catch (parseError) {
+        // Attempt to extract JSON if there's trailing garbage
+        const match = cleanStr.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            parsedContent = JSON.parse(match[0]);
+          } catch (e) {
+            throw parseError;
+          }
+        } else {
+          throw parseError;
+        }
+      }
+    } else {
+      parsedContent = messageContent;
+    }
     return {
       content: parsedContent,
       success: true,
     };
   } catch (error: any) {
     console.error("--- GEMINI API CALL FAILED ---");
+
     const isRateLimited = error.response && error.response.status === 429;
 
-    if (isRateLimited) {
+    // Check if the error is a JSON parsing error (SyntaxError)
+    const isParseError = error instanceof SyntaxError;
+
+    if (isRateLimited || isParseError) {
       console.log(
-        `Gemini rate limited. Retrying... (Retry ${retryCount + 1}/2)`,
+        `Gemini error (${isRateLimited ? "Rate Limited" : "JSON Parse Error"}). Retrying... (Retry ${retryCount + 1}/2)`,
       );
-      return geminiAICall(chatMessages, retryCount + 1);
+      return geminiAICall(
+        chatMessages,
+        retryCount + 1,
+        model,
+        instructionString,
+        isJson,
+      );
     }
     if (error.response) {
       console.error("Status:", error.response.status);

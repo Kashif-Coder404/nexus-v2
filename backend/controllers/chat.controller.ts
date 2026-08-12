@@ -1,6 +1,9 @@
 import { Logs } from "../Logs.js";
 import { AskAI } from "../AI/askAI.js";
 import { broadCastMessage } from "../services/websocket.service.js";
+import { getHistory, setHistory } from "../AI/LocalChatHistory.js";
+import { ChatMessageType } from "../AI/Types.js";
+import { summarize } from "../AI/summarizer.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { message, session } = req.body;
@@ -24,7 +27,7 @@ export const sendMessage = async (req: any, res: any) => {
     broadCastMessage({
       type: "ai_data",
       data: {
-        workingon: `Working on...`,
+        workingon: "Analyzing your request...",
       },
     });
     const { cmd, msg, terminalOutput, terminalError } = await AskAI(
@@ -37,8 +40,6 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "",
       },
     });
-    // TODO: Step 4. Send live command execution stdout/stderr to WebSocket
-    // TODO: Step 5. Feed stdout back to the AI and check if there's a next command
 
     await Logs("Successfully processed chat message", "info", {
       lastAIMsg:
@@ -58,7 +59,22 @@ export const sendMessage = async (req: any, res: any) => {
         terminalError: terminalError || "",
       },
     });
+
+    async function summarizeBackground() {
+      const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
+      const summaryResult = await summarize(prevChatMessages, session);
+      if (summaryResult.length > 0) {
+        await setHistory(summaryResult, `summary_${session}`);
+      }
+    }
+    summarizeBackground().catch(err => console.error("[BACKGROUND SUMMARY ERROR]: ", err));
   } catch (error: any) {
+    broadCastMessage({
+      type: "ai_done",
+      data: {
+        workingon: "",
+      },
+    });
     await Logs(error, "error", { message });
     res.status(500).json({
       success: false,

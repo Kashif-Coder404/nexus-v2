@@ -3,8 +3,10 @@ import { accessMemory } from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
-import { getHistory, setHistory } from "./AiLogs.js";
-import { commandParserType } from "./Types.js";
+import { captureScreen } from "../tools/takeScreenShot.js";
+import { getHistory, setHistory } from "./LocalChatHistory.js";
+import { imageSet } from "./testingImages.js";
+import { ChatMessageType, commandParserType } from "./Types.js";
 
 export async function handle_app_search(command: string) {
   function search_app_parse(command: string): {
@@ -148,12 +150,8 @@ const searchParse = (
 export const commandParser = async (
   cmd: string,
   session: string,
+  chatMessages: ChatMessageType[],
 ): Promise<commandParserType> => {
-  broadCastMessage({
-    type: "ai_data",
-    data: { workingon: `Executing command: ${cmd}` },
-  });
-  await new Promise((resolve) => setTimeout(resolve, 1000));
   const commandHandlerDict = {
     history: async () => {
       return {
@@ -252,6 +250,35 @@ export const commandParser = async (
         ),
         terminalError: "",
         isSuccess: parsedResult.success || true,
+      };
+    },
+    memory_delete: async () => {
+      const result: string = await accessMemory(cmd);
+      const parsedResult = JSON.parse(result);
+      return {
+        cmd: cmd,
+        msg: "",
+        terminalOutput: JSON.stringify(
+          parsedResult.document || parsedResult,
+          null,
+          2,
+        ),
+        terminalError: "",
+        isSuccess: parsedResult.success || true,
+      };
+    },
+    capture_screen: async () => {
+      const isTaken: boolean = await imageSet(chatMessages);
+      return {
+        cmd: cmd,
+        msg: "",
+        terminalOutput: JSON.stringify(
+          isTaken ? "Image Taken Successfully" : "Image Not Taken",
+          null,
+          2,
+        ),
+        terminalError: "",
+        isSuccess: isTaken || true,
       };
     },
   };

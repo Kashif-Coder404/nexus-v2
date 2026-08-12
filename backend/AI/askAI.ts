@@ -1,9 +1,16 @@
-import { getHistory, setHistory } from "./AiLogs.js";
-import { maxLimit } from "./instructions/Instructions.js";
+import { getHistory, setHistory } from "./LocalChatHistory.js";
+import { instructions, maxLimit } from "./instructions/Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 import { geminiAICall } from "./Providers/geminiAI.js";
 import { commandParser } from "./Parsers.js";
-import { AIResponse, commandParserType } from "./Types.js";
+import {
+  AIResponse,
+  ChatMessageType,
+  commandParserType,
+  GeminiResponse,
+} from "./Types.js";
+import { callNvidia } from "./Providers/nvidiaAPICall.js";
+import { summarize } from "./summarizer.js";
 
 export async function AskAI(
   message: string,
@@ -23,14 +30,21 @@ export async function AskAI(
       terminalError: accumulatedError || "Max retries reached",
     };
   }
-
-  // 2. Initial Setup: Load existing chat history and append the user's new message
+  // 2. Initial Setup: Load existing chat history only on the initial request (retries === 0)
   if (retries === 0) {
-    chatMessages = await getHistory(session, 2); // Limit history to last 20 messages to prevent infinite growth
-    chatMessages.push({
+    const userMessage: ChatMessageType = {
       role: "user",
-      content: JSON.stringify({ msg: message, session_token: session }),
-    });
+      content: message,
+    };
+
+    const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
+
+    if (prevChatMessages.length > 0) {
+      const summaryChat = await getHistory(`summary_${session}`, 1);
+      chatMessages = [...summaryChat, userMessage];
+    } else {
+      chatMessages = [userMessage];
+    }
   }
 
   let aiMsg: string = "";
@@ -43,41 +57,67 @@ export async function AskAI(
   try {
     broadCastMessage({
       type: "ai_data",
-      data: { workingon: "Thinking in Gemini..." },
+      data: {
+        workingon: workingOn || "Nexus is Thinking...",
+      },
     });
-    const geminiResponse: any = await geminiAICall(chatMessages);
-    
+    // const nvidiResponse: any = await callNvidia(
+    //   workingOn,
+    //   chatMessages,
+    //   session,
+    //   aiMsg,
+    //   command,
+    //   instructions,
+    //   true,
+    // );
+    // chatMessages.push({
+    //   role: "assistant",
+    //   content: JSON.stringify(nvidiResponse),
+    // });
+    const geminiResponse: GeminiResponse = await geminiAICall(
+      chatMessages,
+      0,
+      "gemini-3.5-flash-lite",
+      instructions,
+      true,
+    );
+    let actualContent: any = geminiResponse.content;
     chatMessages.push({
       role: "assistant",
-      content: JSON.stringify(geminiResponse),
+      content: JSON.stringify(actualContent),
     });
     await setHistory(chatMessages, session);
 
-    command = geminiResponse.content.cmd || "";
-    aiMsg = geminiResponse.content.msg || "";
-    workingOn = geminiResponse.content.workingon || "";
-
-    broadCastMessage({
-      type: workingOn || command ? "ai_data" : "ai_done",
-      data: {
-        workingon:
-          workingOn || (command ? `Executing command ${command}.....` : ""),
-      },
-    });
+    command = actualContent.cmd || "";
+    aiMsg = actualContent.msg || "";
+    workingOn = actualContent.workingon || "";
+    // aiMsg = nvidiResponse.aiMsg;
+    // command = nvidiResponse.command;
+    // workingOn = nvidiResponse.workingOn;
+    // broadCastMessage({
+    //   type: workingOn || command ? "ai_data" : "ai_done",
+    //   data: {
+    //     workingon:
+    //       workingOn || (command ? `Executing command ${command}.....` : ""),
+    //   },
+    // });
+    console.log(
+      (workingOn || command) &&
+        "[ASK AI] GEMINI COMMAND FOUND (CHECK THE BROADCAST)",
+      `Workingon: ${workingOn},Command: ${command}`,
+    );
 
     if (command) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
       const cmdResults: commandParserType = await commandParser(
         command,
         session,
+        chatMessages,
       );
       command = cmdResults.cmd || "";
       terminal = cmdResults.terminalOutput || "";
       terminalErr = cmdResults.terminalError || "";
       isSuccessState = cmdResults.isSuccess || false;
-      broadCastMessage({
-        type: "ai_done",
-        data: { workingon: "" },
-      });
     }
   } catch (error: any) {
     terminalErr = error.message;

@@ -1,11 +1,10 @@
-import ChatBox from "@/components/ChatBox";
+import { View, Text, StyleSheet } from 'react-native';
 
-import { Text, View, StyleSheet } from "react-native";
-
-export default function Index() {
+export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <ChatBox />
+      <Text style={styles.text}>Welcome to Nexus App V2</Text>
+      <Text style={styles.subtext}>Project has been reset successfully.</Text>
     </View>
   );
 }
@@ -13,7 +12,17 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
+  text: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  subtext: {
+    fontSize: 16,
+    color: '#666',
+  }
 });
