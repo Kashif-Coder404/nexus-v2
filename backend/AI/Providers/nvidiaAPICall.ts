@@ -1,5 +1,5 @@
 import axios from "axios";
-import { instructions } from "../instructions/Instructions.js";
+import { instructions } from "../instructions/main.Instructions.js";
 import { extractJSON, parseAIResponse } from "../Parsers.js";
 import { setHistory } from "../LocalChatHistory.js";
 import { CallNvidiaReturnType, ChatMessageType } from "../Types.js";
@@ -31,7 +31,6 @@ export const callNvidia = async (
     };
   }
   if (isJson) {
-    
     return {
       aiMsg: data,
       command: "",

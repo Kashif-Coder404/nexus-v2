@@ -2,7 +2,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { instructions } from "../instructions/Instructions.js";
+import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,7 +78,7 @@ export const openCodeAICall = async (
       success: true,
     };
   } catch (error: any) {
-    console.error("--- OPENCODE API CALL FAILED ---");
+    console.error("[OPENCODE AI] API CALL FAILED");
     const isRateLimited = error.response && error.response.status === 429;
 
     if (isRateLimited) {
@@ -88,10 +88,10 @@ export const openCodeAICall = async (
       // return openCodeAICall(chatMessages, retryCount + 1);
     }
     if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Error Details:", error.response.data);
+      console.error("[OPENCODE AI] Status:", error.response.status);
+      console.error("[OPENCODE AI] Error Details:", error.response.data);
     } else {
-      console.error("Error Message:", error.message);
+      console.error("[OPENCODE AI] Error Message:", error.message);
     }
     return {
       success: false,

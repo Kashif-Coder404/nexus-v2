@@ -7,7 +7,7 @@ export async function connectDB() {
     await mongoose.connect(MONGOURI);
     // console.log("DB CONNECTED SUCCESSFULLY! ✅");
   } catch (error) {
-    console.log("ERROR WHILE CONNECTING TO DB 🫠");
+    console.error("[DATABASE] ERROR WHILE CONNECTING TO DB 🫠");
   }
 }
 

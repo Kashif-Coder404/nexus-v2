@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { geminiAICall } from "./Providers/geminiAI.js";
-import { ChatMessageType } from "./Types.js";
-import { imageInstructions } from "./instructions/imageinstructions.js";
-import { captureScreen } from "../tools/takeScreenShot.js";
+import { geminiAICall } from "../Providers/geminiAI.js";
+import { ChatMessageType } from "../Types.js";
+import { imageInstructions } from "../instructions/image.instructions.js";
+import { captureScreen } from "../../tools/takeScreenShot.js";
 
 export const imageCheck = async (): Promise<{
   success: boolean;
@@ -19,7 +19,9 @@ export const imageCheck = async (): Promise<{
     return { success: false, buffer: null, error: error.message || "" };
   }
 };
-export const imageSet = async (chatMessages: ChatMessageType[]): Promise<string | false> => {
+export const imageSet = async (
+  chatMessages: ChatMessageType[],
+): Promise<string | false> => {
   const isImage = await imageCheck();
   if (!isImage.success) return false;
   const imageBuffer = isImage.buffer;
@@ -35,7 +37,7 @@ export const imageSet = async (chatMessages: ChatMessageType[]): Promise<string 
     ],
   };
   const chatToPass = [...chatMessages, toPass];
-  console.log("PASSING CHAT MESSAGE: ", chatToPass);
+  console.log("[IMAGE SUMMARIZER] PASSING CHAT MESSAGE: ", chatToPass);
   const response = await geminiAICall(
     chatToPass,
     0,
@@ -45,10 +47,7 @@ export const imageSet = async (chatMessages: ChatMessageType[]): Promise<string 
   );
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
-  console.log(
-    "IMAGE SUMMARIZED SUCCESSFULLY: ",
-    summary,
-  );
+  console.log("[IMAGE SUMMARIZER] IMAGE SUMMARIZED SUCCESSFULLY: ", summary);
   return summary;
 };
 

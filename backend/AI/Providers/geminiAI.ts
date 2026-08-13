@@ -2,7 +2,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { instructions } from "../instructions/Instructions.js";
+import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { GeminiResponse } from "../Types.js";
 
@@ -102,7 +102,7 @@ export const geminiAICall = async (
       success: true,
     };
   } catch (error: any) {
-    console.error("--- GEMINI API CALL FAILED ---");
+    console.error("[GEMINI AI] API CALL FAILED");
 
     const isRateLimited = error.response && error.response.status === 429;
 
@@ -122,13 +122,13 @@ export const geminiAICall = async (
       );
     }
     if (error.response) {
-      console.error("Status:", error.response.status);
+      console.error("[GEMINI AI] Status:", error.response.status);
       console.error(
-        "Error Details:",
+        "[GEMINI AI] Error Details:",
         JSON.stringify(error.response.data, null, 2),
       );
     } else {
-      console.error("Error Message:", error.message);
+      console.error("[GEMINI AI] Error Message:", error.message);
     }
     return {
       success: false,

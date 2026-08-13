@@ -2,7 +2,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { instructions } from "../instructions/Instructions.js";
+import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,13 +57,13 @@ async function checkGroqApi() {
       },
     );
   } catch (error: any) {
-    console.error("--- API STATUS: FAILED ---");
+    console.error("[GROQ AI] API STATUS: FAILED");
     // Axios captures API error details in error.response.data
     if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Error Details:", error.response.data);
+      console.error("[GROQ AI] Status:", error.response.status);
+      console.error("[GROQ AI] Error Details:", error.response.data);
     } else {
-      console.error("Error Message:", error.message);
+      console.error("[GROQ AI] Error Message:", error.message);
     }
   }
 }
@@ -132,7 +132,7 @@ export const groqAICall = async (
       success: true,
     };
   } catch (error: any) {
-    console.error("--- GROQ API CALL FAILED ---");
+    console.error("[GROQ AI] API CALL FAILED");
     const isRateLimited = error.response && error.response.status === 429;
     const isDemandError =
       error.response?.data?.error?.message?.includes("on_demand");
@@ -144,10 +144,10 @@ export const groqAICall = async (
       return groqAICall(chatMessages, retryCount + 1);
     }
     if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Error Details:", error.response.data);
+      console.error("[GROQ AI] Status:", error.response.status);
+      console.error("[GROQ AI] Error Details:", error.response.data);
     } else {
-      console.error("Error Message:", error.message);
+      console.error("[GROQ AI] Error Message:", error.message);
     }
     return {
       success: false,

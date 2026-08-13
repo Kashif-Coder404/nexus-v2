@@ -31,7 +31,7 @@ export async function setHistory(
     await fs.writeFile(logFilePath, JSON.stringify(data, null, 2));
     return true;
   } catch (error) {
-    console.error("Error setting history:", error);
+    console.error("[LOCAL CHAT HISTORY] Error setting history:", error);
     return false;
   }
 }
@@ -48,7 +48,7 @@ export async function getHistory(
     const data = await fs.readFile(logFilePath, "utf-8");
     return JSON.parse(data).slice(-nMsg);
   } catch (error) {
-    console.error("Error getting history:", error);
+    console.error("[LOCAL CHAT HISTORY] Error getting history:", error);
     return [];
   }
 }

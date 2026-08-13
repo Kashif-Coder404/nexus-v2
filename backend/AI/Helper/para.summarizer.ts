@@ -1,7 +1,7 @@
-import { summarizeInstructions } from "./instructions/summarizeInstructions.js";
-import { geminiAICall } from "./Providers/geminiAI.js";
-import { callNvidia } from "./Providers/nvidiaAPICall.js";
-import { CallNvidiaReturnType, ChatMessageType } from "./Types.js";
+import { summarizeInstructions } from "../instructions/para.summary.instructions.js";
+import { geminiAICall } from "../Providers/geminiAI.js";
+import { callNvidia } from "../Providers/nvidiaAPICall.js";
+import { CallNvidiaReturnType, ChatMessageType } from "../Types.js";
 
 export const summarizerCall = async (
   chatHistory: ChatMessageType[] = [],
@@ -75,7 +75,7 @@ export const summarize = async (
     const summaryChat: ChatMessageType = {
       role: "assistant",
       content: `[System Context - Previous Chat Summary]: ${summaryResults.content}`,
-    };  
+    };
     console.log("[SUMMARIZER] RETURNING: ", summaryChat);
 
     return [summaryChat];

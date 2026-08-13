@@ -3,7 +3,7 @@ import { AskAI } from "../AI/askAI.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 import { getHistory, setHistory } from "../AI/LocalChatHistory.js";
 import { ChatMessageType } from "../AI/Types.js";
-import { summarize } from "../AI/summarizer.js";
+import { summarize } from "../AI/Helper/para.summarizer.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { message, session } = req.body;
@@ -67,7 +67,9 @@ export const sendMessage = async (req: any, res: any) => {
         await setHistory(summaryResult, `summary_${session}`);
       }
     }
-    summarizeBackground().catch(err => console.error("[BACKGROUND SUMMARY ERROR]: ", err));
+    summarizeBackground().catch((err) =>
+      console.error("[BACKGROUND SUMMARY ERROR]: ", err),
+    );
   } catch (error: any) {
     broadCastMessage({
       type: "ai_done",

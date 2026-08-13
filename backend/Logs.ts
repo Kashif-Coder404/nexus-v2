@@ -65,7 +65,7 @@ export async function Logs(
 
     return true;
   } catch (error) {
-    console.error("Failed to write JSON log:", error);
+    console.error("[LOGGER] Failed to write JSON log:", error);
     return false;
   }
 }

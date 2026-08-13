@@ -62,7 +62,7 @@ export async function updateMemory(
       document: memoryUpdate,
     };
   } catch (error: any) {
-    console.error("❌ Error saving memory:", error);
+    console.error("[MEMORY SERVICE] ❌ Error saving memory:", error);
     return {
       success: false,
       msg: `ERROR: ${error} , Failed to save [${alias}] -> "${value}" as ${cleanedCategory} in memory! `,
@@ -121,7 +121,7 @@ export async function getMemory(
       document: null,
     };
   } catch (error: any) {
-    console.error("❌ Error reading memory:", error);
+    console.error("[MEMORY SERVICE] ❌ Error reading memory:", error);
     return {
       success: false,
       msg: `Failed to Search for Memory!, searched: "${alias}" | "${category}", Error: ${error.message}`,
@@ -185,7 +185,7 @@ export const deleteMemory = async (
       deletedDocument: null,
     };
   } catch (error) {
-    console.error("Error executing findOneAndDelete:", error);
+    console.error("[MEMORY SERVICE] Error executing findOneAndDelete:", error);
     return { success: false, msg: "An error occurred during deletion." };
   }
 };

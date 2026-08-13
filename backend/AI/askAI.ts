@@ -1,7 +1,7 @@
 import { getHistory, setHistory } from "./LocalChatHistory.js";
-import { instructions, maxLimit } from "./instructions/Instructions.js";
+import { instructions, maxLimit } from "./instructions/main.Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
-import { geminiAICall } from "./Providers/geminiAI.js";
+
 import { commandParser } from "./Parsers.js";
 import {
   AIResponse,
@@ -9,8 +9,8 @@ import {
   commandParserType,
   GeminiResponse,
 } from "./Types.js";
-import { callNvidia } from "./Providers/nvidiaAPICall.js";
-import { summarize } from "./summarizer.js";
+import { callAI } from "./CallAI.js";
+import { summarize } from "./Helper/para.summarizer.js";
 
 export async function AskAI(
   message: string,
@@ -61,51 +61,47 @@ export async function AskAI(
         workingon: workingOn || "Nexus is Thinking...",
       },
     });
-    // const nvidiResponse: any = await callNvidia(
-    //   workingOn,
-    //   chatMessages,
-    //   session,
-    //   aiMsg,
-    //   command,
-    //   instructions,
-    //   true,
-    // );
-    // chatMessages.push({
-    //   role: "assistant",
-    //   content: JSON.stringify(nvidiResponse),
-    // });
-    const geminiResponse: GeminiResponse = await geminiAICall(
+    const aiResponse = await callAI("gemini", {
       chatMessages,
-      0,
-      "gemini-3.5-flash-lite",
+      session,
       instructions,
-      true,
-    );
-    let actualContent: any = geminiResponse.content;
+      isJson: true,
+      model: "gemini-3.5-flash-lite",
+      workingOn,
+      aiMsg,
+      command,
+    });
+
     chatMessages.push({
       role: "assistant",
-      content: JSON.stringify(actualContent),
+      content: JSON.stringify(aiResponse.rawContent),
     });
     await setHistory(chatMessages, session);
 
-    command = actualContent.cmd || "";
-    aiMsg = actualContent.msg || "";
-    workingOn = actualContent.workingon || "";
-    // aiMsg = nvidiResponse.aiMsg;
-    // command = nvidiResponse.command;
-    // workingOn = nvidiResponse.workingOn;
-    // broadCastMessage({
-    //   type: workingOn || command ? "ai_data" : "ai_done",
-    //   data: {
-    //     workingon:
-    //       workingOn || (command ? `Executing command ${command}.....` : ""),
-    //   },
-    // });
-    console.log(
-      (workingOn || command) &&
-        "[ASK AI] GEMINI COMMAND FOUND (CHECK THE BROADCAST)",
-      `Workingon: ${workingOn},Command: ${command}`,
-    );
+    command = aiResponse.cmd || "";
+    aiMsg = aiResponse.msg || "";
+    workingOn = aiResponse.workingon || "";
+
+    if (workingOn || command) {
+      console.log(`[ASK AI] COMMAND / WORKING-ON FOUND`);
+      console.log(`[ASK AI] WorkingOn: "${workingOn}" | Command: "${command}"`);
+      
+      broadCastMessage({
+        type: "ai_data",
+        data: {
+          workingon: workingOn || (command ? `Executing command: ${command}...` : "Processing..."),
+        },
+      });
+    } else {
+      console.log(`[ASK AI] REGULAR RESPONSE: ${aiMsg}`);
+      
+      broadCastMessage({
+        type: "ai_done",
+        data: {
+          workingon: "",
+        },
+      });
+    }
 
     if (command) {
       await new Promise((resolve) => setTimeout(resolve, 500));

@@ -5,7 +5,7 @@ import { broadCastMessage } from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
 import { captureScreen } from "../tools/takeScreenShot.js";
 import { getHistory, setHistory } from "./LocalChatHistory.js";
-import { imageSet } from "./testingImages.js";
+import { imageSet } from "./Helper/image.summarizer.js";
 import { ChatMessageType, commandParserType } from "./Types.js";
 
 export async function handle_app_search(command: string) {

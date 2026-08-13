@@ -70,7 +70,7 @@ export const search_app = async (
     desktopResult = (await search("C:/Users/Kashif/Desktop/", name, extension))
       .results;
   } catch (e) {
-    console.error("Desktop search failed:", e);
+    console.error("[SEARCH SERVICE] Desktop search failed:", e);
   }
 
   // Desktop/APPS search
@@ -82,7 +82,7 @@ export const search_app = async (
         await search("C:/Users/Kashif/Desktop/APPS", name, extension)
       ).results;
     } catch (e) {
-      console.error("Desktop/APPS search failed:", e);
+      console.error("[SEARCH SERVICE] Desktop/APPS search failed:", e);
     }
 
     try {
@@ -90,7 +90,7 @@ export const search_app = async (
         await search("C:/Users/Public/Desktop", name, extension)
       ).results;
     } catch (e) {
-      console.error("Public/Desktop search failed:", e);
+      console.error("[SEARCH SERVICE] Public/Desktop search failed:", e);
     }
   }
   type ResultType = {
