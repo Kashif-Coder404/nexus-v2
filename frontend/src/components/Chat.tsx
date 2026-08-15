@@ -1,165 +1,177 @@
 import { useEffect, useState, useRef } from "react";
-import { useAppContext } from "../context/provider";
+import { useChat } from "../hooks/useChat";
 import AIBOX from "./AIBox";
 import UserBox from "./UserBox";
+import { API_BASE_URL } from "../services/chatService";
 
 const Chat = () => {
-  const { isLoading, chatHistory, setChatHistory, msg, setMsg, session } =
-    useAppContext();
+  const {
+    isLoading,
+    isOnline,
+    isSending,
+    chatHistory,
+    msg,
+    setMsg,
+    session,
+    sendMessage,
+    loadSessionHistory,
+    createNewSession,
+  } = useChat();
+
   const [workingOn, setWorkingOn] = useState("");
-  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, workingOn, isLoading, isSending]);
 
+  // Frontend Tab Close Warning
   useEffect(() => {
-    const host =
-      typeof window !== "undefined" && window.location.hostname
-        ? window.location.hostname
-        : "localhost";
-    const wss = new WebSocket(`ws://${host}:3100`);
-    wss.onopen = () => {
-      console.log("Connected to Nexus Server");
-    };
-    wss.onmessage = (event: any) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        console.log("Data from broadcasting!: ", data);
-
-        if (data.type === "ai_data") {
-          setWorkingOn(data.data.workingon);
-        }
-        if (data.type === "ai_done") {
-          setWorkingOn(data.data.workingon);
-        }
-      } catch (error) {
-        console.error("Error: ", error);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isSending || workingOn) {
+        e.preventDefault();
+        e.returnValue = "Nexus AI is actively processing a task. Are you sure you want to leave?";
+        return e.returnValue;
       }
     };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isSending, workingOn]);
+
+  useEffect(() => {
+    let wss: WebSocket;
+    let reconnectTimer: any;
+
+    const connectWS = () => {
+      const wsHost = API_BASE_URL.replace(/^http/, "ws");
+      wss = new WebSocket(wsHost);
+
+      wss.onopen = () => console.log("[WebSocket] Connected");
+      
+      wss.onmessage = (event: any) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "ai_data") setWorkingOn(data.data?.workingon || "Processing task");
+          if (data.type === "ai_done") setWorkingOn("");
+        } catch (error) {}
+      };
+
+      wss.onclose = () => {
+        console.log("[WebSocket] Disconnected. Reconnecting in 3s...");
+        reconnectTimer = setTimeout(connectWS, 3000);
+      };
+
+      wss.onerror = (err) => {
+        console.error("[WebSocket] Error", err);
+        wss.close();
+      };
+    };
+
+    connectWS();
+
     return () => {
-      wss.close();
+      clearTimeout(reconnectTimer);
+      if (wss) {
+        wss.onclose = null; // Prevent reconnect loop on unmount
+        wss.close();
+      }
     };
   }, []);
-  const sendMessage = async () => {
-    if (!msg) return;
-    setIsSending(true);
-    setChatHistory((prev: any) => [
-      ...prev,
-      { id: Date.now(), role: "user", content: msg },
-    ]);
-    console.log("Sending message: ", msg, "\nSending Session: ", session);
-    try {
-      const apiKey = import.meta.env.VITE_NEXUS_API_KEY || "";
-      const res: any = await fetch(
-        "http://192.168.31.116:3100/api/chat/message",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({ message: msg, session: session }),
-        },
-      );
-      const data = await res.json();
-      // lastAIMsg: "connect ECONNREFUSED 127.0.0.1:8082";
-      // lastCMD: "";
-      // terminal: "Success";
-      // terminalError: "";
-      const aiResponse = data.data;
-      const aiMsg = aiResponse.lastAIMsg;
-      const cmd: string = aiResponse.lastCMD;
-      const terminal: string = aiResponse.terminal;
-      const terminalError: string = aiResponse.terminalError;
-      setChatHistory((prev: any) => [
-        ...prev,
-        {
-          role: "nexus",
-          content: {
-            msg: aiMsg,
-            cmd: cmd || "",
-            terminal: terminal || "",
-            terminalError: terminalError || "",
-          },
-        },
-      ]);
-      console.log(chatHistory);
-    } catch (error) {
-      console.error("Error: ", error);
-      setChatHistory((prev: any) => [
-        ...prev,
-        {
-          role: "nexus",
-          content: {
-            msg: error,
-            cmd: "",
-            terminal: "",
-            terminalError: "",
-          },
-        },
-      ]);
-    }
-    setMsg("");
-    setIsSending(false);
-  };
+
   return (
-    <div className="ChatCont">
-      <h1>Chat</h1>
-      <div className="chat">
-        {chatHistory.map((msg: any, index: number) => {
-          const key = msg.id || `msg-${index}`;
-          if (msg.role === "user") {
-            return <UserBox key={key} message={msg.content} />;
-          }
-          if (msg.role === "nexus") {
+    <div className="chat-container">
+      {/* Premium Header */}
+      <header className="chat-header">
+        <div className="brand-title">
+          <span className="brand-icon">✧</span>
+          Nexus AI
+          <span className="session-badge" title={session}>
+            {session.substring(0, 14)}...
+          </span>
+        </div>
+        <div className="header-actions">
+          <div className="status-indicator" title={isOnline ? "System Online" : "System Offline"}>
+            <div className={`mini-status ${isOnline ? "online" : "offline"}`} />
+          </div>
+          <button className="icon-btn" onClick={() => loadSessionHistory()} title="Sync Session">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          </button>
+          <button className="icon-btn" onClick={createNewSession} title="New Chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Message Feed */}
+      <div className="chat-feed">
+        {chatHistory.length === 0 && !isLoading && (
+          <div className="empty-state">
+            <div className="empty-logo">✧</div>
+            <h3>How can I help you today?</h3>
+            <p>I am your intelligent assistant. I can execute commands, manage tasks, and help you code.</p>
+          </div>
+        )}
+
+        {chatHistory.map((msgItem: any, index: number) => {
+          const key = msgItem.id || `msg-${index}`;
+          if (msgItem.role === "user") return <UserBox key={key} message={msgItem.content} />;
+          if (msgItem.role === "nexus") {
             return (
               <AIBOX
                 key={key}
-                message={msg.content?.msg || msg.content?.aiMsg}
-                cmd={msg.content?.cmd || ""}
-                terminal={msg.content?.terminal || ""}
-                terminalError={msg.content?.terminalError || ""}
+                message={msgItem.content?.msg || msgItem.content?.aiMsg}
+                cmd={msgItem.content?.cmd || ""}
+                terminal={msgItem.content?.terminal || ""}
+                terminalError={msgItem.content?.terminalError || ""}
               />
             );
           }
+          return null;
         })}
+
         {workingOn && (
-          <div className="w-full flex justify-center my-2">
-            <span className="text-sm italic text-gray-400 animate-pulse loading">
-              {workingOn}...
-            </span>
+          <div className="ai-thinking">
+            <div className="pulse-ring" />
+            <span>{workingOn}...</span>
           </div>
         )}
+
         {isLoading && chatHistory.length === 0 && (
-          <div className="loading">Connecting to server...</div>
+          <div className="ai-thinking">
+            <div className="pulse-ring" />
+            <span>Initializing Nexus Core...</span>
+          </div>
         )}
-        {isSending && <div className="loading">Sending the Request...</div>}
+
         <div ref={messagesEndRef} />
       </div>
-      <div className="input">
-        <input
-          type="text"
-          className="input-text"
-          placeholder={isSending ? "Sending..." : "Message..."}
-          value={msg}
-          onKeyDown={(e: any) => {
-            if (e.key === "Enter") {
-              sendMessage();
-            }
-          }}
-          onChange={(e: any) => setMsg(e.target.value)}
-          disabled={isLoading || isSending}
-        />
-        <button
-          className="send"
-          onClick={sendMessage}
-          disabled={isLoading || isSending}
-        >
-          {isSending ? "Sending..." : "Send"}
-        </button>
+
+      {/* Floating Input Pill */}
+      <div className="floating-input-wrapper">
+        <div className="chat-input-area">
+          <input
+            type="text"
+            className="chat-input"
+            placeholder={isSending ? "Nexus is thinking..." : "Message Nexus AI..."}
+            value={msg}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            onChange={(e) => setMsg(e.target.value)}
+            disabled={isLoading || isSending}
+            autoFocus
+          />
+          <button className="send-button" onClick={sendMessage} disabled={isLoading || isSending || !msg.trim()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
