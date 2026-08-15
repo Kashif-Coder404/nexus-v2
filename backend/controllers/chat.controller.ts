@@ -55,7 +55,7 @@ export const sendMessage = async (req: any, res: any) => {
       data: {
         lastAIMsg: msg || "No message from AI",
         lastCMD: cmd,
-        terminal: terminalOutput || (terminalError ? "" : "Success"),
+        terminal: terminalOutput || "",
         terminalError: terminalError || "",
       },
     });
@@ -77,7 +77,7 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "",
       },
     });
-    await Logs(error, "error", { message });
+    await Logs("Error on the terminal", "error", { message });
     res.status(500).json({
       success: false,
       message: error.message || "An unexpected error occurred",

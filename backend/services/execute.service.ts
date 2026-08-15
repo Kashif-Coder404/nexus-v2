@@ -10,7 +10,10 @@ interface ExecutionResponse {
   exitCode: number;
 }
 
-export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
+export async function executeCmd(
+  cmd: string,
+  timeoutMs: number = 5000,
+): Promise<ExecutionResponse> {
   try {
     broadCastMessage({
       type: "ai_data",
@@ -18,8 +21,15 @@ export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
         workingon: `Executing: ${cmd.length > 30 ? cmd.slice(0, 30) + "..." : cmd}`,
       },
     });
-    const { stdout, stderr } = await exec(cmd);
-    return { stdout, stderr, exitCode: 0 };
+
+    const commandResponse: any = await exec(cmd, { timeout: timeoutMs });
+    // const commandResponse: any = await execCallback(cmd, { timeout: 10000 });
+
+    return {
+      stdout: commandResponse.stdout,
+      stderr: commandResponse.stderr,
+      exitCode: 0,
+    };
   } catch (error: any) {
     broadCastMessage({
       type: "ai_data",
@@ -27,16 +37,16 @@ export async function executeCmd(cmd: string): Promise<ExecutionResponse> {
         workingon: "",
       },
     });
+    console.log(`[EXECUTE COMMADER] ERROR: ${error}`);
+    const isTimeout = error.killed || error.signal === "SIGTERM";
     return {
       stdout: error.stdout || "",
-      stderr: error.message,
+      stderr: isTimeout
+        ? `Command timed out after ${timeoutMs / 1000} seconds`
+        : error.message,
       exitCode: error.code || 1,
     };
   }
 }
-async function testExec() {
-  // console.log("testExec");
-  const result = await executeCmd("cd memory && type memory.txt");
-  // console.log("results: ", result);
-}
-// testExec();
+// const tempCMD: string = `start "" "C://Users//Kashif//Desktop//VSCode.lnk"`;
+// executeCmd(tempCMD);

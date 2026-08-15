@@ -9,7 +9,7 @@ export const captureScreen = async (): Promise<{
   try {
     const filename = "screenshot.png";
     await screenshot({ filename });
-    console.log(`[SCREENSHOT] Saved to ${filename}`);
+    console.log(`[SCREENSHOT ${new Date()}] Saved to ${filename}`);
     // Return image Buffer directly
     const imgBuffer = await screenshot({ format: "png" });
     return { imageBuffer: imgBuffer, success: true };

@@ -10,6 +10,7 @@ import { finalLog, logging } from "./middlewares/logs/logging.js";
 import authAPI from "./middlewares/auth/authenticateAPIkey.js";
 import { connectDB } from "./db/connectDB.js";
 import { updateMemory } from "./services/memory.service.js";
+import { getHistory } from "./AI/LocalChatHistory.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -69,5 +70,12 @@ app.use("/api/chat", logging, authAPI, finalLog, chatRoutes);
 app.post("/api/memory", async (req, res) => {
   const { category, value, alias } = req.body;
   return res.json({ response: await updateMemory(alias, value, category) });
+});
+//ADD Chat history end point
+app.post("/api/chat/history", async (req, res) => {
+  const { session } = req.body;
+  if (!session)
+    return res.status(400).json({ response: "Session is Required" });
+  return res.json({ response: await getHistory(session, 0) });
 });
 export default app;

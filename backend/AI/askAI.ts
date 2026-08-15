@@ -41,7 +41,7 @@ export async function AskAI(
 
     if (prevChatMessages.length > 0) {
       const summaryChat = await getHistory(`summary_${session}`, 1);
-      chatMessages = [...summaryChat, userMessage];
+      chatMessages = [...summaryChat, ...prevChatMessages, userMessage];
     } else {
       chatMessages = [userMessage];
     }
@@ -76,25 +76,30 @@ export async function AskAI(
       role: "assistant",
       content: JSON.stringify(aiResponse.rawContent),
     });
-    await setHistory(chatMessages, session);
+
+    const cleanHistory = chatMessages.filter(
+      (msg) => !msg.content.startsWith("[System Context"),
+    );
+    await setHistory(cleanHistory, session);
 
     command = aiResponse.cmd || "";
     aiMsg = aiResponse.msg || "";
     workingOn = aiResponse.workingon || "";
 
     if (workingOn || command) {
-      console.log(`[ASK AI] COMMAND / WORKING-ON FOUND`);
-      console.log(`[ASK AI] WorkingOn: "${workingOn}" | Command: "${command}"`);
-      
+      if (command) {
+        console.log(`[ASK AI] Executing command: ${command}`);
+      }
+
       broadCastMessage({
         type: "ai_data",
         data: {
-          workingon: workingOn || (command ? `Executing command: ${command}...` : "Processing..."),
+          workingon:
+            workingOn ||
+            (command ? `Executing command: ${command}...` : "Processing..."),
         },
       });
     } else {
-      console.log(`[ASK AI] REGULAR RESPONSE: ${aiMsg}`);
-      
       broadCastMessage({
         type: "ai_done",
         data: {
@@ -105,12 +110,18 @@ export async function AskAI(
 
     if (command) {
       await new Promise((resolve) => setTimeout(resolve, 500));
+      const parsedCMD =
+        typeof command === "string" ? JSON.parse(command) : command;
+
       const cmdResults: commandParserType = await commandParser(
-        command,
+        parsedCMD,
         session,
         chatMessages,
       );
-      command = cmdResults.cmd || "";
+      command =
+        typeof cmdResults.cmd === "string"
+          ? cmdResults.cmd
+          : JSON.stringify(cmdResults.cmd || "");
       terminal = cmdResults.terminalOutput || "";
       terminalErr = cmdResults.terminalError || "";
       isSuccessState = cmdResults.isSuccess || false;

@@ -9,12 +9,27 @@ export type SearchOutput = {
   stderr: string;
   cmd: string;
 };
+export interface SearchResultItem {
+  name: string;
+  path: string;
+  folder: string;
+  extension: string;
+  size?: number;
+}
+
+export interface SearchResponse {
+  success: boolean;
+  query: string;
+  count: number;
+  results: SearchResultItem[];
+}
+
 export async function search(
-  path_arg: string,
+  path_arg: string = "",
   expected_name: string,
   extension: string = "",
-): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
+): Promise<SearchResponse> {
+  return new Promise<SearchResponse>((resolve, reject) => {
     let stdout: string = "";
     let stderr: string = "";
 

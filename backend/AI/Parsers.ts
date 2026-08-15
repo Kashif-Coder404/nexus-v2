@@ -1,5 +1,9 @@
 import { executeCmd } from "../services/execute.service.js";
-import { accessMemory } from "../services/memory.service.js";
+import {
+  updateMemory,
+  getMemory,
+  deleteMemory,
+} from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
@@ -7,6 +11,17 @@ import { captureScreen } from "../tools/takeScreenShot.js";
 import { getHistory, setHistory } from "./LocalChatHistory.js";
 import { imageSet } from "./Helper/image.summarizer.js";
 import { ChatMessageType, commandParserType } from "./Types.js";
+import {
+  CommandTypes,
+  GlobalSearchType,
+  SearchAppParameters,
+  MemoryWrite,
+  MemoryRead,
+  MemoryDelete,
+  VolumeType,
+} from "./Types/ParserTypes.js";
+import { connectDB } from "../db/connectDB.js";
+import volume from "../tools/volume.js";
 
 export async function handle_app_search(command: string) {
   function search_app_parse(command: string): {
@@ -148,14 +163,15 @@ const searchParse = (
 };
 
 export const commandParser = async (
-  cmd: string,
+  cmd: CommandTypes,
   session: string,
   chatMessages: ChatMessageType[],
 ): Promise<commandParserType> => {
+  const returningCmd: string = JSON.stringify(cmd);
   const commandHandlerDict = {
     history: async () => {
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
         terminalOutput: JSON.stringify(await getHistory(session, 20)),
         terminalError: "",
@@ -163,130 +179,126 @@ export const commandParser = async (
       };
     },
     delete_history: async () => {
-      await setHistory([], session);
-      broadCastMessage({
-        type: "ai_done",
-        data: { workingon: "" },
-      });
+      const results: boolean = await setHistory([], session);
       return {
-        cmd: cmd,
-        msg: "History file Deleted SuccessFully",
+        cmd: returningCmd,
+        msg: results
+          ? "History file Deleted SuccessFully"
+          : "Failed to delete History",
         terminalOutput: "",
         terminalError: "",
-        isSuccess: true,
+        isSuccess: results,
       };
     },
     search: async () => {
-      const parsedCMD: any = searchParse(cmd);
-      try {
-        const searchResults: any = await search(
-          parsedCMD.path,
-          parsedCMD.expected_name,
-        );
-        return {
-          cmd: cmd,
-          msg: "",
-          terminalOutput: JSON.stringify(
-            searchResults.results || searchResults,
-          ),
-          terminalError: "",
-          isSuccess: searchResults.results && searchResults.results.length > 0,
-        };
-      } catch (e: any) {
-        return {
-          cmd: cmd,
-          msg: "",
-          terminalOutput: e.message || String(e),
-          terminalError: "",
-          isSuccess: false,
-        };
-      }
+      const { path, expected_name, extension } = cmd.param as GlobalSearchType;
+      const searchResults = await search(path, expected_name, extension);
+      return {
+        cmd: returningCmd,
+        msg: "",
+        terminalOutput: JSON.stringify(searchResults.results || searchResults),
+        terminalError: "",
+        isSuccess: searchResults.results && searchResults.results.length > 0,
+      };
     },
     search_app: async () => {
-      const results: string = await handle_app_search(cmd);
+      const { isDeepSearch, name, extention } =
+        cmd.param as SearchAppParameters;
+      const results: string = JSON.stringify(
+        await search_app(isDeepSearch, name, extention),
+      );
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
         terminalOutput: results,
         terminalError: "",
-        isSuccess: !!results && results !== "[], [], []",
+        isSuccess: !!results && results !== "[[],[],[]]",
       };
     },
     system_info: async () => {
       const sysInfo = await getSystemInfo();
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
-        terminalOutput: sysInfo,
-        terminalError: "",
-        isSuccess: true,
+        terminalOutput: sysInfo.info || "",
+        terminalError: sysInfo.error || "",
+        isSuccess: sysInfo.success,
       };
     },
     memory_write: async () => {
-      const result: string = await accessMemory(cmd);
-      const parsedResult = JSON.parse(result);
+      const { alias, value, category } = cmd.param as MemoryWrite;
+      const result: any = await updateMemory(alias, value, category);
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
-        terminalOutput: JSON.stringify(
-          parsedResult.document || parsedResult,
-          null,
-          2,
-        ),
+        terminalOutput: JSON.stringify(result?.document || result, null, 2),
         terminalError: "",
-        isSuccess: parsedResult.success || true,
+        isSuccess: result?.success || true,
       };
     },
     memory_read: async () => {
-      const result: string = await accessMemory(cmd);
-      const parsedResult = JSON.parse(result);
+      const { alias, category } = cmd.param as MemoryRead;
+      const result: any = await getMemory(alias || "", category || "");
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
-        terminalOutput: JSON.stringify(
-          parsedResult.document || parsedResult,
-          null,
-          2,
-        ),
+        terminalOutput: JSON.stringify(result?.document || result, null, 2),
         terminalError: "",
-        isSuccess: parsedResult.success || true,
+        isSuccess: result?.success || true,
       };
     },
     memory_delete: async () => {
-      const result: string = await accessMemory(cmd);
-      const parsedResult = JSON.parse(result);
+      const { value, alias, category } = cmd.param as MemoryDelete;
+      const result: any = await deleteMemory(
+        value,
+        alias || "",
+        category || "",
+      );
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
         terminalOutput: JSON.stringify(
-          parsedResult.document || parsedResult,
+          result?.deletedDocument || result,
           null,
           2,
         ),
         terminalError: "",
-        isSuccess: parsedResult.success || true,
+        isSuccess: result?.success || true,
       };
     },
     capture_screen: async () => {
-      const summaryOrFalse = await imageSet(chatMessages);
+      const moreContext = (cmd.param as string) || "";
+      const summaryOrFalse = await imageSet(chatMessages, moreContext);
       return {
-        cmd: cmd,
+        cmd: returningCmd,
         msg: "",
         terminalOutput: summaryOrFalse || "Image Not Taken",
         terminalError: "",
         isSuccess: !!summaryOrFalse,
       };
     },
+    volume: async () => {
+      const volParam = cmd.param as VolumeType;
+      return await volume(volParam);
+    },
   };
-  const matchedKey: string = cmd.trim().split("|")[0].trim();
+  // const matchedKey: string = cmd.trim().split("|")[0].trim();
+  const matchedKey: string = cmd.action;
   if (commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
     return await commandHandlerDict[
       matchedKey as keyof typeof commandHandlerDict
     ]();
   } else {
-    const result = await executeCmd(cmd);
+    const args = cmd.param
+      ? typeof cmd.param === "string"
+        ? " " + cmd.param
+        : " " + Object.values(cmd.param).join(" ")
+      : "";
+    const commandString = cmd.action + args;
+    console.log("[COMMAND PARSER] TIMOUT PASSING: ", cmd.timeout);
+    const result = await executeCmd(commandString, cmd.timeout);
     return {
-      cmd: cmd,
+      cmd: returningCmd,
       msg: "",
       terminalOutput: result.stdout,
       terminalError: result.stderr,

@@ -68,7 +68,6 @@ export const summarize = async (
 ): Promise<ChatMessageType[]> => {
   try {
     if (!chatHistory || chatHistory.length === 0) return [];
-    console.log("[SUMMARIZER] GOT CHAT MESSAGES: ", chatHistory);
     const summaryResults = await summarizerCall(chatHistory, session);
     if (!summaryResults.success || !summaryResults.content) return [];
 
@@ -76,7 +75,7 @@ export const summarize = async (
       role: "assistant",
       content: `[System Context - Previous Chat Summary]: ${summaryResults.content}`,
     };
-    console.log("[SUMMARIZER] RETURNING: ", summaryChat);
+    console.log("[SUMMARIZER] Background summary generated successfully.");
 
     return [summaryChat];
   } catch (error) {

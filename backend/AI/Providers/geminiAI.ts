@@ -11,16 +11,18 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
-const GEMINI_API_KEY = process.env.GEMINI_API;
-
+const GEMINI_API_KEYS = [process.env.GEMINI_API, process.env.GEMINI_API_CW];
 export const geminiAICall = async (
   chatMessages: Array<{ role: string; content: string }>,
   retryCount: number = 0,
-  model: string = "gemini-3.5-flash",
+  model: string = "gemini-3.5-flash-lite",
   instructionString: string = instructions,
   isJson: boolean = true,
+  keyIndex: number = 1,
 ): Promise<GeminiResponse> => {
-  if (retryCount >= 2) {
+  const Current_API_KEY = GEMINI_API_KEYS[keyIndex];
+  console.log(`[GEMINI AI CALL] Model: ${model} | Retry: ${retryCount}`);
+  if (retryCount >= GEMINI_API_KEYS.length) {
     return {
       success: false,
       content: {
@@ -35,7 +37,7 @@ export const geminiAICall = async (
   // const model = "gemini-1.5-pro";
 
   // From your screenshot: Webshare's Rotating Proxy Endpoint
-  const proxy = `http://ykowtycz-rotate:9g9v96c9zsux@p.webshare.io:80/`;
+  // const proxy = `http://ykowtycz-rotate:9g9v96c9zsux@p.webshare.io:80/`;
   // const agent = new HttpsProxyAgent(proxy);
   const MessageToAI = [
     {
@@ -59,7 +61,7 @@ export const geminiAICall = async (
       },
       {
         headers: {
-          Authorization: `Bearer ${GEMINI_API_KEY}`,
+          Authorization: `Bearer ${Current_API_KEY}`,
           "Content-Type": "application/json",
         },
         // uncomment if you want to use the proxy
@@ -113,12 +115,18 @@ export const geminiAICall = async (
       console.log(
         `Gemini error (${isRateLimited ? "Rate Limited" : "JSON Parse Error"}). Retrying... (Retry ${retryCount + 1}/2)`,
       );
+      // console.log("Current API Key Index => ", keyIndex);
+      console.log("Error Message => ", error.message);
+      console.log("Error Details => ", error.response.data);
+      console.log("Waiting for 5 seconds before retry...");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       return geminiAICall(
         chatMessages,
         retryCount + 1,
         model,
         instructionString,
         isJson,
+        (keyIndex + 1) % GEMINI_API_KEYS.length,
       );
     }
     if (error.response) {

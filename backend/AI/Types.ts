@@ -4,7 +4,7 @@ import type {
   CallNvidiaReturnType,
   GeminiResponse,
 } from "./Types/AIResponseTypes.js";
-import { commandParserType } from "./Types/OthersTypes.js";
+import { commandParserType } from "./Types/ParserTypes.js";
 export type {
   ChatMessageType,
   CallNvidiaReturnType,

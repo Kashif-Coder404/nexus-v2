@@ -21,13 +21,23 @@ export const imageCheck = async (): Promise<{
 };
 export const imageSet = async (
   chatMessages: ChatMessageType[],
+  moreContext: string,
 ): Promise<string | false> => {
   const isImage = await imageCheck();
   if (!isImage.success) return false;
+  console.log("[IMAGE SUMMARIZER] Summarizing screenshot...");
   const imageBuffer = isImage.buffer;
   const toPass: any = {
     role: "user",
     content: [
+      ...(moreContext
+        ? [
+            {
+              type: "text",
+              text: moreContext,
+            },
+          ]
+        : []),
       {
         type: "image_url",
         image_url: {
@@ -37,7 +47,6 @@ export const imageSet = async (
     ],
   };
   const chatToPass = [...chatMessages, toPass];
-  console.log("[IMAGE SUMMARIZER] PASSING CHAT MESSAGE: ", chatToPass);
   const response = await geminiAICall(
     chatToPass,
     0,
@@ -47,7 +56,7 @@ export const imageSet = async (
   );
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
-  console.log("[IMAGE SUMMARIZER] IMAGE SUMMARIZED SUCCESSFULLY: ", summary);
+  console.log("[IMAGE SUMMARIZER] Screenshot summarized successfully.");
   return summary;
 };
 

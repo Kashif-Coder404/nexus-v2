@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev:server": "tsx watch server.ts",
+    "logs": "tsx watch logs/show.logs.ts",
     "proxy": "wsl -d Ubuntu -e bash -c \"cd ~/fcc/nvidia-nim && ~/.local/bin/uv run uvicorn server:app --host 0.0.0.0 --port 8082\"",
     "dev": "concurrently \"npm run dev:server\" \"npm run proxy\"",
     "build": "tsc",

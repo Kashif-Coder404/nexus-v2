@@ -30,13 +30,14 @@ export async function updateMemory(
   value: string,
   category: string,
 ): Promise<object | null> {
+  // console.log("UPDATE FUNCTION IS CALLING...");
+  if (!category) throw "[UPDATE MEMORY] Category part is Empty";
+  if (!alias) throw "[UPDATE MEMORY] Alias part is Empty";
+  if (!value) throw "[UPDATE MEMORY] Value part is Empty";
   const cleanedCategory = await categoryClean(category);
   const cleanedValue = await standardizePath(value);
   const cleanedAlias = alias.toLowerCase().trim();
   try {
-    if (!cleanedCategory) throw "[UPDATE MEMORY] Category part is Empty";
-    if (!cleanedAlias) throw "[UPDATE MEMORY] Alias part is Empty";
-    if (!cleanedValue) throw "[UPDATE MEMORY] Value part is Empty";
     const memoryUpdate: object = await MemoryModel.findOneAndUpdate(
       { value: cleanedValue },
       {
@@ -190,25 +191,36 @@ export const deleteMemory = async (
   }
 };
 
-export async function accessMemory(command: string): Promise<string> {
-  if (!command)
+export async function accessMemory(
+  action: string = "",
+  alias: string = "",
+  value: string = "",
+  category: string = "",
+) {
+  if (!action)
     return JSON.stringify({
       success: false,
-      msg: "command is empty",
+      msg: "action is empty",
       document: null,
     });
-  const commands = command.split("|").map((el) => el.trim());
-  let results = null;
-  let action = commands[0];
-  const alias = commands[1] || "";
-  const value = commands[2] || "";
-  const category = commands[3] || "";
-  if (action === "memory_write" || action.includes("write")) {
-    results = await updateMemory(alias, value, category);
-  } else if (action === "memory_read" || action.includes("read")) {
-    results = await getMemory(alias, category);
-  } else if (action === "memory_delete" || action.includes("delete")) {
-    results = await deleteMemory(value, alias, category);
+  let results: any = null;
+  const cleanedAction = action.trim().toLowerCase();
+  const cleanedAlias = alias.trim();
+  const cleanedValue = value.trim();
+  const cleanedCategory = category.trim();
+  console.log(cleanedAction, cleanedAlias, cleanedValue, cleanedCategory);
+  if (cleanedAction === "memory_write" || cleanedAction.includes("write")) {
+    results = await updateMemory(cleanedAlias, cleanedValue, cleanedCategory);
+  } else if (
+    cleanedAction === "memory_read" ||
+    cleanedAction.includes("read")
+  ) {
+    results = await getMemory(cleanedAlias, cleanedCategory);
+  } else if (
+    cleanedAction === "memory_delete" ||
+    cleanedAction.includes("delete")
+  ) {
+    results = await deleteMemory(cleanedValue, cleanedAlias, cleanedCategory);
   }
   if (results) {
     return JSON.stringify(results);

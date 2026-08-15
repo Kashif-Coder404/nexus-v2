@@ -81,7 +81,6 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    console.log(`[CALL AI - GEMINI] Initiating request for session: ${session}`);
     const res = await geminiAICall(
       chatMessages,
       params.retryCount || 0,
@@ -91,8 +90,6 @@ export const callAI = async (
     );
 
     const actualContent = res.content || {};
-    
-    console.log(`[CALL AI - GEMINI] Request completed. Success: ${res.success}`);
 
     return {
       cmd: actualContent.cmd || "",
