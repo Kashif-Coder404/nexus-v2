@@ -124,6 +124,7 @@ const Chat = () => {
                 cmd={msgItem.content?.cmd || ""}
                 terminal={msgItem.content?.terminal || ""}
                 terminalError={msgItem.content?.terminalError || ""}
+                imageBase64={msgItem.content?.imageBase64 || ""}
               />
             );
           }

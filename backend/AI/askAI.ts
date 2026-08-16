@@ -1,4 +1,4 @@
-import { getHistory, setHistory } from "./LocalChatHistory.js";
+import { getHistory, setHistory, appendHistory } from "./LocalChatHistory.js";
 import { instructions, maxLimit } from "./instructions/main.Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 
@@ -7,10 +7,8 @@ import {
   AIResponse,
   ChatMessageType,
   commandParserType,
-  GeminiResponse,
 } from "./Types.js";
 import { callAI } from "./CallAI.js";
-import { summarize } from "./Helper/para.summarizer.js";
 
 export async function AskAI(
   message: string,
@@ -20,6 +18,7 @@ export async function AskAI(
   accumulatedTerminal: string = "",
   accumulatedError: string = "",
   lastExecutedCmd: string = "",
+  capturedImage: string = "",
 ): Promise<AIResponse> {
   // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
@@ -77,11 +76,7 @@ export async function AskAI(
       content: JSON.stringify(aiResponse.rawContent),
     });
 
-    const cleanHistory = chatMessages.filter(
-      (msg) => !msg.content.startsWith("[System Context"),
-    );
-    await setHistory(cleanHistory, session);
-
+    // Removed destructive setHistory to prevent deleting older messages
     command = aiResponse.cmd || "";
     aiMsg = aiResponse.msg || "";
     workingOn = aiResponse.workingon || "";
@@ -125,6 +120,9 @@ export async function AskAI(
       terminal = cmdResults.terminalOutput || "";
       terminalErr = cmdResults.terminalError || "";
       isSuccessState = cmdResults.isSuccess || false;
+      if (cmdResults.imageBase64) {
+        capturedImage = cmdResults.imageBase64;
+      }
     }
   } catch (error: any) {
     terminalErr = error.message;
@@ -161,15 +159,25 @@ export async function AskAI(
       nextAccumulated,
       nextAccumulatedErr,
       command || lastExecutedCmd,
+      capturedImage
     );
     return response;
   }
 
   // 7. Final Response: No more commands to run (base case), return final messages
+  if (retries === 0 || !command) {
+    const conversationTurn = [
+      { role: "user", content: message },
+      { role: "assistant", content: JSON.stringify({ cmd: "", msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!", workingon: "" }) }
+    ];
+    await appendHistory(conversationTurn, session); 
+  }
+
   return {
     cmd: command || lastExecutedCmd,
     msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
     terminalOutput: accumulatedTerminal || terminal,
     terminalError: accumulatedError || terminalErr,
+    imageBase64: capturedImage,
   };
 }

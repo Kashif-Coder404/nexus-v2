@@ -30,7 +30,7 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "Analyzing your request...",
       },
     });
-    const { cmd, msg, terminalOutput, terminalError } = await AskAI(
+    const { cmd, msg, terminalOutput, terminalError, imageBase64 } = await AskAI(
       message,
       session,
     );
@@ -57,12 +57,16 @@ export const sendMessage = async (req: any, res: any) => {
         lastCMD: cmd,
         terminal: terminalOutput || "",
         terminalError: terminalError || "",
+        imageBase64: imageBase64 || "",
       },
     });
 
     async function summarizeBackground() {
       const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
-      const summaryResult = await summarize(prevChatMessages, session);
+      const prevSummary = await getHistory(`summary_${session}`, 1);
+      
+      const allContextToSummarize = [...prevSummary, ...prevChatMessages];
+      const summaryResult = await summarize(allContextToSummarize, session);
       if (summaryResult.length > 0) {
         await setHistory(summaryResult, `summary_${session}`);
       }

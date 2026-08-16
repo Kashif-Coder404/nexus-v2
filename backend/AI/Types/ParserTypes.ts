@@ -5,6 +5,7 @@ export type commandParserType = {
   terminalError: string;
   isSuccess: boolean;
   exitCode?: number;
+  imageBase64?: string;
 };
 
 export type MemoryRead = {

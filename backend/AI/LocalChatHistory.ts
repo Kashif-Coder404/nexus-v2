@@ -52,3 +52,28 @@ export async function getHistory(
     return [];
   }
 }
+
+export async function appendHistory(
+  newMessages: Array<{ role: string; content: string }>,
+  session: string,
+): Promise<boolean> {
+  try {
+    const logFilePath = getFilePath(session);
+    await fs.mkdir(path.dirname(logFilePath), { recursive: true });
+
+    let existingData: Array<{ role: string; content: string }> = [];
+    if (await fileExists(logFilePath)) {
+      const fileContent = await fs.readFile(logFilePath, "utf-8");
+      if (fileContent.trim()) {
+        existingData = JSON.parse(fileContent);
+      }
+    }
+
+    const updatedData = [...existingData, ...newMessages];
+    await fs.writeFile(logFilePath, JSON.stringify(updatedData, null, 2));
+    return true;
+  } catch (error) {
+    console.error("[LOCAL CHAT HISTORY] Error appending history:", error);
+    return false;
+  }
+}

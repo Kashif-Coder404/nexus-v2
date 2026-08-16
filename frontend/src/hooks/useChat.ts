@@ -39,6 +39,7 @@ export function useChat() {
       const cmd = aiResponse.lastCMD || "";
       const terminal = aiResponse.terminal || "";
       const terminalError = aiResponse.terminalError || "";
+      const imageBase64 = aiResponse.imageBase64 || "";
 
       // 3. Append AI response
       setChatHistory((prev) => [
@@ -51,6 +52,7 @@ export function useChat() {
             cmd,
             terminal,
             terminalError,
+            imageBase64,
           },
         },
       ]);
@@ -93,12 +95,14 @@ export function useChat() {
               // Extract terminal outputs
               let termStr = parsed.terminal || parsed.terminaloutput || "";
               let errStr = parsed.terminalError || parsed.terminalerror || "";
+              let base64Str = parsed.imageBase64 || "";
 
               contentObj = {
                 msg: typeof textMsg === "string" ? textMsg : JSON.stringify(textMsg),
                 cmd: cmdStr,
                 terminal: termStr,
                 terminalError: errStr,
+                imageBase64: base64Str,
               };
             }
           } catch (e) {

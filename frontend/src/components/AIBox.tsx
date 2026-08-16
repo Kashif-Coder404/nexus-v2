@@ -5,9 +5,10 @@ interface AIBoxProps {
   cmd?: string;
   terminal?: string;
   terminalError?: string;
+  imageBase64?: string;
 }
 
-const AIBOX: React.FC<AIBoxProps> = ({ message, cmd, terminal, terminalError }) => {
+const AIBOX: React.FC<AIBoxProps> = ({ message, cmd, terminal, terminalError, imageBase64 }) => {
   const displayText =
     typeof message === "string"
       ? message
@@ -67,6 +68,12 @@ const AIBOX: React.FC<AIBoxProps> = ({ message, cmd, terminal, terminalError }) 
             <pre className="code-body stderr">
               <code>{terminalError}</code>
             </pre>
+          </div>
+        )}
+
+        {imageBase64 && (
+          <div className="image-preview" style={{ marginTop: '10px' }}>
+            <img src={imageBase64} alt="Nexus AI Captured Image" style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid #333' }} />
           </div>
         )}
       </div>

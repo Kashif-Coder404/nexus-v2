@@ -272,9 +272,10 @@ export const commandParser = async (
       return {
         cmd: returningCmd,
         msg: "",
-        terminalOutput: summaryOrFalse || "Image Not Taken",
+        terminalOutput: summaryOrFalse ? summaryOrFalse.summary : "Image Not Taken",
         terminalError: "",
         isSuccess: !!summaryOrFalse,
+        imageBase64: summaryOrFalse ? summaryOrFalse.base64 : undefined,
       };
     },
     volume: async () => {
@@ -295,8 +296,9 @@ export const commandParser = async (
         : " " + Object.values(cmd.param).join(" ")
       : "";
     const commandString = cmd.action + args;
-    console.log("[COMMAND PARSER] TIMOUT PASSING: ", cmd.timeout);
-    const result = await executeCmd(commandString, cmd.timeout);
+    const finalTimeout = cmd.timeout !== undefined ? cmd.timeout : 5000;
+    console.log("[COMMAND PARSER] TIMOUT PASSING: ", finalTimeout);
+    const result = await executeCmd(commandString, finalTimeout);
     return {
       cmd: returningCmd,
       msg: "",

@@ -22,11 +22,12 @@ export const imageCheck = async (): Promise<{
 export const imageSet = async (
   chatMessages: ChatMessageType[],
   moreContext: string,
-): Promise<string | false> => {
+): Promise<{ summary: string; base64: string } | false> => {
   const isImage = await imageCheck();
   if (!isImage.success) return false;
   console.log("[IMAGE SUMMARIZER] Summarizing screenshot...");
   const imageBuffer = isImage.buffer;
+  const base64Str = `data:image/jpeg;base64,${imageBuffer?.toString("base64")}`;
   const toPass: any = {
     role: "user",
     content: [
@@ -41,7 +42,7 @@ export const imageSet = async (
       {
         type: "image_url",
         image_url: {
-          url: `data:image/jpeg;base64,${imageBuffer?.toString("base64")}`,
+          url: base64Str,
         },
       },
     ],
@@ -57,7 +58,7 @@ export const imageSet = async (
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
   console.log("[IMAGE SUMMARIZER] Screenshot summarized successfully.");
-  return summary;
+  return { summary, base64: base64Str };
 };
 
 //After screenshot of the screen....

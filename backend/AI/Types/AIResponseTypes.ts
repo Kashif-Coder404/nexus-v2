@@ -17,4 +17,5 @@ export type AIResponse = {
   msg: string;
   terminalOutput: string;
   terminalError: string;
+  imageBase64?: string;
 };

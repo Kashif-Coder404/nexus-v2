@@ -1,0 +1,1 @@
+npx concurrently -n "frontend,server,proxy" -c "cyan,green,magenta" "cd frontend && npm run dev -- --host" "cd backend && npm run dev:server" "cd backend && npm run proxy"
