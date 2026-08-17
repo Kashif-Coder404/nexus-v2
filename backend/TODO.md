@@ -6,7 +6,7 @@
 - [x] Validation Middleware (Validate payload fields like message and session)
 - [x] Auth Middleware (Verify authorization headers/API keys)
 - [x] 404 & Global Error Middleware (Handle page not found and server crashes gracefully)
-- [ ] **Centralized Error Origin Tracker:** Create a common error handling utility (or UI shower) that explicitly labels exactly *where* an error originated (e.g., "AI API", "Database", "PowerShell", "Memory Service") along with what it says, to make debugging significantly easier.
+- [ ] **Centralized Error Origin Tracker:** Create a common error handling utility (or UI shower) that explicitly labels exactly _where_ an error originated (e.g., "AI API", "Database", "PowerShell", "Memory Service") along with what it says, to make debugging significantly easier.
 
 ## 🧠 2. AI & WebSocket Enhancements
 
@@ -17,8 +17,8 @@
 ## 🗄️ 3. Chat History & Database Persistence
 
 - [x] **MongoDB Connection:** Established Mongoose database connection (`connectDB.ts`).
-- [x] **Chat Schema:** Defined Mongoose `ChatModel` schema (`chat-schema.ts`) for message role & content tracking.
-- [x] **Chat History Service:** Implemented CRUD helpers (`chat.history.service.ts`) for MongoDB chat persistence.
+- [ ] **Chat Schema:** Defined Mongoose `ChatModel` schema (`chat-schema.ts`) for message role & content tracking.
+- [ ] **Chat History Service:** Implemented CRUD helpers (`chat.history.service.ts`) for MongoDB chat persistence.
 - [x] **Session File Logs:** Implemented automatic per-session JSON history logging (`AiLogs.ts`).
 - [ ] **Dedicated Session Model:** Implement `SessionModel` (`session-schema.ts`) with `sessionId`, `userId` reference, and metadata to support upcoming user authentication & login.
 - [ ] **Separate Conversational Chat from Execution Logs:** Update the backend architecture to store actual clean user-AI conversational text in one place, and the internal AI execution logs/commands in a separate collection. Currently, the raw JSON execution logs are polluting the chat history. **Implementation Strategy:** Check the parsed JSON payload; if `cmd` is NOT empty, store the payload in a separate execution log (or `AiLogs.ts`). If `cmd` IS empty, store the pure chat message in the main session `.json` file and `ChatModel`.
@@ -39,13 +39,25 @@
 - [ ] **Connect / Disconnect:** Connect / Disconnect from mobile app to PC.
 - [ ] **External WakeUP App:** Provide the API to wake up the PC which gives information on PC status.
 
+## 🔒 6. Security & Authorization
+
+- [ ] **High-Risk Action Confirmation:** Require user confirmation before executing critical commands. If the user is on the Web Dashboard, prompt for a password. If the user is on the Mobile App, prompt for biometric authentication (fingerprint/face scan).
+
 #OTHERS
 
 ## Content Dialogue / Process Hang Fix
-- [ ] **Fire-and-Forget for `start` commands (`execute.service.ts`):** Check if command starts with `start ` and trigger `execCallback(cmd)` detached without `await`ing, so GUI apps and interactive terminals (like `start powershell`) open immediately on desktop without freezing the server.
-- [ ] **Safety Timeout (`execute.service.ts`):** Add a `timeout: 10000` (10s) to `exec()` so any background command that prompts or hangs gets cancelled gracefully instead of freezing the AI loop.
-- [ ] **Non-Interactive PowerShell Directive (`main.Instructions.ts`):** Instruct the AI to wrap background PowerShell commands in `powershell -NonInteractive -NoProfile -Command "..."` with `-Force`/`-Confirm:$false` flags only when user doesn't want to do that.
+
+- [x] **Fire-and-Forget for `start` commands (`execute.service.ts`):** Check if command starts with `start ` and trigger `execCallback(cmd)` detached without `await`ing, so GUI apps and interactive terminals (like `start powershell`) open immediately on desktop without freezing the server.
+- [x] **Safety Timeout (`execute.service.ts`):** Add a `timeout: 10000` (10s) to `exec()` so any background command that prompts or hangs gets cancelled gracefully instead of freezing the AI loop.
+- [x] **Non-Interactive PowerShell Directive (`main.Instructions.ts`):** Instruct the AI to wrap background PowerShell commands in `powershell -NonInteractive -NoProfile -Command "..."` with `-Force`/`-Confirm:$false` flags only when user doesn't want to do that.
 
 ## Session & Resource Cleanup
+
 - [x] **Frontend Tab Close Warning:** Add a `beforeunload` event listener in the frontend to show an alert if the user tries to refresh or leave the page while the AI is actively processing a task.
 - [ ] **Backend Orphan Process Cleanup:** Detect when a user disconnects via WebSocket (e.g. closing the browser, shutting down PC) and immediately terminate their active session loop and any running OS processes tied to that session.
+
+## ☁️ 7. Cloud Architecture & User Login (Upcoming)
+
+- [ ] **User Authentication (Frontend & Backend):** Add Login/Signup pages on the frontend. Backend will handle JWT-based authentication and user sessions via MongoDB.
+- [ ] **Cloud Backend vs Local Agent:** Split the architecture so the main Backend can be hosted on the internet (Cloud), while a lightweight "Local Server" (Agent) runs on the PC.
+- [ ] **Secure PC Connection Routing:** The Local Server on the PC will connect to the Cloud Backend via WebSockets (Reverse WebSocket connection). The frontend will send commands to the Cloud Backend, which will then securely route them to the correct connected PC.

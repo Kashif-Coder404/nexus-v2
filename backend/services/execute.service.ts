@@ -12,7 +12,7 @@ interface ExecutionResponse {
 
 export async function executeCmd(
   cmd: string,
-  timeoutMs: number = 5000,
+  timeoutMs: number = 10000,
 ): Promise<ExecutionResponse> {
   try {
     broadCastMessage({
@@ -22,8 +22,16 @@ export async function executeCmd(
       },
     });
 
+    if (cmd.trim().startsWith("start ")) {
+      execCallback(cmd);
+      return {
+        stdout: "Process started in background successfully.",
+        stderr: "",
+        exitCode: 0,
+      };
+    }
+
     const commandResponse: any = await exec(cmd, { timeout: timeoutMs });
-    // const commandResponse: any = await execCallback(cmd, { timeout: 10000 });
 
     return {
       stdout: commandResponse.stdout,
@@ -48,5 +56,5 @@ export async function executeCmd(
     };
   }
 }
-// const tempCMD: string = `start "" "C://Users//Kashif//Desktop//VSCode.lnk"`;
-// executeCmd(tempCMD);
+// const tempCMD: string = `start "" "C://Users//Kashif//Desktop//visual studio code.lnk"`;
+// console.log(await executeCmd(tempCMD));

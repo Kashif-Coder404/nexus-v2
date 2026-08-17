@@ -1,7 +1,6 @@
 import { getHistory, setHistory, appendHistory } from "./LocalChatHistory.js";
 import { instructions, maxLimit } from "./instructions/main.Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
-
 import { commandParser } from "./Parsers.js";
 import {
   AIResponse,
@@ -20,6 +19,10 @@ export async function AskAI(
   lastExecutedCmd: string = "",
   capturedImage: string = "",
 ): Promise<AIResponse> {
+  // ==========================================
+  // PHASE 1: INITIAL SETUP & RECURSION GUARD
+  // ==========================================
+  
   // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
     return {
@@ -45,13 +48,19 @@ export async function AskAI(
       chatMessages = [userMessage];
     }
   }
+  
 
+  //Initial variable setup
   let aiMsg: string = "";
   let command: string = "";
   let terminal: string = "";
   let terminalErr: string = "";
   let isSuccessState = true;
   let workingOn: string = "";
+
+  // ==========================================
+  // PHASE 2: CALLING THE AI PROVIDER
+  // ==========================================
 
   try {
     broadCastMessage({
@@ -76,6 +85,10 @@ export async function AskAI(
       content: JSON.stringify(aiResponse.rawContent),
     });
 
+    // ==========================================
+    // PHASE 3: PARSING & BROADCASTING UI UPDATES
+    // ==========================================
+
     // Removed destructive setHistory to prevent deleting older messages
     command = aiResponse.cmd || "";
     aiMsg = aiResponse.msg || "";
@@ -83,7 +96,7 @@ export async function AskAI(
 
     if (workingOn || command) {
       if (command) {
-        console.log(`[ASK AI] Executing command: ${command}`);
+        console.log(`[ASK AI] Executing command: ${JSON.stringify(command)}`);
       }
 
       broadCastMessage({
@@ -102,6 +115,10 @@ export async function AskAI(
         },
       });
     }
+
+    // ==========================================
+    // PHASE 4: COMMAND EXECUTION
+    // ==========================================
 
     if (command) {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -128,6 +145,10 @@ export async function AskAI(
     terminalErr = error.message;
     isSuccessState = false;
   }
+
+  // ==========================================
+  // PHASE 5: RECURSIVE FEEDBACK LOOP
+  // ==========================================
 
   if (command || !isSuccessState) {
     const feedbackContent = {
@@ -163,6 +184,10 @@ export async function AskAI(
     );
     return response;
   }
+
+  // ==========================================
+  // PHASE 6: FINAL RESPONSE & HISTORY SAVING
+  // ==========================================
 
   // 7. Final Response: No more commands to run (base case), return final messages
   if (retries === 0 || !command) {
