@@ -1,10 +1,11 @@
 import { exec as execCallback } from "child_process";
 import { promisify } from "util";
 import { broadCastMessage } from "./websocket.service.js";
+import path from "path";
 
 const exec = promisify(execCallback);
 
-interface ExecutionResponse {
+export interface ExecutionResponse {
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -22,8 +23,15 @@ export async function executeCmd(
       },
     });
 
+    // Ensure we run from the project root instead of potentially System32
+    // If the process started in the backend folder, we go up one level.
+    let executionCwd = process.cwd();
+    if (executionCwd.endsWith("backend") || executionCwd.endsWith("backend\\") || executionCwd.endsWith("backend/")) {
+      executionCwd = path.resolve(executionCwd, "..");
+    }
+
     if (cmd.trim().startsWith("start ")) {
-      execCallback(cmd);
+      execCallback(cmd, { cwd: executionCwd });
       return {
         stdout: "Process started in background successfully.",
         stderr: "",
@@ -31,7 +39,10 @@ export async function executeCmd(
       };
     }
 
-    const commandResponse: any = await exec(cmd, { timeout: timeoutMs });
+    const commandResponse: any = await exec(cmd, { 
+      timeout: timeoutMs,
+      cwd: executionCwd 
+    });
 
     return {
       stdout: commandResponse.stdout,
@@ -56,5 +67,3 @@ export async function executeCmd(
     };
   }
 }
-// const tempCMD: string = `start "" "C://Users//Kashif//Desktop//visual studio code.lnk"`;
-// console.log(await executeCmd(tempCMD));

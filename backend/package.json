@@ -5,7 +5,7 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "dev:server": "tsx watch server.ts",
+    "dev:server": "npx tsx watch server.ts",
     "logs": "tsx watch logs/show.logs.ts",
     "proxy": "wsl -d Ubuntu -e bash -c \"cd ~/fcc/nvidia-nim && ~/.local/bin/uv run uvicorn server:app --host 0.0.0.0 --port 8082\"",
     "dev": "concurrently \"npm run dev:server\" \"npm run proxy\"",
@@ -17,6 +17,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@google/genai": "^2.18.0",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -30,11 +31,13 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.2.0",
+    "@types/readline-sync": "^1.4.8",
     "@types/screenshot-desktop": "^1.15.0",
     "@types/ws": "^8.18.1",
     "concurrently": "^10.0.3",
     "nodemon": "^3.1.14",
+    "readline-sync": "^1.4.10",
     "tsx": "^4.23.11",
     "typescript": "^6.0.3"
   }

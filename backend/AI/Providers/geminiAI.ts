@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { GeminiResponse } from "../Types.js";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,14 +13,27 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 const GEMINI_API_KEYS = [process.env.GEMINI_API, process.env.GEMINI_API_CW];
-export const geminiAICall = async (
-  chatMessages: Array<{ role: string; content: string }>,
-  retryCount: number = 0,
-  model: string = "gemini-3.5-flash-lite",
-  instructionString: string = instructions,
-  isJson: boolean = true,
-  keyIndex: number = 1,
-): Promise<GeminiResponse> => {
+export type GeminiModelsTypes =
+  | "gemini-3.5-flash-lite"
+  | "gemini-3.5-flash"
+  | "gemini-3.1-flash-lite"
+  | "gemini-3.1-flash-live-preview";
+type GeminiAICallOptions = {
+  chatMessages: Array<{ role: string; content: string }>;
+  retryCount: number;
+  model: GeminiModelsTypes | string;
+  instructionString: string;
+  isJson: boolean;
+  keyIndex?: number;
+};
+export const geminiAICall = async ({
+  chatMessages,
+  retryCount = 0,
+  model = "gemini-3.5-flash-lite",
+  instructionString = instructions,
+  isJson = true,
+  keyIndex = 1,
+}: GeminiAICallOptions): Promise<GeminiResponse> => {
   const Current_API_KEY = GEMINI_API_KEYS[keyIndex];
   console.log(`[GEMINI AI CALL] Model: ${model} | Retry: ${retryCount}`);
   if (retryCount >= GEMINI_API_KEYS.length) {
@@ -33,12 +47,6 @@ export const geminiAICall = async (
     };
   }
 
-  // const model = "gemini-3.1-flash-lite";
-  // const model = "gemini-1.5-pro";
-
-  // From your screenshot: Webshare's Rotating Proxy Endpoint
-  // const proxy = `http://ykowtycz-rotate:9g9v96c9zsux@p.webshare.io:80/`;
-  // const agent = new HttpsProxyAgent(proxy);
   const MessageToAI = [
     {
       role: "system",
@@ -120,14 +128,14 @@ export const geminiAICall = async (
       console.log("Error Details => ", error.response.data);
       console.log("Waiting for 5 seconds before retry...");
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      return geminiAICall(
+      return geminiAICall({
         chatMessages,
-        retryCount + 1,
+        retryCount: retryCount + 1,
         model,
         instructionString,
         isJson,
-        (keyIndex + 1) % GEMINI_API_KEYS.length,
-      );
+        keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
+      });
     }
     if (error.response) {
       console.error("[GEMINI AI] Status:", error.response.status);
@@ -146,5 +154,46 @@ export const geminiAICall = async (
         workingon: "",
       },
     };
+  }
+};
+
+export const liveGeminiAICall = async (
+  // chatMessages,
+  // retryCount = 0,
+  // model = "gemini-3.1-flash-live-preview",
+  // instructionString = instructions,
+  // isJson = true,
+  // keyIndex = 1,
+  msg: string,
+) => {
+  let session: any;
+  let fullResponseText = "";
+  let resolveResponse: any;
+  let rejectResponse: any;
+
+  const responsePromise = new Promise((resolve, reject) => {
+    resolveResponse = resolve;
+    rejectResponse = reject;
+  });
+  const ai: any = new GoogleGenAI({
+    apiKey: GEMINI_API_KEYS[1],
+  });
+  try {
+    session = await ai.live.connect({
+      model: "gemini-3.1-flash-live-preview",
+      config: {
+        responseModalities: ["AUDIO" as Modality],
+        outputAudioTranscription: {},
+      },
+      callbacks: {
+        onmessage: (message: any) => {
+          console.log("Message : ", message);
+        },
+      },
+    });
+    console.log(session);
+  } catch (error) {
+    console.error("Error connecting to Gemini Live API:", error);
+    throw error;
   }
 };

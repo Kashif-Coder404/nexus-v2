@@ -4,6 +4,7 @@ import { broadCastMessage } from "../services/websocket.service.js";
 import { getHistory, setHistory } from "../AI/LocalChatHistory.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
+import { askAI } from "../AI/askAIv2.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { message, session } = req.body;
@@ -30,10 +31,8 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "Analyzing your request...",
       },
     });
-    const { cmd, msg, terminalOutput, terminalError, imageBase64 } = await AskAI(
-      message,
-      session,
-    );
+    const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
+      await askAI(session, message);
     broadCastMessage({
       type: "ai_done",
       data: {
@@ -64,7 +63,7 @@ export const sendMessage = async (req: any, res: any) => {
     async function summarizeBackground() {
       const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
       const prevSummary = await getHistory(`summary_${session}`, 1);
-      
+
       const allContextToSummarize = [...prevSummary, ...prevChatMessages];
       const summaryResult = await summarize(allContextToSummarize, session);
       if (summaryResult.length > 0) {

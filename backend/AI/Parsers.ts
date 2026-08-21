@@ -1,45 +1,23 @@
-import { executeCmd } from "../services/execute.service.js";
+import { executeCmd, ExecutionResponse } from "../services/execute.service.js";
 import {
   updateMemory,
   getMemory,
   deleteMemory,
 } from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
-import { broadCastMessage } from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
-import { captureScreen } from "../tools/takeScreenShot.js";
 import { getHistory, setHistory } from "./LocalChatHistory.js";
 import { imageSet } from "./Helper/image.summarizer.js";
-import { ChatMessageType, commandParserType } from "./Types.js";
+import { ChatMessageType } from "./Types.js";
 import {
+  ActionTypes,
+  BaseCommandType,
+  CommandParserResponseType,
   CommandTypes,
-  GlobalSearchType,
-  SearchAppParameters,
-  MemoryWrite,
-  MemoryRead,
-  MemoryDelete,
-  VolumeType,
+  MatchKeyType,
+  ParametersType,
 } from "./Types/ParserTypes.js";
-import { connectDB } from "../db/connectDB.js";
-import volume from "../tools/volume.js";
 
-export async function handle_app_search(command: string) {
-  function search_app_parse(command: string): {
-    isDeapSearch: boolean;
-    name: string;
-    extension: string;
-  } {
-    const cmdParsed: any = command.split("|").map((item: any) => item.trim());
-
-    const isDeapSearch: boolean = cmdParsed[1] === "true" ? true : false;
-    const name: string = cmdParsed[2];
-    const extension: string = cmdParsed[3] === undefined ? "" : cmdParsed[3];
-    return { isDeapSearch, name, extension };
-  }
-  const { isDeapSearch, name, extension } = search_app_parse(command);
-  const searchResults: any = await search_app(isDeapSearch, name, extension);
-  return JSON.stringify(searchResults, null, 2);
-}
 export function extractJSON(text: string): any {
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
@@ -152,160 +130,161 @@ export function parseAIResponse(data: any): string {
   }
   return responseText;
 }
-const searchParse = (
-  command: string,
-): { path: string; expected_name: string } => {
-  const cmdParsed = command.split("|");
-  if (cmdParsed.length < 3) return { path: "", expected_name: "" };
-  const path = cmdParsed[1].trim();
-  const expected_name = cmdParsed[2].trim();
-  return { path, expected_name };
-};
 
 export const commandParser = async (
   cmd: CommandTypes,
   session: string,
   chatMessages: ChatMessageType[],
-): Promise<commandParserType> => {
+): Promise<CommandParserResponseType> => {
   const returningCmd: string = JSON.stringify(cmd);
+  let finalResponse: CommandParserResponseType = {
+    cmd: returningCmd,
+    msg: "No command Runs!",
+    terminalOutput: "",
+    terminalError: "",
+    isSuccess: false,
+    imageBase64: undefined,
+    exitCode: undefined,
+  };
   const commandHandlerDict = {
     history: async () => {
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: JSON.stringify(await getHistory(session, 20)),
-        terminalError: "",
-        isSuccess: true,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = JSON.stringify(
+        await getHistory(session, 20),
+      );
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = true;
     },
     delete_history: async () => {
       const results: boolean = await setHistory([], session);
-      return {
-        cmd: returningCmd,
-        msg: results
-          ? "History file Deleted SuccessFully"
-          : "Failed to delete History",
-        terminalOutput: "",
-        terminalError: "",
-        isSuccess: results,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = results
+        ? "History file Deleted SuccessFully"
+        : "Failed to delete History";
+      finalResponse.terminalOutput = "";
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = results;
     },
     search: async () => {
-      const { path, expected_name, extension } = cmd.param as GlobalSearchType;
+      const { path, expected_name, extension } =
+        cmd.param as ParametersType<"search">;
+      if (!path || !expected_name || !extension) {
+        finalResponse.msg = "Missing parameters";
+        finalResponse.terminalError = "Missing parameters";
+        finalResponse.isSuccess = false;
+        return;
+      }
       const searchResults = await search(path, expected_name, extension);
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: JSON.stringify(searchResults.results || searchResults),
-        terminalError: "",
-        isSuccess: searchResults.results && searchResults.results.length > 0,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = JSON.stringify(
+        searchResults.results || searchResults,
+      );
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess =
+        searchResults.results && searchResults.results.length > 0;
     },
     search_app: async () => {
       const { isDeepSearch, name, extention } =
-        cmd.param as SearchAppParameters;
+        cmd.param as ParametersType<"search_app">;
       const results: string = JSON.stringify(
         await search_app(isDeepSearch, name, extention),
       );
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: results,
-        terminalError: "",
-        isSuccess: !!results && results !== "[[],[],[]]",
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = results;
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = !!results && results !== "[[],[],[]]";
     },
     system_info: async () => {
       const sysInfo = await getSystemInfo();
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: sysInfo.info || "",
-        terminalError: sysInfo.error || "",
-        isSuccess: sysInfo.success,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = sysInfo.info || "";
+      finalResponse.terminalError = sysInfo.error || "";
+      finalResponse.isSuccess = sysInfo.success;
     },
     memory_write: async () => {
-      const { alias, value, category } = cmd.param as MemoryWrite;
+      const { alias, value, category } =
+        cmd.param as ParametersType<"memory_write">;
       const result: any = await updateMemory(alias, value, category);
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: JSON.stringify(result?.document || result, null, 2),
-        terminalError: "",
-        isSuccess: result?.success || true,
-      };
+
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = JSON.stringify(
+        result?.document || result,
+        null,
+        2,
+      );
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = result?.success || true;
     },
     memory_read: async () => {
-      const { alias, category } = cmd.param as MemoryRead;
+      const { alias, category } = cmd.param as ParametersType<"memory_read">;
       const result: any = await getMemory(alias || "", category || "");
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: JSON.stringify(result?.document || result, null, 2),
-        terminalError: "",
-        isSuccess: result?.success || true,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = JSON.stringify(
+        result?.document || result,
+        null,
+        2,
+      );
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = result?.success || true;
     },
     memory_delete: async () => {
-      const { value, alias, category } = cmd.param as MemoryDelete;
+      const { value, alias, category } =
+        cmd.param as ParametersType<"memory_delete">;
       const result: any = await deleteMemory(
         value,
         alias || "",
         category || "",
       );
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: JSON.stringify(
-          result?.deletedDocument || result,
-          null,
-          2,
-        ),
-        terminalError: "",
-        isSuccess: result?.success || true,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = JSON.stringify(
+        result?.deletedDocument || result,
+        null,
+        2,
+      );
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = result?.success || true;
     },
     capture_screen: async () => {
       const moreContext = (cmd.param as string) || "";
       const summaryOrFalse = await imageSet(chatMessages, moreContext);
-      return {
-        cmd: returningCmd,
-        msg: "",
-        terminalOutput: summaryOrFalse ? summaryOrFalse.summary : "Image Not Taken",
-        terminalError: "",
-        isSuccess: !!summaryOrFalse,
-        imageBase64: summaryOrFalse ? summaryOrFalse.base64 : undefined,
-      };
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = summaryOrFalse
+        ? summaryOrFalse.summary
+        : "Image Not Taken";
+      finalResponse.terminalError = "";
+      finalResponse.isSuccess = !!summaryOrFalse;
+      finalResponse.imageBase64 = summaryOrFalse
+        ? summaryOrFalse.base64
+        : undefined;
     },
-    volume: async () => {
-      const volParam = cmd.param as VolumeType;
-      return await volume(volParam);
+    in_built: async () => {
+      const executionResponse: ExecutionResponse = await executeCmd(
+        cmd.param as string,
+        cmd.timeout || 5000,
+      );
+      finalResponse.cmd = returningCmd;
+      finalResponse.msg = "";
+      finalResponse.terminalOutput = executionResponse.stdout;
+      finalResponse.terminalError = executionResponse.stderr;
+      finalResponse.exitCode = executionResponse.exitCode;
+      finalResponse.isSuccess = executionResponse.exitCode === 0;
     },
   };
   // const matchedKey: string = cmd.trim().split("|")[0].trim();
   const matchedKey: string = cmd.action;
+  let allCommandKeys: string[] = [];
+  for (let keys in commandHandlerDict) allCommandKeys.push(keys);
+  console.log("[COMMAND PARSER] All Command Keys => ", allCommandKeys);
   if (commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
-    return await commandHandlerDict[
-      matchedKey as keyof typeof commandHandlerDict
-    ]();
-  } else {
-    const args = cmd.param
-      ? typeof cmd.param === "string"
-        ? " " + cmd.param
-        : " " + Object.values(cmd.param).join(" ")
-      : "";
-    const commandString = cmd.action + args;
-    const finalTimeout = cmd.timeout !== undefined ? cmd.timeout : 5000;
-    console.log("[COMMAND PARSER] TIMOUT PASSING: ", finalTimeout);
-    const result = await executeCmd(commandString, finalTimeout);
-    return {
-      cmd: returningCmd,
-      msg: "",
-      terminalOutput: result.stdout,
-      terminalError: result.stderr,
-      exitCode: result.exitCode,
-      isSuccess: result.exitCode === 0,
-    };
+    await commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]();
   }
+  return finalResponse;
 };

@@ -2,11 +2,7 @@ import { getHistory, setHistory, appendHistory } from "./LocalChatHistory.js";
 import { instructions, maxLimit } from "./instructions/main.Instructions.js";
 import { broadCastMessage } from "../services/websocket.service.js";
 import { commandParser } from "./Parsers.js";
-import {
-  AIResponse,
-  ChatMessageType,
-  commandParserType,
-} from "./Types.js";
+import { AIResponse, ChatMessageType, commandParserType } from "./Types.js";
 import { callAI } from "./CallAI.js";
 
 export async function AskAI(
@@ -22,7 +18,7 @@ export async function AskAI(
   // ==========================================
   // PHASE 1: INITIAL SETUP & RECURSION GUARD
   // ==========================================
-  
+
   // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
   if (retries > maxLimit) {
     return {
@@ -48,11 +44,10 @@ export async function AskAI(
       chatMessages = [userMessage];
     }
   }
-  
 
   //Initial variable setup
   let aiMsg: string = "";
-  let command: string = "";
+  let command: any = "";
   let terminal: string = "";
   let terminalErr: string = "";
   let isSuccessState = true;
@@ -91,6 +86,18 @@ export async function AskAI(
 
     // Removed destructive setHistory to prevent deleting older messages
     command = aiResponse.cmd || "";
+    if (
+      typeof command === "object" &&
+      (command == null || !command.action || String(command.action).trim() === "")
+    ) {
+      command = "";
+    } else if (typeof command === "string" && command.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(command);
+        if (!parsed.action || String(parsed.action).trim() === "") command = "";
+      } catch (e) {}
+    }
+
     aiMsg = aiResponse.msg || "";
     workingOn = aiResponse.workingon || "";
 
@@ -125,7 +132,7 @@ export async function AskAI(
       const parsedCMD =
         typeof command === "string" ? JSON.parse(command) : command;
 
-      const cmdResults: commandParserType = await commandParser(
+      const cmdResults: any = await commandParser(
         parsedCMD,
         session,
         chatMessages,
@@ -180,7 +187,7 @@ export async function AskAI(
       nextAccumulated,
       nextAccumulatedErr,
       command || lastExecutedCmd,
-      capturedImage
+      capturedImage,
     );
     return response;
   }
@@ -193,9 +200,16 @@ export async function AskAI(
   if (retries === 0 || !command) {
     const conversationTurn = [
       { role: "user", content: message },
-      { role: "assistant", content: JSON.stringify({ cmd: "", msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!", workingon: "" }) }
+      {
+        role: "assistant",
+        content: JSON.stringify({
+          cmd: "",
+          msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
+          workingon: "",
+        }),
+      },
     ];
-    await appendHistory(conversationTurn, session); 
+    await appendHistory(conversationTurn, session);
   }
 
   return {

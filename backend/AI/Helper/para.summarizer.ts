@@ -42,13 +42,13 @@ export const summarizerCall = async (
     };
   } catch (error) {
     console.error(`[SUMMARY ERROR] ${error}`);
-    const geminiSummaryResponse: any = await geminiAICall(
-      SummaryMessages,
-      0,
-      "gemini-3.1-flash-lite",
-      summarizeInstructions,
-      false,
-    );
+    const geminiSummaryResponse: any = await geminiAICall({
+      chatMessages: SummaryMessages,
+      retryCount: 0,
+      model: "gemini-3.1-flash-lite",
+      instructionString: summarizeInstructions,
+      isJson: false,
+    });
     if (!geminiSummaryResponse.success) {
       return {
         content: "",

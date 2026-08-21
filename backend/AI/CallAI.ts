@@ -1,7 +1,7 @@
 import { callNvidia } from "./Providers/nvidiaAPICall.js";
-import { geminiAICall } from "./Providers/geminiAI.js";
+import { geminiAICall, GeminiModelsTypes } from "./Providers/geminiAI.js";
 import { instructions as defaultInstructions } from "./instructions/main.Instructions.js";
-import type { ChatMessageType } from "./Types.ts";
+import type { ChatMessageType, GeminiResponse } from "./Types.ts";
 
 export type AIName = "nvidia" | "gemini";
 
@@ -13,7 +13,7 @@ export type AIProviderParams = {
 
   // Specific to Gemini
   retryCount?: number;
-  model?: string;
+  model?: GeminiModelsTypes | string;
 
   // Specific to Nvidia
   workingOn?: string;
@@ -41,7 +41,9 @@ export const callAI = async (
   } = params;
 
   if (name === "nvidia") {
-    console.log(`[CALL AI - NVIDIA] Initiating request for session: ${session}`);
+    console.log(
+      `[CALL AI - NVIDIA] Initiating request for session: ${session}`,
+    );
     const res = await callNvidia(
       params.workingOn || "",
       chatMessages,
@@ -69,7 +71,9 @@ export const callAI = async (
       }
     }
 
-    console.log(`[CALL AI - NVIDIA] Request completed. Success: ${res.success}`);
+    console.log(
+      `[CALL AI - NVIDIA] Request completed. Success: ${res.success}`,
+    );
 
     return {
       cmd,
@@ -81,14 +85,29 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    const res = await geminiAICall(
+    // const res = await geminiAICall(
+    //   chatMessages,
+    //   params.retryCount || 0,
+    //   params.model || "gemini-3.5-flash-lite",
+    //   instructions,
+    //   isJson,
+    // );
+    const res = await geminiAICall({
       chatMessages,
-      params.retryCount || 0,
-      params.model || "gemini-3.5-flash-lite",
-      instructions,
-      isJson,
-    );
-
+      retryCount: params.retryCount || 0,
+      model: params.model || "gemini-3.5-flash-lite",
+      instructionString: instructions,
+      isJson: true,
+      keyIndex: 1,
+    });
+    // const res: GeminiResponse = {
+    //   content: {
+    //     cmd: "",
+    //     msg: "this message for testing purpose only",
+    //     workingon: "",
+    //   },
+    //   success: true,
+    // };
     const actualContent = res.content || {};
 
     return {

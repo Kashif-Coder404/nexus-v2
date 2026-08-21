@@ -48,13 +48,13 @@ export const imageSet = async (
     ],
   };
   const chatToPass = [...chatMessages, toPass];
-  const response = await geminiAICall(
-    chatToPass,
-    0,
-    "gemini-3.5-flash-lite",
-    imageInstructions,
-    false,
-  );
+  const response = await geminiAICall({
+    chatMessages: chatToPass,
+    retryCount: 0,
+    model: "gemini-3.5-flash-lite",
+    instructionString: imageInstructions,
+    isJson: false,
+  });
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
   console.log("[IMAGE SUMMARIZER] Screenshot summarized successfully.");
