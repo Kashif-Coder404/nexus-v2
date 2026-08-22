@@ -1,84 +1,32 @@
-// import { connectDB } from "../db/connectDB.js";
-// import { commandParser } from "./Parsers.js";
-// import { ChatMessageType, commandParserType, GeminiResponse } from "./Types.js";
-// import { CommandTypes } from "./Types/ParserTypes.js";
-// connectDB();
-// const tempMessage: ChatMessageType[] = [
-//   {
-//     role: "User",
-//     content: "Help me to run echo hello world!",
-//   },
-// ];
-// type TestingCMDType = {
-//   content: {
-//     cmd: commandParserType;
-//     msg: string;
-//     workingon: string;
-//   };
-//   success: boolean;
-// };
-// const askAI = async (session: string) => {
-//   let success = false;
-//   let retries = 0;
-//   let cmd = "";
-//   const geminiResponse: TestingCMDType = {
-//     content: {
-//       cmd: {
-//         action: "memory_read",
-//         param: { alias: "", value: "", category: "app" },
-//         timeout: 5000,
-//       },
-//       msg: "Running command: echo hello world!",
-//       workingon: "executing command echo hello world!",
-//     },
-//     success: true,
-//   };
-//   let cmdData: CommandTypes = geminiResponse.content.cmd;
-//   console.log("Passing ,cmdData: ", cmdData);
-//   console.log("Passing ,session: ", session);
-//   while (cmdData && retries < 1) {
-//     const cmdResponse: commandParserType = await commandParser(
-//       cmdData,
-//       "session",
-//       tempMessage,
-//     );
-//     console.log("CMD RESPONSE: ", cmdResponse);
-//     retries++;
-//     if (cmdResponse.isSuccess) {
-//       cmdData = cmdResponse.cmd;
-//     }
-//   }
-
-import { Readline } from "readline/promises";
 import { appendHistory, getHistory } from "./LocalChatHistory.js";
 import { commandParser } from "./Parsers.js";
-import { ChatMessageType, commandParserType } from "./Types.js";
+import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
   CommandTypes,
 } from "./Types/ParserTypes.js";
-import readline from "readline";
 import * as readlinePromises from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { callAI } from "./CallAI.js";
 import { broadCastMessage } from "../services/websocket.service.js";
-//   const aiMessage: ChatMessageType = {
-//     role: "assistant",
-//     content: JSON.stringify(geminiResponse.content),
-//   };
-//   tempMessage.push(aiMessage);
-//   // console.log(tempMessage);
-// };
-// await askAI("session_testing");
+import {
+  behaviourInstructions,
+  behaviourPrompt,
+} from "./instructions/behaviour.instructions.js";
+import { instructions } from "./instructions/main.Instructions.js";
 
-export const askAI = async (session: string, userMessage: string) => {
+export const askAI = async (
+  session: string,
+  userMessage: string,
+  behaviour: string,
+) => {
   let retries = 0;
-  let success = false;
   let aiResponse: any = null;
   let command: string = "";
   let terminalOutput = "";
   let terminalError = "";
   let capturedImage = "";
+  let success = false;
   let isSuccessState = false;
   let workingOn = "";
 
@@ -97,11 +45,9 @@ export const askAI = async (session: string, userMessage: string) => {
   ];
   let commandRunningMsgs: ChatMessageType[] = [];
 
-  while (retries <= 5) {
-    console.log("TURN: ", retries + 1);
+  while (retries <= 10) {
     const ChatMsgs: ChatMessageType[] = [...chatHistory, ...commandRunningMsgs];
     //Broadcasting here...
-    console.log("BROADCASTING: Nexus is thinking...");
     broadCastMessage({
       type: "ai_data",
       data: {
@@ -111,9 +57,13 @@ export const askAI = async (session: string, userMessage: string) => {
       },
     });
     try {
+      let currentMainInstructions: string =
+        behaviourPrompt(behaviour) + "\n" + instructions;
+
       aiResponse = await callAI("gemini", {
         chatMessages: ChatMsgs,
         session: session,
+        instructions: currentMainInstructions,
         isJson: true,
       });
 
@@ -122,7 +72,6 @@ export const askAI = async (session: string, userMessage: string) => {
         content: JSON.stringify(aiResponse.rawContent),
       });
 
-      console.log("AI RESPONSE: ", aiResponse);
       workingOn = aiResponse.workingOn || "";
       console.log("BROADCASTING: ", workingOn);
       broadCastMessage({
@@ -241,37 +190,3 @@ export const askAI = async (session: string, userMessage: string) => {
     imageBase64: capturedImage || "",
   };
 };
-
-const test = async () => {
-  // 1. Create a readline promise interface instance
-  const rl = readlinePromises.createInterface({ input, output });
-  let isExit = false;
-
-  try {
-    while (!isExit) {
-      // 2. Await user response using the interface instance
-      const userInput = await rl.question("You: ");
-
-      // 3. Check for exit signal right away
-      if (userInput.trim().toLowerCase() === "exit") {
-        isExit = true;
-        break;
-      }
-
-      const result: any = await askAI("session_testing", userInput);
-      console.log("Nexus: " + result.msg);
-      console.log("Terminal Output: " + result.terminalOutput);
-      console.log("Terminal Error: " + result.terminalError);
-      console.log("Image Base64: " + result.imageBase64);
-      console.log("-----------------------------------\n");
-    }
-  } catch (error) {
-    console.error("An error occurred during runtime:", error);
-  } finally {
-    // 4. Always close the stream to release terminal control
-    rl.close();
-    console.log("Session ended clean.");
-  }
-};
-
-// test();

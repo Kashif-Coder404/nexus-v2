@@ -7,7 +7,7 @@ import { summarize } from "../AI/Helper/para.summarizer.js";
 import { askAI } from "../AI/askAIv2.js";
 
 export const sendMessage = async (req: any, res: any) => {
-  const { message, session } = req.body;
+  const { message, session, behaviour = "friendly" } = req.body;
 
   if (!message || !session) {
     res.status(400).json({
@@ -32,7 +32,7 @@ export const sendMessage = async (req: any, res: any) => {
       },
     });
     const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
-      await askAI(session, message);
+      await askAI(session, message, behaviour);
     broadCastMessage({
       type: "ai_done",
       data: {

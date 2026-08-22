@@ -12,6 +12,8 @@ export function useChat() {
     setMsg,
     session,
     setSession,
+    behaviour,
+    setBehaviour,
     createNewSession,
   } = useAppContext();
 
@@ -32,7 +34,7 @@ export function useChat() {
 
     try {
       // 2. Network request to backend API
-      const response = await sendChatMessage(userPrompt, session);
+      const response = await sendChatMessage(userPrompt, session, behaviour);
       const aiResponse = response.data || {};
 
       const aiMsg = aiResponse.lastAIMsg || response.message || "No response text";
@@ -134,6 +136,8 @@ export function useChat() {
     setMsg,
     session,
     setSession,
+    behaviour,
+    setBehaviour,
     sendMessage,
     loadSessionHistory,
     createNewSession,

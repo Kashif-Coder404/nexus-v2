@@ -18,8 +18,10 @@ interface AppContextType {
   chatHistory: ChatMessage[];
   msg: string;
   session: string;
+  behaviour: string;
   setMsg: (msg: string) => void;
   setSession: (session: string) => void;
+  setBehaviour: (behaviour: string) => void;
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   setIsLoading: (loading: boolean) => void;
   createNewSession: () => void;
@@ -40,6 +42,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [msg, setMsg] = useState("");
   const [session, setSession] = useState(() => "session_" + generateUUID());
+  const [behaviour, setBehaviour] = useState("friendly");
 
   const hasFetched = useRef(false);
 
@@ -110,8 +113,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         chatHistory,
         msg,
         session,
+        behaviour,
         setMsg,
         setSession,
+        setBehaviour,
         setChatHistory,
         setIsLoading,
         createNewSession,

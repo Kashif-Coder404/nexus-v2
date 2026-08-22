@@ -57,6 +57,7 @@ export const imageSet = async (
   });
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
+  console.log("[IMAGE SUMMARIZER] : SUMMARY: ", summary);
   console.log("[IMAGE SUMMARIZER] Screenshot summarized successfully.");
   return { summary, base64: base64Str };
 };

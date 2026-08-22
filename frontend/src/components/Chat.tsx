@@ -16,6 +16,8 @@ const Chat = () => {
     sendMessage,
     loadSessionHistory,
     createNewSession,
+    behaviour,
+    setBehaviour,
   } = useChat();
 
   const [workingOn, setWorkingOn] = useState("");
@@ -90,7 +92,30 @@ const Chat = () => {
             {session.substring(0, 14)}...
           </span>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <select 
+            className="behaviour-select"
+            value={behaviour} 
+            onChange={(e) => setBehaviour(e.target.value)}
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "white",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              outline: "none"
+            }}
+          >
+            <option value="friendly" style={{ color: 'black' }}>Friendly</option>
+            <option value="serious" style={{ color: 'black' }}>Serious</option>
+            <option value="sarcastic" style={{ color: 'black' }}>Sarcastic</option>
+            <option value="sensitive" style={{ color: 'black' }}>Sensitive</option>
+            <option value="islamic" style={{ color: 'black' }}>Islamic</option>
+            <option value="developer" style={{ color: 'black' }}>Developer</option>
+            <option value="poetic" style={{ color: 'black' }}>Poetic</option>
+          </select>
           <div className="status-indicator" title={isOnline ? "System Online" : "System Offline"}>
             <div className={`mini-status ${isOnline ? "online" : "offline"}`} />
           </div>

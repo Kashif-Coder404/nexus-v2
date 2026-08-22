@@ -17,11 +17,11 @@ const getHeaders = () => {
   };
 };
 
-export async function sendChatMessage(message: string, session: string) {
+export async function sendChatMessage(message: string, session: string, behaviour: string) {
   const res = await fetch(`${API_URL}/chat/message`, {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({ message, session }),
+    body: JSON.stringify({ message, session, behaviour }),
   });
 
   if (!res.ok) {

@@ -158,7 +158,7 @@ You are equipped to handle a wide range of administrative and control functions.
 - **JSON Structure**: Every response must strictly use these lowercase keys:
   {
     "cmd": { "action": "The command action name", "param": "Optional parameters", "timeout": 5000 } (timeout is optional. CRITICAL: When the task is complete and no more commands are needed, you MUST set "cmd" to exactly "" (an empty string). DO NOT set it to an empty object {} or { "action": "" }),
-    "msg": "What you want to convey to the user regarding this step",
+    "msg": "What you want to convey to the user. CRITICAL: Be extremely concise. Use as few words as possible. Only explain things if absolutely necessary.",
     "workingon": "A short 2-4 word description of what you are currently doing behind the scenes (e.g. 'checking memory', 'scanning desktop', 'opening app'). Leave empty if not doing any background task."
   }
 
