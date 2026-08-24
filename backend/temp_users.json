@@ -1,0 +1,32 @@
+[
+  {
+    "_id": { "$oid": "66c7f1a10000000000000001" },
+    "name": "Kashif Test",
+    "email": "kashif@nexus.dev",
+    "password": "$2b$10$w8T0lD6uTz5jR.K2vW9uVeO7E7A8S.Q7uM7.e4L9/f1h1q8a9i.y6",
+    "role": "admin",
+    "isVerified": true,
+    "devices": ["chrome-desktop-win", "mobile-android"],
+    "createdAt": { "$date": "2026-08-20T10:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "66c7f1a10000000000000002" },
+    "name": "Alex Rivera",
+    "email": "alex.rivera@example.com",
+    "password": "$2b$10$w8T0lD6uTz5jR.K2vW9uVeO7E7A8S.Q7uM7.e4L9/f1h1q8a9i.y6",
+    "role": "user",
+    "isVerified": true,
+    "devices": ["macbook-safari"],
+    "createdAt": { "$date": "2026-08-21T12:30:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "66c7f1a10000000000000003" },
+    "name": "Sarah Connor",
+    "email": "sarah.connor@cyberdyne.io",
+    "password": "$2b$10$w8T0lD6uTz5jR.K2vW9uVeO7E7A8S.Q7uM7.e4L9/f1h1q8a9i.y6",
+    "role": "user",
+    "isVerified": false,
+    "devices": [],
+    "createdAt": { "$date": "2026-08-22T08:15:00.000Z" }
+  }
+]

@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import { MONGO_URI } from "../EnvVariables.js";
 export async function connectDB() {
   try {
-    const MONGOURI: string = process.env.MONGO_URI || "";
+    const MONGOURI: string = MONGO_URI || "";
     await mongoose.connect(MONGOURI);
     console.log("DB CONNECTED SUCCESSFULLY! ✅");
-  } catch (error) {
+  } catch (error: any) {
     console.error("[DATABASE] ERROR WHILE CONNECTING TO DB 🫠");
+    console.log("[DATABASE ERROR]: ", error);
   }
 }
 

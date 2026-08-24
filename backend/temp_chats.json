@@ -1,0 +1,78 @@
+[
+  {
+    "_id": { "$oid": "66c7f3c30000000000000001" },
+    "userId": { "$oid": "66c7f1a10000000000000001" },
+    "sessionId": "session_kashif_001",
+    "chatMessage": [
+      {
+        "role": "user",
+        "content": "How do I set up MongoDB compound indexes in Mongoose?"
+      },
+      {
+        "role": "assistant",
+        "content": "You can define compound indexes in Mongoose using `schema.index({ field1: 1, field2: 1 }, { unique: true });`. Make sure to call it before compiling the model."
+      },
+      {
+        "role": "user",
+        "content": "Great, and how does that affect query performance?"
+      },
+      {
+        "role": "assistant",
+        "content": "Compound indexes accelerate queries matching prefix subsets of the indexed keys, ensuring fast lookups and enforcing uniqueness across both fields simultaneously."
+      }
+    ],
+    "createdAt": { "$date": "2026-08-20T10:05:00.000Z" },
+    "updatedAt": { "$date": "2026-08-20T10:12:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "66c7f3c30000000000000002" },
+    "userId": { "$oid": "66c7f1a10000000000000001" },
+    "sessionId": "session_kashif_002",
+    "chatMessage": [
+      {
+        "role": "user",
+        "content": "Please write a docker-compose.yml file for a Node.js backend with MongoDB."
+      },
+      {
+        "role": "assistant",
+        "content": "Here is a standard compose configuration with healthchecks, environment variables, and persistent volume mapping."
+      }
+    ],
+    "createdAt": { "$date": "2026-08-21T09:00:00.000Z" },
+    "updatedAt": { "$date": "2026-08-21T09:05:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "66c7f3c30000000000000003" },
+    "userId": { "$oid": "66c7f1a10000000000000002" },
+    "sessionId": "session_alex_001",
+    "chatMessage": [
+      {
+        "role": "user",
+        "content": "Why is my Server Action throwing a 404 in Next.js?"
+      },
+      {
+        "role": "assistant",
+        "content": "Check if your action has 'use server' at the top of the file or function scope, and ensure your deployment router configuration matches the route origin."
+      }
+    ],
+    "createdAt": { "$date": "2026-08-21T12:35:00.000Z" },
+    "updatedAt": { "$date": "2026-08-21T12:40:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "66c7f3c30000000000000004" },
+    "userId": { "$oid": "66c7f1a10000000000000003" },
+    "sessionId": "session_sarah_001",
+    "chatMessage": [
+      {
+        "role": "user",
+        "content": "Hello, Please run echo hello world!"
+      },
+      {
+        "role": "assistant",
+        "content": "Command executed:\n```bash\necho hello world\n```\nOutput:\n`hello world`"
+      }
+    ],
+    "createdAt": { "$date": "2026-08-22T08:20:00.000Z" },
+    "updatedAt": { "$date": "2026-08-22T08:22:00.000Z" }
+  }
+]

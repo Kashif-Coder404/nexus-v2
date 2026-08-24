@@ -1,19 +1,31 @@
+import { timeStamp } from "console";
 import { InferSchemaType, Schema, model } from "mongoose";
 
 const chatSchema: Schema = new Schema({
-  sessionid: {
-    type:String,
-    required:true,
+  userId: {
+    type: Schema.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
   },
-  role: {
+  sessionId: {
     type: String,
     required: true,
-    enum: ["user", "assistant"],
+    index: true,
   },
-  content: {
-    type: String,
-    required: true,
-  },
+  chatMessage: [
+    {
+      role: {
+        type: String,
+        required: true,
+        enum: ["user", "assistant"],
+      },
+      content: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -23,6 +35,7 @@ const chatSchema: Schema = new Schema({
     default: Date.now,
   },
 });
-type IChat = InferSchemaType<typeof chatSchema>;
+chatSchema.index({ userId: 1, sessionId: 1 }, { unique: true });
+export type IChat = InferSchemaType<typeof chatSchema>;
 
 export const ChatModel = model<IChat>("Chat", chatSchema);

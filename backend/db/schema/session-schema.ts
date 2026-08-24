@@ -1,13 +1,16 @@
 import { Schema, InferSchemaType, model } from "mongoose";
 
 const SessionSchema = new Schema({
-  sessionid: {
-    type: String,
-    required: true,
-  },
   userId: {
+    type: Schema.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
+  },
+  title: {
     type: String,
-  }
+    default: "New Chat",
+  },
 });
 
 export type SessionType = InferSchemaType<typeof SessionSchema>;
