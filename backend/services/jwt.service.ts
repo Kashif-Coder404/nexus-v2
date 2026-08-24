@@ -1,6 +1,5 @@
-import { initializeKeys, JWT_SECRET } from "../EnvVariables.js";
+import {JWT_SECRET } from "../EnvVariables.js";
 import jwt, { SignOptions } from "jsonwebtoken";
-await initializeKeys();
 export type JWT_PAYLOAD_TYPE = {
   userId: string;
   email?: string;

@@ -1,27 +1,35 @@
 import { NextFunction } from "express";
 import { UserModel } from "../../db/schema/user-schema.js";
+import { generateToken } from "../../services/jwt.service.js";
+import { verifyToken } from "../../services/jwt.service.js";
 
 const userAuthentication = async (req: any, res: any, next: NextFunction) => {
   try {
-    const userId =
-      req.headers["x-user-id"] || req.headers.userid || req.body?.userId;
-    const { email, password } = req.body || {};
-
-    let user: any = null;
-
-    // 1. If userId is provided (Protected routes: new-chat, chat, etc.)
-    if (userId) {
-      user = await UserModel.findById(userId);
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: JWT Token is not provided!",
+        data: null,
+      });
     }
-    // 2. If credentials are provided (Login route)
-    else if (email && password) {
-      user = await UserModel.findOne({ email, password });
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : authHeader;
+    const decodedToken: any = verifyToken(token);
+    if (!decodedToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid JWT Token!",
+        data: null,
+      });
     }
-
+    const userId = decodedToken.userId;
+    const user = await UserModel.findById(userId);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized: Invalid credentials or User not found",
+        message: "Unauthorized: User not found",
         data: null,
       });
     }
@@ -39,16 +47,31 @@ const userAuthentication = async (req: any, res: any, next: NextFunction) => {
 };
 
 const UserLogin = async (req: any, res: any) => {
+  const { email, password } = req.body;
+  const user = await UserModel.findOne({ email, password });
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: Invalid credentials or User not found",
+      data: null,
+    });
+  }
+  const jwtToken: string | null = generateToken({
+    userId: user._id.toString(),
+  });
+  if (!jwtToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Failed to Generate JWT Token!",
+      data: null,
+    });
+  }
   return res.status(200).json({
     success: true,
     message: "Login Successful",
     data: {
-      user: {
-        id: req.user?._id || req.userId,
-        name: req.user?.name,
-        email: req.user?.email,
-        role: req.user?.role,
-      },
+      user: user,
+      token: jwtToken,
     },
   });
 };

@@ -1,7 +1,7 @@
-import { VolumeType } from "../AI/Types/ParserTypes.js";
+// import { VolumeType } from "../AI/Types/ParserTypes.js";
 import { executeCmd } from "../services/execute.service.js";
 
-const volume = async (volumeType: VolumeType) => {
+const volume = async (volumeType: any) => {
   const { action, times, level } = volumeType;
 
   const volumeActions: Record<string, () => Promise<any>> = {

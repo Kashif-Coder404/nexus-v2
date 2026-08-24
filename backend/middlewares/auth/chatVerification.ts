@@ -50,7 +50,7 @@ const chat = async (req: any, res: any) => {
         },
         updatedAt: new Date(),
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     if (!updatedChat) {
       return res.status(401).json({

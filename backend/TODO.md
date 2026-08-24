@@ -1,63 +1,44 @@
 # Nexus Backend TODO
 
-## 🔌 1. Middleware Implementation
+## 🔌 1. Middleware & Authentication Implementation
 
-- [x] Logger Middleware (Log incoming request method, URL, and timestamp)
-- [x] Validation Middleware (Validate payload fields like message and session)
-- [x] Auth Middleware (Verify authorization headers/API keys)
-- [x] 404 & Global Error Middleware (Handle page not found and server crashes gracefully)
-- [ ] **Centralized Error Origin Tracker:** Create a common error handling utility (or UI shower) that explicitly labels exactly _where_ an error originated (e.g., "AI API", "Database", "PowerShell", "Memory Service") along with what it says, to make debugging significantly easier.
+- [x] **Logger Middleware:** Log incoming request method, URL, and timestamp.
+- [x] **Validation Middleware:** Validate payload fields like message, email, and password.
+- [x] **JWT Authentication Service (`jwt.service.ts`):** Complete stateless JWT token generation and signature verification with expiration handling.
+- [x] **Dynamic Environment Path Resolution (`EnvVariables.ts`):** Robust `.env` discovery across subdirectories and script executions.
+- [x] **Auth Middlewares (`authUserLogin.ts`, `authUserSignup.ts`):** Full user registration, login credential validation, and Bearer token guard middleware (`userAuthentication`).
+- [x] **Session & Chat Guards (`sessionVerification.ts`, `chatVerification.ts`):** Middleware chains verifying session ownership and chat record presence with MongoDB.
+- [x] **404 & Global Error Middleware:** Handle page not found and server crashes gracefully.
+- [ ] **Centralized Error Origin Tracker:** Create a common error handling utility that explicitly labels where an error originated (e.g., "AI API", "Database", "PowerShell", "Memory Service").
 
-## 🧠 2. AI & WebSocket Enhancements
-
-- [x] Live WebSocket Streaming (Broadcast real-time stdout/stderr of command execution)
-- [x] Feedback Loop (Automatically feed command output back into AskAI for the next turn)
-- [ ] **Session-Based WebSocket Routing:** Update the broadcasting logic so that WebSocket messages (like "working on...") are routed specifically to the user/client associated with the active session ID, rather than broadcasting globally to everyone.
-
-## 🗄️ 3. Chat History & Database Persistence
+## 🗄️ 2. Chat History & Database Persistence
 
 - [x] **MongoDB Connection:** Established Mongoose database connection (`connectDB.ts`).
-- [ ] **Chat Schema:** Defined Mongoose `ChatModel` schema (`chat-schema.ts`) for message role & content tracking.
-- [ ] **Chat History Service:** Implemented CRUD helpers (`chat.history.service.ts`) for MongoDB chat persistence.
-- [x] **Session File Logs:** Implemented automatic per-session JSON history logging (`AiLogs.ts`).
-- [ ] **Dedicated Session Model:** Implement `SessionModel` (`session-schema.ts`) with `sessionId`, `userId` reference, and metadata to support upcoming user authentication & login.
-- [ ] **Separate Conversational Chat from Execution Logs:** Update the backend architecture to store actual clean user-AI conversational text in one place, and the internal AI execution logs/commands in a separate collection. Currently, the raw JSON execution logs are polluting the chat history. **Implementation Strategy:** Check the parsed JSON payload; if `cmd` is NOT empty, store the payload in a separate execution log (or `AiLogs.ts`). If `cmd` IS empty, store the pure chat message in the main session `.json` file and `ChatModel`.
+- [x] **User Schema & Model (`user-schema.ts`):** User profile schema with name, email, password, role, devices, and verification tracking.
+- [x] **Dedicated Session Model (`session-schema.ts`):** Session schema linking session IDs with user ownership.
+- [x] **Chat Schema & Model (`chat-schema.ts`):** Message schema supporting role (`user` / `assistant`), content timestamps, and session linkage.
+- [x] **Chat History Service (`chat.history.service.ts`):** Implemented MongoDB CRUD helpers (`getChatHistory`, `setChatHistory`, `updateChatHistory`, `deleteChatHistory`).
+- [ ] **Migrate AI Chat Context to MongoDB (`askAIv2.ts` & `chat.controller.ts`):** Switch `askAIv2.ts` and `chat.controller.ts` from local file-based `LocalChatHistory.ts` (`getHistory`) to MongoDB `getChatHistory(userId, session, 10)` and persist AI assistant responses directly into `ChatModel`.
+- [ ] **Separate Conversational Chat from Execution Logs:** Store pure user-assistant conversation in `ChatModel` while streaming and saving tool execution diagnostics in a separate collection/log.
 
-## 🛠️ 4. Desktop Tools (under `backend/tools/`)
+## 🧠 3. AI & WebSocket Enhancements
 
-- [x] **Search Tool:** Complete python search implementation (`search.py`) #Everything start on startup (todo)
-- [x] **Search App Tool:** Complete python search implementation to search apps efficiently (`search.py`)
-- [x] **System Info:** Expose CPU, RAM, and OS status indicators
-- [ ] **Open Application:** Implement safe application launching by name
+- [x] **Live WebSocket Streaming:** Broadcast real-time stdout/stderr of command execution.
+- [x] **Feedback Loop:** Automatically feed command output back into AskAI for iterative multi-turn tasks.
+- [x] **AI Providers Refactoring:** Standardized provider interfaces for Gemini, Groq, and OpenCode.
+- [ ] **Session-Based WebSocket Routing:** Route WebSocket status and output messages specifically to the client with the active session ID.
 
-## 📱 5. Mobile Tools
+## 🛠️ 4. Desktop Tools & Local Companion Backend (`Local-BE`)
 
-- [ ] **Voice App:** Integrate voice input/output processing
-- [ ] **Voice App (Advanced):** Integrate the Assistant type voice features to the app like the gemini or google assistant
-- [ ] **Internal AI (GROQ or Openrouter):** Provide an internal AI which lets you answer without the AI call to the PC if the server on the PC is not running.
-- [ ] **Wake Up (PC Call):** Wake up PC from mobile app using AI Voice feature or button.
-- [ ] **Connect / Disconnect:** Connect / Disconnect from mobile app to PC.
-- [ ] **External WakeUP App:** Provide the API to wake up the PC which gives information on PC status.
+- [x] **Standalone Local-BE Service (`Local-BE/`):** Created lightweight local execution server with WebSocket support for executing shell commands and taking desktop screenshots.
+- [x] **Search Tool:** Python search implementation (`search.py`).
+- [x] **Search App Tool:** App searching integration.
+- [x] **System Info & Audio Tool:** CPU, RAM, and volume control tools.
+- [ ] **Open Application:** Safe application launching by name.
 
-## 🔒 6. Security & Authorization
+## 📱 5. Mobile & Cloud Features (Upcoming)
 
-- [ ] **High-Risk Action Confirmation:** Require user confirmation before executing critical commands. If the user is on the Web Dashboard, prompt for a password. If the user is on the Mobile App, prompt for biometric authentication (fingerprint/face scan).
-
-#OTHERS
-
-## Content Dialogue / Process Hang Fix
-
-- [x] **Fire-and-Forget for `start` commands (`execute.service.ts`):** Check if command starts with `start ` and trigger `execCallback(cmd)` detached without `await`ing, so GUI apps and interactive terminals (like `start powershell`) open immediately on desktop without freezing the server.
-- [x] **Safety Timeout (`execute.service.ts`):** Add a `timeout: 10000` (10s) to `exec()` so any background command that prompts or hangs gets cancelled gracefully instead of freezing the AI loop.
-- [x] **Non-Interactive PowerShell Directive (`main.Instructions.ts`):** Instruct the AI to wrap background PowerShell commands in `powershell -NonInteractive -NoProfile -Command "..."` with `-Force`/`-Confirm:$false` flags only when user doesn't want to do that.
-
-## Session & Resource Cleanup
-
-- [x] **Frontend Tab Close Warning:** Add a `beforeunload` event listener in the frontend to show an alert if the user tries to refresh or leave the page while the AI is actively processing a task.
-- [ ] **Backend Orphan Process Cleanup:** Detect when a user disconnects via WebSocket (e.g. closing the browser, shutting down PC) and immediately terminate their active session loop and any running OS processes tied to that session.
-
-## ☁️ 7. Cloud Architecture & User Login (Upcoming)
-
-- [ ] **User Authentication (Frontend & Backend):** Add Login/Signup pages on the frontend. Backend will handle JWT-based authentication and user sessions via MongoDB.
-- [ ] **Cloud Backend vs Local Agent:** Split the architecture so the main Backend can be hosted on the internet (Cloud), while a lightweight "Local Server" (Agent) runs on the PC.
-- [ ] **Secure PC Connection Routing:** The Local Server on the PC will connect to the Cloud Backend via WebSockets (Reverse WebSocket connection). The frontend will send commands to the Cloud Backend, which will then securely route them to the correct connected PC.
+- [ ] **Voice App & Voice Assistant:** Mobile voice assistant features.
+- [ ] **Wake Up & Remote Connection:** Remote PC wake-up and connect/disconnect API.
+- [ ] **High-Risk Action Confirmation:** Require password/biometrics for sensitive system commands.
+- [ ] **Frontend JWT Auth Integration:** Wire Next.js frontend login & registration forms to `/api/login` and `/api/signup` with Bearer token storage.

@@ -79,27 +79,22 @@ app.get("/api/health", async (req, res) => {
   });
 });
 
-app.use("/api/chat", logging, authAPI, finalLog, chatRoutes);
+app.use("/api/chat", logging,finalLog, chatRoutes);
 app.post("/api/memory", async (req, res) => {
   const { category, value, alias } = req.body;
   return res.json({ response: await updateMemory(alias, value, category) });
 });
 //ADD Chat history end point
 app.post(
-  "/api/chat",
+  "/api/chats",
   userAuthentication,
   sessionAuthentication,
   chatAuthentication,
   chat,
 );
-app.post("/api/login", userAuthentication, UserLogin);
+app.post("/api/login", UserLogin);
 app.post("/api/signup", authSignup, SignUp);
-app.post(
-  "/api/new-chat",
-  userAuthentication,
-  newSession,
-  chat,
-);
+app.post("/api/new-chat", userAuthentication, newSession, chat);
 app.post("/api/summarize_image", async (req, res) => {
   const { buffer } = req.body;
   if (!buffer)

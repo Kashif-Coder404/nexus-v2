@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { UserModel } from "../../db/schema/user-schema.js";
+import { generateToken } from "../../services/jwt.service.js";
 
 const authSignup = async (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -47,15 +48,23 @@ const SignUp = async (req: Request, res: Response) => {
   if (!user) {
     return res.status(401).json({
       success: false,
-      message: "User is not Created!",
+      message: "Failed to Create User!",
+      data: null,
+    });
+  }
+  const jwtToken: string | null = generateToken({ userId: user._id.toString() });
+  if(!jwtToken){
+    return res.status(401).json({
+      success: false,
+      message: "Failed to Generate JWT Token!",
       data: null,
     });
   }
   return res.status(200).json({
     success: true,
-    message: "Signup Sucecssfull!",
+    message: "User is Created Sucecssfully!",
     data: {
-      token: "xyztoken",
+      token: jwtToken,
       user: user,
     },
   });
