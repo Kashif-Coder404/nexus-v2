@@ -1,18 +1,21 @@
 import axios from "axios";
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
 import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { GeminiResponse } from "../Types.js";
 import { GoogleGenAI, Modality } from "@google/genai";
+import {
+  GEMINI_API,
+  GEMINI_API_CW,
+  GEMINI_API2,
+  GEMINI_API3,
+} from "../../EnvVariables.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.join(__dirname, "../../.env") });
-
-const GEMINI_API_KEYS = [process.env.GEMINI_API, process.env.GEMINI_API_CW];
+const GEMINI_API_KEYS = [
+  GEMINI_API,
+  GEMINI_API_CW,
+  GEMINI_API2,
+  GEMINI_API3,
+].filter(Boolean) as string[];
 export type GeminiModelsTypes =
   | "gemini-3.5-flash-lite"
   | "gemini-3.5-flash"

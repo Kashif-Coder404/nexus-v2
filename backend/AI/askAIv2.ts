@@ -45,7 +45,7 @@ export const askAI = async (
   ];
   let commandRunningMsgs: ChatMessageType[] = [];
 
-  while (retries <= 10) {
+  while (retries <= 15) {
     const ChatMsgs: ChatMessageType[] = [...chatHistory, ...commandRunningMsgs];
     //Broadcasting here...
     broadCastMessage({

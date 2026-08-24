@@ -13,7 +13,7 @@ export interface ExecutionResponse {
 
 export async function executeCmd(
   cmd: string,
-  timeoutMs: number = 10000,
+  timeoutMs: number = 30000,
 ): Promise<ExecutionResponse> {
   try {
     broadCastMessage({

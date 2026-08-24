@@ -266,9 +266,12 @@ export const commandParser = async (
         : undefined;
     },
     in_built: async () => {
+      const timeoutMs = cmd.timeout && !isNaN(Number(cmd.timeout))
+        ? Number(cmd.timeout)
+        : 30000;
       const executionResponse: ExecutionResponse = await executeCmd(
         cmd.param as string,
-        cmd.timeout || 5000,
+        timeoutMs,
       );
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";

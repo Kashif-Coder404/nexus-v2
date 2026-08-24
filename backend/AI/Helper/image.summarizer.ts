@@ -4,6 +4,8 @@ import { geminiAICall } from "../Providers/geminiAI.js";
 import { ChatMessageType } from "../Types.js";
 import { imageInstructions } from "../instructions/image.instructions.js";
 import { captureScreen } from "../../tools/takeScreenShot.js";
+import { getChatHistory } from "../../services/chat.history.service.js";
+import { callAI } from "../CallAI.js";
 
 export const imageCheck = async (): Promise<{
   success: boolean;
@@ -63,3 +65,41 @@ export const imageSet = async (
 };
 
 //After screenshot of the screen....
+export const summarize_image = async (
+  context: string = "",
+  imageBuffer: Buffer,
+  session: string,
+  userId: string,
+) => {
+  const chatHistory = await getChatHistory(userId, session, 10);
+  const base64Str = `data:image/png;base64,${imageBuffer?.toString("base64")}`;
+  const toPass: any = {
+    role: "user",
+    content: [
+      ...(context
+        ? [
+            {
+              type: "text",
+              text: context,
+            },
+          ]
+        : []),
+      {
+        type: "image_url",
+        image_url: {
+          url: base64Str,
+        },
+      },
+    ],
+  };
+  const chatMessages: ChatMessageType[] = [...chatHistory, toPass];
+  const summary = await callAI("gemini", {
+    chatMessages: chatMessages,
+    session: session,
+    instructions: imageInstructions,
+    isJson: false,
+    model: "gemini-3.5-flash-lite",
+    retryCount: 0,
+  });
+  return { summaryImage: summary, success: true };
+};

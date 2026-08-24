@@ -1,16 +1,9 @@
 import axios from "axios";
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
 import { instructions } from "../instructions/main.Instructions.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { OPEN_CODE } from "../../EnvVariables.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.join(__dirname, "../../.env") });
-
-const OPEN_CODE_API_KEY = process.env.OPEN_CODE;
+const OPEN_CODE_API_KEY = OPEN_CODE;
 
 export const openCodeAICall = async (
   chatMessages: Array<{ role: string; content: string }>,

@@ -1,19 +1,11 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
 import { instructions } from "./instructions/main.Instructions.js";
 import readlineSync from "readline-sync";
 import { timeStamp } from "console";
-dotenv.config();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 import { liveGeminiAICall } from "./Providers/geminiAI.js";
+import { GEMINI_API } from "../EnvVariables.js";
 
-dotenv.config({ path: path.join(__dirname, "../.env") });
-
-const GOOGLE_API_KEY = process.env.GEMINI_API;
+const GOOGLE_API_KEY = GEMINI_API;
 const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 
 async function getFullLiveResponse(promptText: string) {
