@@ -1,6 +1,5 @@
 import { RequestHandler } from "express";
-import dotenv from "dotenv";
-dotenv.config();
+import { API_FOR_AUTHENTICATION } from "../../EnvVariables.js";
 
 const authAPI: RequestHandler = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -13,7 +12,7 @@ const authAPI: RequestHandler = (req, res, next) => {
     return;
   }
 
-  const authenticateKey = process.env.API_FOR_AUTHENTICATION;
+  const authenticateKey = API_FOR_AUTHENTICATION;
   if (!authenticateKey) {
     res.status(500).json({
       success: false,
@@ -23,7 +22,6 @@ const authAPI: RequestHandler = (req, res, next) => {
     return;
   }
 
-  // Support both "Bearer <key>" and raw "<key>"
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.substring(7)
     : authHeader;

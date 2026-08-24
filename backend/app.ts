@@ -11,6 +11,19 @@ import authAPI from "./middlewares/auth/authenticateAPIkey.js";
 import { connectDB } from "./db/connectDB.js";
 import { updateMemory } from "./services/memory.service.js";
 import { getHistory } from "./AI/LocalChatHistory.js";
+import {
+  userAuthentication,
+  UserLogin,
+} from "./middlewares/auth/authUserLogin.js";
+import {
+  chat,
+  chatAuthentication,
+} from "./middlewares/auth/chatVerification.js";
+import {
+  newSession,
+  sessionAuthentication,
+} from "./middlewares/auth/sessionVerification.js";
+import { authSignup, SignUp } from "./middlewares/auth/authUserSignup.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -72,10 +85,25 @@ app.post("/api/memory", async (req, res) => {
   return res.json({ response: await updateMemory(alias, value, category) });
 });
 //ADD Chat history end point
-app.post("/api/chat/history", async (req, res) => {
-  const { session } = req.body;
-  if (!session)
-    return res.status(400).json({ response: "Session is Required" });
-  return res.json({ response: await getHistory(session, 0) });
+app.post(
+  "/api/chat",
+  userAuthentication,
+  sessionAuthentication,
+  chatAuthentication,
+  chat,
+);
+app.post("/api/login", userAuthentication, UserLogin);
+app.post("/api/signup", authSignup, SignUp);
+app.post(
+  "/api/new-chat",
+  userAuthentication,
+  newSession,
+  chat,
+);
+app.post("/api/summarize_image", async (req, res) => {
+  const { buffer } = req.body;
+  if (!buffer)
+    return res.status(400).json({ success: false, msg: "Buffer is required" });
 });
+
 export default app;
