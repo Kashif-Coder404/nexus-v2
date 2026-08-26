@@ -2,7 +2,10 @@ const getBackendUrl = () => {
   if (import.meta.env.VITE_BACKEND_URL) {
     return import.meta.env.VITE_BACKEND_URL;
   }
-  const host = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
+  const host =
+    typeof window !== "undefined" && window.location.hostname
+      ? window.location.hostname
+      : "localhost";
   return `http://${host}:3100`;
 };
 
@@ -17,7 +20,11 @@ const getHeaders = () => {
   };
 };
 
-export async function sendChatMessage(message: string, session: string, behaviour: string) {
+export async function sendChatMessage(
+  message: string,
+  session: string,
+  behaviour: string,
+) {
   const res = await fetch(`${API_URL}/chat/message`, {
     method: "POST",
     headers: getHeaders(),

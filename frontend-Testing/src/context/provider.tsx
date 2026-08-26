@@ -30,10 +30,15 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export const generateUUID = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
-  return Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9);
+  return (
+    Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9)
+  );
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
@@ -61,7 +66,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await checkServerHealth();
         console.log("[Nexus Health Check]", data);
         setIsOnline(true);
-        
+
         const aiResponse = data.data || {};
         const aiMsg = aiResponse.lastAIMsg || "Nexus AI connected and ready.";
         const cmd: string = aiResponse.lastCMD || "";

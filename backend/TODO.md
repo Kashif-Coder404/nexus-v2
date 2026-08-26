@@ -34,7 +34,7 @@
 - [x] **Search Tool:** Python search implementation (`search.py`).
 - [x] **Search App Tool:** App searching integration.
 - [x] **System Info & Audio Tool:** CPU, RAM, and volume control tools.
-- [ ] **Open Application:** Safe application launching by name.
+- [x] **Open Application:** Safe application launching by name.
 
 ## 📱 5. Mobile & Cloud Features (Upcoming)
 

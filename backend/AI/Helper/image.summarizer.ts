@@ -1,11 +1,10 @@
-import fs from "fs";
-import path from "path";
+
 import { geminiAICall } from "../Providers/geminiAI.js";
 import { ChatMessageType } from "../Types.js";
 import { imageInstructions } from "../instructions/image.instructions.js";
 import { captureScreen } from "../../tools/takeScreenShot.js";
-import { getChatHistory } from "../../services/chat.history.service.js";
 import { callAI } from "../CallAI.js";
+import { getChat } from "../../services/chat.history.service.js";
 
 export const imageCheck = async (): Promise<{
   success: boolean;
@@ -71,7 +70,7 @@ export const summarize_image = async (
   session: string,
   userId: string,
 ) => {
-  const chatHistory = await getChatHistory(userId, session, 10);
+  const chatHistory = await getChat(userId, session, 10);
   const base64Str = `data:image/png;base64,${imageBuffer?.toString("base64")}`;
   const toPass: any = {
     role: "user",

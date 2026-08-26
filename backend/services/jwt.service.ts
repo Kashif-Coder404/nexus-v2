@@ -1,4 +1,5 @@
-import {JWT_SECRET } from "../EnvVariables.js";
+import { error } from "node:console";
+import { JWT_SECRET } from "../EnvVariables.js";
 import jwt, { SignOptions } from "jsonwebtoken";
 export type JWT_PAYLOAD_TYPE = {
   userId: string;
@@ -22,9 +23,13 @@ export const generateToken = (
 export const verifyToken = (token: string) => {
   try {
     const decodedToken = jwt.verify(token, JWT_SECRET!);
-    return decodedToken;
+    return { success: true, token: decodedToken };
   } catch (err: any) {
     console.error("[JWT SERVICE] Error verifying token:", err.message);
-    return null;
+    return {
+      success: false,
+      token: null,
+      error: err.message || "Invalid Token",
+    };
   }
 };

@@ -8,10 +8,14 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "screenshot-desktop": "^1.15.6",
+    "tsx": "^4.23.12",
     "ws": "^8.21.3"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/screenshot-desktop": "^1.15.0"
+  },
+  "scripts": {
+    "dev": "tsx watch server.ts"
   }
 }

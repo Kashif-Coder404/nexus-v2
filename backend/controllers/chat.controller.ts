@@ -5,11 +5,15 @@ import { getHistory, setHistory } from "../AI/LocalChatHistory.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
 import { askAI } from "../AI/askAIv2.js";
+import { getChat, setChat } from "../services/chat.history.service.js";
 
 export const sendMessage = async (req: any, res: any) => {
-  const { message, session, behaviour = "friendly" } = req.body;
-
-  if (!message || !session) {
+  const { role, content, behaviour = "friendly" } = req.body;
+  console.log(content);
+  const userId = req.userId;
+  const session = req.sessionId;
+  console.log("User: ", userId, "\nSession: ", session);
+  if (!content.toString() || !session) {
     res.status(400).json({
       success: false,
       message: "Message and session are required",
@@ -20,11 +24,14 @@ export const sendMessage = async (req: any, res: any) => {
   broadCastMessage({
     type: "acknowledged",
     status: "received",
-    message: message,
+    message: content,
   });
 
   try {
-    await Logs("Processing new chat message request", "info", { message });
+    await Logs("Processing new chat message request", "info", {
+      role: role,
+      content: content,
+    });
     broadCastMessage({
       type: "ai_data",
       data: {
@@ -32,7 +39,7 @@ export const sendMessage = async (req: any, res: any) => {
       },
     });
     const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
-      await askAI(session, message, behaviour);
+      await askAI(userId, session, content, behaviour);
     broadCastMessage({
       type: "ai_done",
       data: {
@@ -61,13 +68,18 @@ export const sendMessage = async (req: any, res: any) => {
     });
 
     async function summarizeBackground() {
-      const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
-      const prevSummary = await getHistory(`summary_${session}`, 1);
+      const prevChatMessages: ChatMessageType[] | [] =
+        (await getChat(userId.toString(), session, 10))?.chat || [];
+      const prevSummary: ChatMessageType[] | [] =
+        (await getChat(userId, `summary_${session}`, 1))?.chat || [];
 
       const allContextToSummarize = [...prevSummary, ...prevChatMessages];
       const summaryResult = await summarize(allContextToSummarize, session);
       if (summaryResult.length > 0) {
-        await setHistory(summaryResult, `summary_${session}`);
+        await setChat(userId.toString(), `summary_${session}`, {
+          role: "assistant",
+          content: summaryResult,
+        });
       }
     }
     summarizeBackground().catch((err) =>
@@ -80,7 +92,10 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "",
       },
     });
-    await Logs("Error on the terminal", "error", { message });
+    await Logs("Error on the terminal", "error", {
+      role: role,
+      content: content,
+    });
     res.status(500).json({
       success: false,
       message: error.message || "An unexpected error occurred",

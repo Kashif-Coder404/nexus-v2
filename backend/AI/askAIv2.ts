@@ -14,8 +14,10 @@ import {
   behaviourPrompt,
 } from "./instructions/behaviour.instructions.js";
 import { instructions } from "./instructions/main.Instructions.js";
+import { getChat, setChat } from "../services/chat.history.service.js";
 
 export const askAI = async (
+  userId: string,
   session: string,
   userMessage: string,
   behaviour: string,
@@ -30,11 +32,10 @@ export const askAI = async (
   let isSuccessState = false;
   let workingOn = "";
 
-  const prevChat: ChatMessageType[] = await getHistory(session, 10);
-  const summaryChat: ChatMessageType[] = await getHistory(
-    `summary_${session}`,
-    1,
-  );
+  const prevChat: ChatMessageType[] =
+    (await getChat(userId, session, 10))?.chat || [];
+  const summaryChat: ChatMessageType[] =
+    (await getChat(userId, `summary_${session}`, 1))?.chat || [];
   let chatHistory: ChatMessageType[] = [
     ...summaryChat,
     ...prevChat,
@@ -172,8 +173,8 @@ export const askAI = async (
     },
   ];
 
-  await appendHistory(finalTurnSave, session);
-  if (retries >= 5) {
+  await setChat(userId, session, finalTurnSave);
+  if (retries >= 15) {
     return {
       cmd: command || "",
       msg: "Maximum try reached!",

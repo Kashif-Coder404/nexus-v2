@@ -1,8 +1,9 @@
 import express from "express";
 import cors from "cors";
 import router from "./routes/cmd.route";
-const app = express();
+import { broadCastMessage } from "./services/ws.service";
 
+const app = express();
 app.use(express.json());
 app.use(
   cors({
@@ -10,5 +11,5 @@ app.use(
     credentials: true,
   }),
 );
-app.post("/commands", router);
+app.use("/commands", router);
 export default app;

@@ -3,44 +3,47 @@ import { UserModel } from "../../db/schema/user-schema.js";
 import { generateToken } from "../../services/jwt.service.js";
 
 const authSignup = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, email, password } = req.body;
-  if (!name) {
-    return res.status(401).json({
+  try {
+    const { name, email, password } = req.body;
+    if (!name) {
+      throw { error: "Name is Required" };
+    }
+    if (!email) {
+      throw { error: "Email is required" };
+    }
+    if (!password) {
+      throw { error: "Password is required" };
+    }
+    if (!email.includes("@") || !email.includes(".") || email.includes(" ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Email is not Valid!",
+        data: null,
+      });
+    }
+    const user = await UserModel.findOne({ email });
+    if (user) {
+      return res.status(401).json({
+        success: false,
+        message: "User is already Exists!",
+        data: null,
+      });
+    }
+    next();
+  } catch (error: any) {
+    if (error instanceof TypeError) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Payload!",
+        data: null,
+      });
+    }
+    return res.status(500).json({
       success: false,
-      message: "Name is required!",
+      message: error.error || error.message,
       data: null,
     });
   }
-  if (!email) {
-    return res.status(401).json({
-      success: false,
-      message: "Email is required!",
-      data: null,
-    });
-  }
-  if (!password) {
-    return res.status(401).json({
-      success: false,
-      message: "Password is required!",
-      data: null,
-    });
-  }
-  if (!email.includes("@") || !email.includes(".") || email.includes(" ")) {
-    return res.status(401).json({
-      success: false,
-      message: "Email is not Valid!",
-      data: null,
-    });
-  }
-  const user = await UserModel.findOne({ email });
-  if (user) {
-    return res.status(401).json({
-      success: false,
-      message: "User is already Exists!",
-      data: null,
-    });
-  }
-  next();
 };
 
 const SignUp = async (req: Request, res: Response) => {
@@ -52,8 +55,10 @@ const SignUp = async (req: Request, res: Response) => {
       data: null,
     });
   }
-  const jwtToken: string | null = generateToken({ userId: user._id.toString() });
-  if(!jwtToken){
+  const jwtToken: string | null = generateToken({
+    userId: user._id.toString(),
+  });
+  if (!jwtToken) {
     return res.status(401).json({
       success: false,
       message: "Failed to Generate JWT Token!",

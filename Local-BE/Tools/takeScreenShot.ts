@@ -35,5 +35,5 @@ const imageCheck = async () => {
 };
 
 const summarizeImage = () => {
-  const 
+  
 }

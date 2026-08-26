@@ -17,14 +17,14 @@ const userAuthentication = async (req: any, res: any, next: NextFunction) => {
       ? authHeader.substring(7)
       : authHeader;
     const decodedToken: any = verifyToken(token);
-    if (!decodedToken) {
+    if (!decodedToken.success) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized: Invalid JWT Token!",
+        message: decodedToken.error,
         data: null,
       });
     }
-    const userId = decodedToken.userId;
+    const userId = decodedToken.token.userId;
     const user = await UserModel.findById(userId);
     if (!user) {
       return res.status(401).json({
@@ -47,32 +47,47 @@ const userAuthentication = async (req: any, res: any, next: NextFunction) => {
 };
 
 const UserLogin = async (req: any, res: any) => {
-  const { email, password } = req.body;
-  const user = await UserModel.findOne({ email, password });
-  if (!user) {
-    return res.status(401).json({
+  try {
+    const { email, password } = req.body;
+    const user = await UserModel.findOne({ email, password });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid credentials or User not found",
+        data: null,
+      });
+    }
+    const jwtToken: string | null = generateToken({
+      userId: user._id.toString(),
+    });
+    if (!jwtToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Failed to Generate JWT Token!",
+        data: null,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Login Successful",
+      data: {
+        user: user,
+        token: jwtToken,
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof TypeError) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Payload!",
+        data: null,
+      });
+    }
+    return res.status(500).json({
       success: false,
-      message: "Unauthorized: Invalid credentials or User not found",
+      message: error || "Internal server error during login",
       data: null,
     });
   }
-  const jwtToken: string | null = generateToken({
-    userId: user._id.toString(),
-  });
-  if (!jwtToken) {
-    return res.status(401).json({
-      success: false,
-      message: "Failed to Generate JWT Token!",
-      data: null,
-    });
-  }
-  return res.status(200).json({
-    success: true,
-    message: "Login Successful",
-    data: {
-      user: user,
-      token: jwtToken,
-    },
-  });
 };
 export { userAuthentication, UserLogin };

@@ -7,6 +7,13 @@ const sessionAuthentication = async (
   next: NextFunction,
 ) => {
   const sessionId: any = req.headers["x-session-id"] || req.body.sessionId;
+  if (!sessionId) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: Session is not Given!",
+      data: null,
+    });
+  }
   const session = await SessionModel.findOne({  
     _id: sessionId,
     userId: req.userId,

@@ -7,23 +7,21 @@ import chatRoutes from "./routes/chat.routes.js";
 import { Logs } from "./Logs.js";
 import cors from "cors";
 import { finalLog, logging } from "./middlewares/logs/logging.js";
-import authAPI from "./middlewares/auth/authenticateAPIkey.js";
 import { connectDB } from "./db/connectDB.js";
 import { updateMemory } from "./services/memory.service.js";
-import { getHistory } from "./AI/LocalChatHistory.js";
 import {
   userAuthentication,
   UserLogin,
 } from "./middlewares/auth/authUserLogin.js";
-import {
-  chat,
-  chatAuthentication,
-} from "./middlewares/auth/chatVerification.js";
+import { chatAuthentication } from "./middlewares/auth/chatVerification.js";
 import {
   newSession,
   sessionAuthentication,
 } from "./middlewares/auth/sessionVerification.js";
 import { authSignup, SignUp } from "./middlewares/auth/authUserSignup.js";
+import { getChat, updateChatHandler } from "./services/chat.history.service.js";
+import { broadCastMessage } from "./services/websocket.service.js";
+import authRoutes from "./routes/auth.routes.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -79,26 +77,24 @@ app.get("/api/health", async (req, res) => {
   });
 });
 
-app.use("/api/chat", logging,finalLog, chatRoutes);
+app.use("/api/chat", logging, finalLog, chatRoutes);
 app.post("/api/memory", async (req, res) => {
   const { category, value, alias } = req.body;
   return res.json({ response: await updateMemory(alias, value, category) });
 });
-//ADD Chat history end point
-app.post(
-  "/api/chats",
-  userAuthentication,
-  sessionAuthentication,
-  chatAuthentication,
-  chat,
-);
-app.post("/api/login", UserLogin);
-app.post("/api/signup", authSignup, SignUp);
-app.post("/api/new-chat", userAuthentication, newSession, chat);
-app.post("/api/summarize_image", async (req, res) => {
-  const { buffer } = req.body;
-  if (!buffer)
-    return res.status(400).json({ success: false, msg: "Buffer is required" });
-});
+app.use("/api/auth", authRoutes);
 
+app.post("/api/testWS", (req, res) => {
+  const { msg } = req.body;
+  broadCastMessage({
+    data: {
+      responsemsg: msg,
+    },
+  });
+  res.status(200).json({
+    success: true,
+    message: "Message Added",
+    data: msg,
+  });
+});
 export default app;

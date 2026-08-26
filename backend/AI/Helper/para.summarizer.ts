@@ -65,26 +65,17 @@ export const summarizerCall = async (
 export const summarize = async (
   chatHistory: ChatMessageType[],
   session: string,
-): Promise<ChatMessageType[]> => {
+): Promise<string> => {
   try {
-    if (!chatHistory || chatHistory.length === 0) return [];
+    if (!chatHistory || chatHistory.length === 0) return "";
     const summaryResults = await summarizerCall(chatHistory, session);
-    if (!summaryResults.success || !summaryResults.content) return [];
+    if (!summaryResults.success || !summaryResults.content) return "";
 
-    const summaryChat: ChatMessageType = {
-      role: "assistant",
-      content: `[System Context - Previous Chat Summary]: ${summaryResults.content}`,
-    };
     console.log("[SUMMARIZER] Background summary generated successfully.");
 
-    return [summaryChat];
+    return `[System Context - Previous Chat Summary]: ${summaryResults.content}`;
   } catch (error) {
     console.error("[SUMMARIZER] ERROR: ", error);
-    return [
-      {
-        role: "assistant",
-        content: `Error while summarizing the chat!`,
-      },
-    ];
+    return "Error while summarizing the chat!";
   }
 };
