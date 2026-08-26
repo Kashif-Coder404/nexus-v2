@@ -1,4 +1,4 @@
-# 🌌 Nexus Ecosystem
+# 🌌 Nexus Ecosystem [![Code health](https://api.repowise.dev/badge/health/kashif-coder404/nexus-v2.svg)](https://repowise.dev/repo/kashif-coder404/nexus-v2)
 
 Welcome to the **Nexus Ecosystem**—a unified console controller platform that links a React Native Mobile App and a React/Vite Web Dashboard to a self-correcting Express/TypeScript Backend Server to run local shell operations, desktop searches, and monitor host system metrics securely.
 
