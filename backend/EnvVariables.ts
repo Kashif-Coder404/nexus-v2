@@ -16,6 +16,7 @@ const GEMINI_API_CW = process.env.GEMINI_API_CW;
 const GEMINI_API2 = process.env.GEMINI_API2;
 const GEMINI_API3 = process.env.GEMINI_API3;
 const JWT_SECRET = process.env.JWT_SECRET;
+const TOKEN_ROUTER_API = process.env.TOKEN_ROUTER_API;
 
 export {
   API_FOR_AUTHENTICATION,
@@ -28,6 +29,7 @@ export {
   GEMINI_API2,
   GEMINI_API3,
   JWT_SECRET,
+  TOKEN_ROUTER_API,
 };
 
 export const initializeKeys = async () => {

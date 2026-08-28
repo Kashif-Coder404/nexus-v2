@@ -1,7 +1,7 @@
 import screenshot from "screenshot-desktop";
 
 // Takes a screenshot and returns a Buffer (or saves to file)
-export const takeScreenshot = async (): Promise<{
+const takeScreenshot = async (): Promise<{
   imageBuffer: Buffer;
   success: boolean;
   error?: string;
@@ -23,17 +23,21 @@ export const takeScreenshot = async (): Promise<{
   }
 };
 
-const imageCheck = async () => {
+const imageCapture = async () => {
   try {
     const { imageBuffer, success, error } = await takeScreenshot();
     if (!success || !imageBuffer || error)
-      return { success: false, buffer: null, error: error || "" };
-    return { success: true, buffer: imageBuffer };
+      return { success: false, data: null, error: error || "" };
+    return { success: true, data: imageBuffer, msg: "Image is Captured" };
   } catch (error: any) {
-    return { success: false, buffer: null, error: error.message || "" };
+    return { success: false, data: null, error: error.message || "" };
   }
 };
-
-const summarizeImage = () => {
-  
-}
+// (async () => {
+//   const result = await imageCapture();
+//   if (result.success) {
+//     const base64 = result.data?.toString("base64");
+//     console.log(result);
+//   }
+// })();
+export { imageCapture, takeScreenshot };

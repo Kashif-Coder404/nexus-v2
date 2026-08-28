@@ -1,6 +1,5 @@
 import { exec as execCallback } from "child_process";
 import { promisify } from "util";
-import path from "path";
 
 const exec = promisify(execCallback);
 
@@ -15,26 +14,6 @@ export async function executeCmd(
   timeoutMs: number = 30000,
 ): Promise<ExecutionResponse> {
   try {
-    // Ensure we run from the project root instead of potentially System32
-    // If the process started in the backend folder, we go up one level.
-    // let executionCwd = process.cwd();
-    // if (
-    //   executionCwd.endsWith("backend") ||
-    //   executionCwd.endsWith("backend\\") ||
-    //   executionCwd.endsWith("backend/")
-    // ) {
-    //   executionCwd = path.resolve(executionCwd, "..");
-    // }
-
-    // if (cmd.trim().startsWith("start ")) {
-    //   execCallback(cmd);
-    //   return {
-    //     stdout: "Process started in background successfully.",
-    //     stderr: "",
-    //     exitCode: 0,
-    //   };
-    // }
-
     const commandResponse: any = await exec(cmd, {
       timeout: timeoutMs,
     });
@@ -48,7 +27,6 @@ export async function executeCmd(
     console.log(`[EXECUTE COMMADER] ERROR: ${error}`);
     const isTimeout = error.killed || error.signal === "SIGTERM";
     return {
-      
       stdout: error.stdout || "",
       stderr: isTimeout
         ? `Command timed out after ${timeoutMs / 1000} seconds`

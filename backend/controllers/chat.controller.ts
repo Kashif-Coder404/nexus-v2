@@ -1,38 +1,30 @@
-import { Logs } from "../Logs.js";
-import { AskAI } from "../AI/askAI.js";
-import { broadCastMessage } from "../services/websocket.service.js";
-import { getHistory, setHistory } from "../AI/LocalChatHistory.js";
+import { sendToUser } from "../services/websocket.service.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
-import { askAI } from "../AI/askAIv2.js";
+import { askAI } from "../AI/askAI.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const { role, content, behaviour = "friendly" } = req.body;
-  console.log(content);
   const userId = req.userId;
   const session = req.sessionId;
-  console.log("User: ", userId, "\nSession: ", session);
-  if (!content.toString() || !session) {
+  console.log(`[CHAT] User: ${userId} | Session: ${session}`);
+  if (!content || !content.toString().trim() || !session || !userId) {
     res.status(400).json({
       success: false,
-      message: "Message and session are required",
+      message: "Message, session, and user authentication are required",
       data: null,
     });
     return;
   }
-  broadCastMessage({
+  sendToUser(userId, {
     type: "acknowledged",
     status: "received",
     message: content,
   });
 
   try {
-    await Logs("Processing new chat message request", "info", {
-      role: role,
-      content: content,
-    });
-    broadCastMessage({
+    sendToUser(userId, {
       type: "ai_data",
       data: {
         workingon: "Analyzing your request...",
@@ -40,24 +32,19 @@ export const sendMessage = async (req: any, res: any) => {
     });
     const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
       await askAI(userId, session, content, behaviour);
-    broadCastMessage({
+    sendToUser(userId, {
       type: "ai_done",
       data: {
         workingon: "",
       },
     });
 
-    await Logs("Successfully processed chat message", "info", {
-      lastAIMsg:
-        msg === "connect ECONNREFUSED 127.0.0.1:8082"
-          ? "Please Start the Proxy Server"
-          : msg,
-      lastCMD: cmd,
-    });
+    console.log(`[CHAT] Processed successfully | Last CMD: ${cmd || "none"}`);
 
     res.json({
       success: true,
       message: "Chat message processed successfully",
+      sessionId: session,
       data: {
         lastAIMsg: msg || "No message from AI",
         lastCMD: cmd,
@@ -86,16 +73,13 @@ export const sendMessage = async (req: any, res: any) => {
       console.error("[BACKGROUND SUMMARY ERROR]: ", err),
     );
   } catch (error: any) {
-    broadCastMessage({
+    sendToUser(userId, {
       type: "ai_done",
       data: {
         workingon: "",
       },
     });
-    await Logs("Error on the terminal", "error", {
-      role: role,
-      content: content,
-    });
+    console.error("[CHAT ERROR]:", error.message || error);
     res.status(500).json({
       success: false,
       message: error.message || "An unexpected error occurred",

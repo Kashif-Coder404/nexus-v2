@@ -1,4 +1,3 @@
-
 import { geminiAICall } from "../Providers/geminiAI.js";
 import { ChatMessageType } from "../Types.js";
 import { imageInstructions } from "../instructions/image.instructions.js";
@@ -70,7 +69,7 @@ export const summarize_image = async (
   session: string,
   userId: string,
 ) => {
-  const chatHistory = await getChat(userId, session, 10);
+  const chatHistory = (await getChat(userId, session, 10))?.chat || [];
   const base64Str = `data:image/png;base64,${imageBuffer?.toString("base64")}`;
   const toPass: any = {
     role: "user",

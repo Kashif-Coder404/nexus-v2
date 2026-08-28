@@ -6,15 +6,11 @@ import {
 } from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
-import { getHistory, setHistory } from "./LocalChatHistory.js";
 import { imageSet } from "./Helper/image.summarizer.js";
 import { ChatMessageType } from "./Types.js";
 import {
-  ActionTypes,
-  BaseCommandType,
   CommandParserResponseType,
   CommandTypes,
-  MatchKeyType,
   ParametersType,
 } from "./Types/ParserTypes.js";
 
@@ -130,10 +126,9 @@ export function parseAIResponse(data: any): string {
   }
   return responseText;
 }
-
 export const commandParser = async (
+  userId: string,
   cmd: CommandTypes,
-  session: string,
   chatMessages: ChatMessageType[],
 ): Promise<CommandParserResponseType> => {
   const returningCmd: string = JSON.stringify(cmd);
@@ -147,29 +142,14 @@ export const commandParser = async (
     exitCode: undefined,
   };
   const commandHandlerDict = {
-    history: async () => {
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = JSON.stringify(
-        await getHistory(session, 20),
-      );
-      finalResponse.terminalError = "";
-      finalResponse.isSuccess = true;
-    },
-    delete_history: async () => {
-      const results: boolean = await setHistory([], session);
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = results
-        ? "History file Deleted SuccessFully"
-        : "Failed to delete History";
-      finalResponse.terminalOutput = "";
-      finalResponse.terminalError = "";
-      finalResponse.isSuccess = results;
-    },
     search: async () => {
       const { path, expected_name, extension } =
         cmd.param as ParametersType<"search">;
-      if (!path || !expected_name || !extension) {
+      if (
+        !expected_name ||
+        (!path && path !== "") ||
+        (!extension && extension !== "")
+      ) {
         finalResponse.msg = "Missing parameters";
         finalResponse.terminalError = "Missing parameters";
         finalResponse.isSuccess = false;
@@ -266,12 +246,14 @@ export const commandParser = async (
         : undefined;
     },
     in_built: async () => {
-      const timeoutMs = cmd.timeout && !isNaN(Number(cmd.timeout))
-        ? Number(cmd.timeout)
-        : 30000;
+      const timeoutMs =
+        cmd.timeout && !isNaN(Number(cmd.timeout))
+          ? Number(cmd.timeout)
+          : 30000;
       const executionResponse: ExecutionResponse = await executeCmd(
         cmd.param as string,
         timeoutMs,
+        userId,
       );
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
@@ -281,6 +263,7 @@ export const commandParser = async (
       finalResponse.isSuccess = executionResponse.exitCode === 0;
     },
   };
+
   // const matchedKey: string = cmd.trim().split("|")[0].trim();
   const matchedKey: string = cmd.action;
   let allCommandKeys: string[] = [];
@@ -291,3 +274,26 @@ export const commandParser = async (
   }
   return finalResponse;
 };
+
+async function TempTestingLocalBE() {
+  const res = await fetch("http://localhost:4100/commands/run-command", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify({
+      commands: {
+        action: "search_app",
+        param: {
+          isDeepSearch: true,
+          name: "roblox",
+          extention: "",
+        },
+        timeout: 5000,
+      },
+    }),
+  });
+  const data = await res.json();
+  console.log("data from the local be", data);
+}
+// TempTestingLocalBE();

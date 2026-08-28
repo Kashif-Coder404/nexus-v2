@@ -1,9 +1,10 @@
 import { callNvidia } from "./Providers/nvidiaAPICall.js";
 import { geminiAICall, GeminiModelsTypes } from "./Providers/geminiAI.js";
+import { tokenRouterAICall, TokenRouterModelsTypes } from "./Providers/tokenRouterAI.js";
 import { instructions as defaultInstructions } from "./instructions/main.Instructions.js";
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
 
-export type AIName = "nvidia" | "gemini";
+export type AIName = "nvidia" | "gemini" | "tokenrouter";
 
 export type AIProviderParams = {
   chatMessages: ChatMessageType[];
@@ -11,9 +12,9 @@ export type AIProviderParams = {
   instructions?: string;
   isJson?: boolean;
 
-  // Specific to Gemini
+  // Specific to Gemini / TokenRouter
   retryCount?: number;
-  model?: GeminiModelsTypes | string;
+  model?: GeminiModelsTypes | TokenRouterModelsTypes | string;
 
   // Specific to Nvidia
   workingOn?: string;
@@ -108,6 +109,25 @@ export const callAI = async (
     //   },
     //   success: true,
     // };
+    const actualContent = res.content || {};
+
+    return {
+      cmd: actualContent.cmd || "",
+      msg: actualContent.msg || "",
+      workingon: actualContent.workingon || "",
+      success: res.success,
+      rawContent: actualContent,
+    };
+  }
+
+  if (name === "tokenrouter") {
+    const res = await tokenRouterAICall({
+      chatMessages,
+      retryCount: params.retryCount || 0,
+      model: params.model || "qwen/qwen3.8-max-free",
+      instructionString: instructions,
+      isJson: true,
+    });
     const actualContent = res.content || {};
 
     return {

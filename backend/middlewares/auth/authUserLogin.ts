@@ -46,35 +46,11 @@ const userAuthentication = async (req: any, res: any, next: NextFunction) => {
   }
 };
 
-const UserLogin = async (req: any, res: any) => {
+const UserLoginHandler = async (req: any, res: any) => {
   try {
     const { email, password } = req.body;
-    const user = await UserModel.findOne({ email, password });
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Invalid credentials or User not found",
-        data: null,
-      });
-    }
-    const jwtToken: string | null = generateToken({
-      userId: user._id.toString(),
-    });
-    if (!jwtToken) {
-      return res.status(401).json({
-        success: false,
-        message: "Failed to Generate JWT Token!",
-        data: null,
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      message: "Login Successful",
-      data: {
-        user: user,
-        token: jwtToken,
-      },
-    });
+    const findResults: any = await UserLogin(email, password);
+    return res.status(findResults.success ? 200 : 401).json(findResults);
   } catch (error: any) {
     if (error instanceof TypeError) {
       return res.status(401).json({
@@ -90,4 +66,39 @@ const UserLogin = async (req: any, res: any) => {
     });
   }
 };
-export { userAuthentication, UserLogin };
+const UserLogin = async (email: string, password: string) => {
+  if (!email && !password) {
+    return {
+      success: false,
+      message: "Unauthorized: Provide the email and password!",
+      data: null,
+    };
+  }
+  const user = await UserModel.findOne({ email, password });
+  if (!user) {
+    return {
+      success: false,
+      message: "Unauthorized: Invalid credentials or try signup",
+      data: null,
+    };
+  }
+  const jwtToken: string | null = generateToken({
+    userId: user._id.toString(),
+  });
+  if (!jwtToken) {
+    return {
+      success: false,
+      message: "Failed to Generate JWT Token!",
+      data: null,
+    };
+  }
+  return {
+    success: true,
+    message: "Login Successful",
+    data: {
+      user: user,
+      token: jwtToken,
+    },
+  };
+};
+export { userAuthentication, UserLogin, UserLoginHandler };

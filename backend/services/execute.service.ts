@@ -1,6 +1,6 @@
 import { exec as execCallback } from "child_process";
 import { promisify } from "util";
-import { broadCastMessage } from "./websocket.service.js";
+import { sendToUser } from "./websocket.service.js";
 import path from "path";
 
 const exec = promisify(execCallback);
@@ -14,34 +14,41 @@ export interface ExecutionResponse {
 export async function executeCmd(
   cmd: string,
   timeoutMs: number = 30000,
+  userId?: string,
 ): Promise<ExecutionResponse> {
   try {
-    broadCastMessage({
-      type: "ai_data",
-      data: {
-        workingon: `Executing: ${cmd.length > 30 ? cmd.slice(0, 30) + "..." : cmd}`,
-      },
-    });
+    if (userId) {
+      sendToUser(userId, {
+        type: "ai_data",
+        data: {
+          workingon: `Executing: ${cmd.length > 30 ? cmd.slice(0, 30) + "..." : cmd}`,
+        },
+      });
+    }
 
     // Ensure we run from the project root instead of potentially System32
     // If the process started in the backend folder, we go up one level.
     let executionCwd = process.cwd();
-    if (executionCwd.endsWith("backend") || executionCwd.endsWith("backend\\") || executionCwd.endsWith("backend/")) {
+    if (
+      executionCwd.endsWith("backend") ||
+      executionCwd.endsWith("backend\\") ||
+      executionCwd.endsWith("backend/")
+    ) {
       executionCwd = path.resolve(executionCwd, "..");
     }
 
-    if (cmd.trim().startsWith("start ")) {
-      execCallback(cmd, { cwd: executionCwd });
-      return {
-        stdout: "Process started in background successfully.",
-        stderr: "",
-        exitCode: 0,
-      };
-    }
+    // if (cmd.trim().startsWith("start ")) {
+    //   execCallback(cmd, { cwd: executionCwd });
+    //   return {
+    //     stdout: "Process started in background successfully.",
+    //     stderr: "",
+    //     exitCode: 0,
+    //   };
+    // }
 
-    const commandResponse: any = await exec(cmd, { 
+    const commandResponse: any = await exec(cmd, {
       timeout: timeoutMs,
-      cwd: executionCwd 
+      cwd: executionCwd,
     });
 
     return {
@@ -50,12 +57,14 @@ export async function executeCmd(
       exitCode: 0,
     };
   } catch (error: any) {
-    broadCastMessage({
-      type: "ai_data",
-      data: {
-        workingon: "",
-      },
-    });
+    if (userId) {
+      sendToUser(userId, {
+        type: "ai_data",
+        data: {
+          workingon: "",
+        },
+      });
+    }
     console.log(`[EXECUTE COMMADER] ERROR: ${error}`);
     const isTimeout = error.killed || error.signal === "SIGTERM";
     return {

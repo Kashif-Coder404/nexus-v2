@@ -25,7 +25,7 @@ const authSignup = async (req: Request, res: Response, next: NextFunction) => {
     if (user) {
       return res.status(401).json({
         success: false,
-        message: "User is already Exists!",
+        message: "User is already Exists! Try Login!",
         data: null,
       });
     }

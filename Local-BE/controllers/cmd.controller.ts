@@ -1,13 +1,15 @@
+import { commandParser } from "../Parsers.js";
 import { executeCmd, ExecutionResponse } from "../services/execute.service.js";
+import { ChatMessageType } from "../Types.js";
+import { ActionTypes } from "../Types/ParserTypes.js";
 
 export const runCommand = async (
-  action: string,
+  action: any,
   param: string | Object,
   timeout: number | 30000,
-  session?: string,
 ) => {
-  const results: any = await executeCmd(param as string, timeout);
-  const isSuccess = results.stderr ? false : true;
-  results.stdout = results.stdout === "" ? "No Output" : results.stdout;
-  return { isSuccess, ...results };
+  const results = await commandParser({ action, param, timeout });
+  results.terminalOutput =
+    results.terminalOutput === "" ? "No Output" : results.terminalOutput;
+  return results;
 };

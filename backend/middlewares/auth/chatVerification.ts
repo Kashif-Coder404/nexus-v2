@@ -6,14 +6,7 @@ const chatAuthentication = async (req: any, res: any, next: NextFunction) => {
     sessionId: req.sessionId,
     userId: req.userId,
   });
-  if (!chat) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized: Chat is not Found!",
-      data: null,
-    });
-  }
-  req.chat = chat;
+  req.chat = chat || null;
   next();
 };
 

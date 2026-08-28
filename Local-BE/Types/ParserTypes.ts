@@ -1,4 +1,4 @@
-import { ChatMessageType } from "./ChatTypes.js";
+import type { ChatMessageType } from "./ChatTypes";
 
 export type BaseCommandType<
   A extends keyof ActionTypes = keyof ActionTypes,
@@ -53,4 +53,3 @@ export type CommandParserResponseType = {
   exitCode?: number;
   imageBase64?: string;
 };
-

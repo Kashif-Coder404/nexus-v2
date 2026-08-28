@@ -1,222 +1,197 @@
-import { getHistory, setHistory, appendHistory } from "./LocalChatHistory.js";
-import { instructions, maxLimit } from "./instructions/main.Instructions.js";
-import { broadCastMessage } from "../services/websocket.service.js";
+import { appendHistory, getHistory } from "./LocalChatHistory.js";
 import { commandParser } from "./Parsers.js";
-import { AIResponse, ChatMessageType, commandParserType } from "./Types.js";
+import { ChatMessageType } from "./Types.js";
+import {
+  CommandParserResponseType,
+  CommandTypes,
+} from "./Types/ParserTypes.js";
+import * as readlinePromises from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import { callAI } from "./CallAI.js";
+import { sendToUser } from "../services/websocket.service.js";
+import {
+  behaviourInstructions,
+  behaviourPrompt,
+} from "./instructions/behaviour.instructions.js";
+import { instructions } from "./instructions/main.Instructions.js";
+import { getChat, setChat } from "../services/chat.history.service.js";
 
-export async function AskAI(
-  message: string,
+export const askAI = async (
+  userId: string,
   session: string,
-  retries: number = 0,
-  chatMessages: Array<{ role: string; content: string }> = [],
-  accumulatedTerminal: string = "",
-  accumulatedError: string = "",
-  lastExecutedCmd: string = "",
-  capturedImage: string = "",
-): Promise<AIResponse> {
-  // ==========================================
-  // PHASE 1: INITIAL SETUP & RECURSION GUARD
-  // ==========================================
+  userMessage: string,
+  behaviour: string,
+) => {
+  let retries = 0;
+  let aiResponse: any = null;
+  let command: string = "";
+  let terminalOutput = "";
+  let terminalError = "";
+  let capturedImage = "";
+  let success = false;
+  let isSuccessState = false;
+  let workingOn = "";
 
-  // 1. Guard check: Stop if recursion limit is exceeded to prevent infinite loops
-  if (retries > maxLimit) {
-    return {
-      cmd: "",
-      msg: "I'm sorry, I can't help you with that. The retries reached the maximum limit!",
-      terminalOutput: accumulatedTerminal,
-      terminalError: accumulatedError || "Max retries reached",
-    };
-  }
-  // 2. Initial Setup: Load existing chat history only on the initial request (retries === 0)
-  if (retries === 0) {
-    const userMessage: ChatMessageType = {
+  const prevChat: ChatMessageType[] =
+    (await getChat(userId, session, 10))?.chat || [];
+  const summaryChat: ChatMessageType[] =
+    (await getChat(userId, `summary_${session}`, 1))?.chat || [];
+  let chatHistory: ChatMessageType[] = [
+    ...summaryChat,
+    ...prevChat,
+    {
       role: "user",
-      content: message,
-    };
+      content: userMessage,
+    },
+  ];
+  let commandRunningMsgs: ChatMessageType[] = [];
 
-    const prevChatMessages: ChatMessageType[] = await getHistory(session, 10);
-
-    if (prevChatMessages.length > 0) {
-      const summaryChat = await getHistory(`summary_${session}`, 1);
-      chatMessages = [...summaryChat, ...prevChatMessages, userMessage];
-    } else {
-      chatMessages = [userMessage];
-    }
-  }
-
-  //Initial variable setup
-  let aiMsg: string = "";
-  let command: any = "";
-  let terminal: string = "";
-  let terminalErr: string = "";
-  let isSuccessState = true;
-  let workingOn: string = "";
-
-  // ==========================================
-  // PHASE 2: CALLING THE AI PROVIDER
-  // ==========================================
-
-  try {
-    broadCastMessage({
+  while (retries <= 15) {
+    const ChatMsgs: ChatMessageType[] = [...chatHistory, ...commandRunningMsgs];
+    //Broadcasting here...
+    sendToUser(userId, {
       type: "ai_data",
       data: {
-        workingon: workingOn || "Nexus is Thinking...",
+        workingon: "Nexus is thinking...",
+        msg: "",
+        cmd: command || "",
       },
     });
-    const aiResponse = await callAI("gemini", {
-      chatMessages,
-      session,
-      instructions,
-      isJson: true,
-      model: "gemini-3.5-flash-lite",
-      workingOn,
-      aiMsg,
-      command,
-    });
+    try {
+      let currentMainInstructions: string =
+        behaviourPrompt(behaviour) + "\n" + instructions;
 
-    chatMessages.push({
-      role: "assistant",
-      content: JSON.stringify(aiResponse.rawContent),
-    });
+      aiResponse = await callAI("tokenrouter", {
+        chatMessages: ChatMsgs,
+        session: session,
+        instructions: currentMainInstructions,
+        isJson: true,
+      });
 
-    // ==========================================
-    // PHASE 3: PARSING & BROADCASTING UI UPDATES
-    // ==========================================
+      commandRunningMsgs.push({
+        role: "assistant",
+        content: JSON.stringify(aiResponse.rawContent),
+      });
 
-    // Removed destructive setHistory to prevent deleting older messages
-    command = aiResponse.cmd || "";
-    if (
-      typeof command === "object" &&
-      (command == null || !command.action || String(command.action).trim() === "")
-    ) {
-      command = "";
-    } else if (typeof command === "string" && command.trim().startsWith("{")) {
-      try {
-        const parsed = JSON.parse(command);
-        if (!parsed.action || String(parsed.action).trim() === "") command = "";
-      } catch (e) {}
-    }
-
-    aiMsg = aiResponse.msg || "";
-    workingOn = aiResponse.workingon || "";
-
-    if (workingOn || command) {
-      if (command) {
-        console.log(`[ASK AI] Executing command: ${JSON.stringify(command)}`);
-      }
-
-      broadCastMessage({
+      workingOn = aiResponse.workingOn || "";
+      console.log("BROADCASTING (workingon): ", workingOn);
+      sendToUser(userId, {
         type: "ai_data",
         data: {
-          workingon:
-            workingOn ||
-            (command ? `Executing command: ${command}...` : "Processing..."),
+          workingon: workingOn,
+          msg: "Nexus is thinking...",
+          cmd: command || "",
         },
       });
-    } else {
-      broadCastMessage({
-        type: "ai_done",
-        data: {
-          workingon: "",
-        },
-      });
-    }
-
-    // ==========================================
-    // PHASE 4: COMMAND EXECUTION
-    // ==========================================
-
-    if (command) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const parsedCMD =
-        typeof command === "string" ? JSON.parse(command) : command;
-
-      const cmdResults: any = await commandParser(
-        parsedCMD,
-        session,
-        chatMessages,
-      );
-      command =
-        typeof cmdResults.cmd === "string"
-          ? cmdResults.cmd
-          : JSON.stringify(cmdResults.cmd || "");
-      terminal = cmdResults.terminalOutput || "";
-      terminalErr = cmdResults.terminalError || "";
-      isSuccessState = cmdResults.isSuccess || false;
-      if (cmdResults.imageBase64) {
-        capturedImage = cmdResults.imageBase64;
+      const actualContent = aiResponse;
+      if (
+        actualContent.cmd == null ||
+        String(actualContent.cmd).trim() === "" ||
+        (typeof actualContent.cmd === "object" && !actualContent.cmd.action)
+      ) {
+        command = "";
+        break;
       }
+      if (typeof actualContent.cmd === "object" && actualContent.cmd.action) {
+        command = JSON.stringify(actualContent.cmd);
+      } else if (typeof actualContent.cmd === "string") {
+        command = actualContent.cmd;
+      } else {
+        command = "";
+      }
+      if (command) {
+        const commandOutput: CommandParserResponseType = await commandParser(
+          userId,
+          JSON.parse(command) as CommandTypes,
+          ChatMsgs,
+        );
+        sendToUser(userId, {
+          type: "RunCMD",
+          cmd: command,
+        });
+        //Settting variables
+        capturedImage = commandOutput.imageBase64 || "";
+        terminalOutput += commandOutput.terminalOutput
+          ? commandOutput.terminalOutput + "\n"
+          : "";
+
+        let currentError = commandOutput.terminalError || "";
+
+        if (
+          commandOutput.exitCode !== undefined &&
+          commandOutput.exitCode !== null
+        ) {
+          currentError += currentError
+            ? commandOutput.exitCode
+              ? `\nEXIT CODE: ${commandOutput.exitCode}`
+              : ""
+            : commandOutput.exitCode
+              ? `EXIT CODE: ${commandOutput.exitCode}`
+              : "";
+        }
+        terminalError += currentError ? currentError + "\n" : "";
+        command = commandOutput.cmd || commandOutput.msg || "";
+        isSuccessState = commandOutput.isSuccess;
+        success = commandOutput.isSuccess;
+        const feedbackContent: any = {
+          status: isSuccessState ? "success" : "failed",
+          command_executed: command || "",
+          terminal_output: terminalOutput || "No output",
+          terminal_error: terminalError || "",
+        };
+        commandRunningMsgs.push({
+          role: "user",
+          content: JSON.stringify(feedbackContent, null, 2),
+        });
+      }
+    } catch (error: any) {
+      terminalError += `\nRuntime Error: ${error.message}`;
+      isSuccessState = false;
+      commandRunningMsgs.push({
+        role: "user",
+        content: JSON.stringify(
+          {
+            status: "failed",
+            command_executed: command || "",
+            terminal_output: terminalOutput || "No output",
+            terminal_error: terminalError || "",
+          },
+          null,
+          2,
+        ),
+      });
     }
-  } catch (error: any) {
-    terminalErr = error.message;
-    isSuccessState = false;
+    retries++;
   }
 
-  // ==========================================
-  // PHASE 5: RECURSIVE FEEDBACK LOOP
-  // ==========================================
+  const finalTurnSave: ChatMessageType[] = [
+    { role: "user", content: userMessage },
+    {
+      role: "assistant",
+      content: JSON.stringify({
+        cmd: command || "",
+        msg: aiResponse?.msg || "API CALL NO OUTPUT AS A MESSAGE!",
+        terminalError: terminalError || "",
+        terminalOutput: terminalOutput || "",
+      }),
+    },
+  ];
 
-  if (command || !isSuccessState) {
-    const feedbackContent = {
-      message: isSuccessState
-        ? "Command ran successfully"
-        : "Error on the terminal",
-      terminaloutput: terminal,
-      terminalerror: terminalErr,
-      cmdRunByAi: command,
+  await setChat(userId, session, finalTurnSave);
+  if (retries >= 15) {
+    return {
+      cmd: command || "",
+      msg: "Maximum try reached!",
+      terminalOutput: terminalOutput || "",
+      terminalError: terminalError || "",
+      imageBase64: capturedImage || "",
     };
-
-    chatMessages.push({
-      role: "user",
-      content: JSON.stringify(feedbackContent, null, 2),
-    });
-
-    const nextAccumulated = accumulatedTerminal
-      ? `${accumulatedTerminal}\n${terminal}`
-      : terminal;
-    const nextAccumulatedErr = accumulatedError
-      ? `${accumulatedError}\n${terminalErr}`
-      : terminalErr;
-
-    const response = await AskAI(
-      message,
-      session,
-      retries + 1,
-      chatMessages,
-      nextAccumulated,
-      nextAccumulatedErr,
-      command || lastExecutedCmd,
-      capturedImage,
-    );
-    return response;
   }
-
-  // ==========================================
-  // PHASE 6: FINAL RESPONSE & HISTORY SAVING
-  // ==========================================
-
-  // 7. Final Response: No more commands to run (base case), return final messages
-  if (retries === 0 || !command) {
-    const conversationTurn = [
-      { role: "user", content: message },
-      {
-        role: "assistant",
-        content: JSON.stringify({
-          cmd: "",
-          msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
-          workingon: "",
-        }),
-      },
-    ];
-    await appendHistory(conversationTurn, session);
-  }
-
   return {
-    cmd: command || lastExecutedCmd,
-    msg: aiMsg || "API CALL NO OUTPUT AS A MESSAGE!",
-    terminalOutput: accumulatedTerminal || terminal,
-    terminalError: accumulatedError || terminalErr,
-    imageBase64: capturedImage,
+    cmd: command || "",
+    msg: aiResponse.msg || "",
+    terminalOutput: terminalOutput || "",
+    terminalError: terminalError || "",
+    imageBase64: capturedImage || "",
   };
-}
+};
