@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus Device Pairing</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      }
+      body {
+        background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+      .card {
+        background: rgba(30, 41, 59, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        width: 100%;
+        max-width: 480px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+      }
+      .logo-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 1.25rem;
+        background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px -4px rgba(56, 189, 248, 0.4);
+      }
+      .logo-icon svg {
+        width: 28px;
+        height: 28px;
+        fill: #ffffff;
+      }
+      h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        margin-bottom: 0.35rem;
+      }
+      .subtitle {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 1.5rem;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.35rem 0.9rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+      }
+      .status-connected {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+      .status-offline {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .status-paired {
+        background: rgba(56, 189, 248, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: currentColor;
+      }
+      .status-dot.pulse {
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0.6; }
+        50% { transform: scale(1.3); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.6; }
+      }
+      /* Offline Banner */
+      .offline-banner {
+        display: none;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem;
+        color: #fca5a5;
+        line-height: 1.5;
+      }
+      .offline-banner strong {
+        color: #ef4444;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      /* Error / Re-pair Banner */
+      .error-banner {
+        display: none;
+        background: rgba(239, 68, 68, 0.16);
+        border: 1px solid rgba(239, 68, 68, 0.45);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem;
+        color: #fca5a5;
+        line-height: 1.5;
+        text-align: left;
+      }
+      .error-banner strong {
+        color: #ef4444;
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 700;
+      }
+      .code-container {
+        background: #090d16;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 1.5rem 1rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+      }
+      .code-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      .code-display {
+        font-size: 2.2rem;
+        font-weight: 800;
+        letter-spacing: 0.25em;
+        color: #38bdf8;
+        font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+        margin-bottom: 0.75rem;
+        user-select: all;
+      }
+      .code-display.disabled {
+        color: #475569;
+        letter-spacing: 0.1em;
+      }
+      .copy-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #cbd5e1;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .copy-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+      }
+      .copy-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .copy-btn.copied {
+        background: rgba(34, 197, 94, 0.2);
+        border-color: #22c55e;
+        color: #4ade80;
+      }
+      .instructions {
+        background: rgba(15, 23, 42, 0.6);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: left;
+        margin-bottom: 1.5rem;
+      }
+      .instructions ol {
+        padding-left: 1.25rem;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
+      .instructions li span {
+        color: #e2e8f0;
+        font-weight: 500;
+      }
+      .timer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin-bottom: 1.25rem;
+      }
+      .timer-val {
+        color: #fbbf24;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .refresh-btn {
+        width: 100%;
+        background: #0284c7;
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        padding: 0.8rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, opacity 0.2s;
+      }
+      .refresh-btn:hover:not(:disabled) {
+        background: #0369a1;
+      }
+      .refresh-btn:disabled {
+        background: #334155;
+        color: #64748b;
+        cursor: not-allowed;
+      }
+      /* Paired Success View */
+      .paired-view {
+        display: none;
+        padding: 1rem 0;
+      }
+      .success-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(34, 197, 94, 0.15);
+        border: 2px solid #22c55e;
+        color: #4ade80;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.25rem;
+        font-size: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+
+      <h1>Nexus Device Pairing</h1>
+      <p class="subtitle">Connect your local machine to the Nexus Cloud</p>
+
+      <div id="statusPill" class="status-pill status-offline">
+        <span class="status-dot pulse"></span>
+        <span id="statusLabel">Checking Connection...</span>
+      </div>
+
+      <!-- Offline Error Warning -->
+      <div id="offlineBanner" class="offline-banner">
+        <strong>⚠️ Cloud Backend Offline</strong>
+        Cannot generate a pairing code because the Cloud Backend (ws://localhost:3100) is unreachable. Please start the backend server.
+      </div>
+
+      <!-- Device Verification Failed / Re-Pair Banner -->
+      <div id="errorBanner" class="error-banner">
+        <strong>⚠️ Verification Failed &mdash; Re-pair Required</strong>
+        <span id="errorBannerText">Device verification failed from cloud backend. Please enter the new pairing code below to re-pair.</span>
+      </div>
+
+      <!-- Pairing Active Box -->
+      <div id="pairingBox">
+        <div class="code-container">
+          <div class="code-label">Your Device Pairing Code</div>
+          <div id="codeDisplay" class="code-display disabled">------</div>
+          <button id="copyBtn" class="copy-btn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="copyText">Copy Code</span>
+          </button>
+        </div>
+
+        <div class="instructions">
+          <ol>
+            <li>Go to the <span>Nexus Web App</span> on your browser.</li>
+            <li>Navigate to <span>Settings &rarr; Add Device</span>.</li>
+            <li>Enter the <span>6-digit code</span> shown above to link this PC.</li>
+          </ol>
+        </div>
+
+        <div id="timerRow" class="timer-row">
+          <span>Code auto-refreshes in:</span>
+          <span id="timerVal" class="timer-val">--:--</span>
+        </div>
+
+        <button id="refreshBtn" class="refresh-btn" disabled>Generate New Code</button>
+      </div>
+
+      <!-- Paired Success State -->
+      <div id="pairedBox" class="paired-view">
+        <div class="success-icon">&#10003;</div>
+        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #4ade80;">Device Linked Successfully!</h2>
+        <p style="font-size: 0.875rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem;">
+          Your local machine is authenticated and connected to Nexus. You can safely close this window.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const statusPill = document.getElementById("statusPill");
+      const statusLabel = document.getElementById("statusLabel");
+      const offlineBanner = document.getElementById("offlineBanner");
+      const errorBanner = document.getElementById("errorBanner");
+      const errorBannerText = document.getElementById("errorBannerText");
+      const pairingBox = document.getElementById("pairingBox");
+      const pairedBox = document.getElementById("pairedBox");
+      const codeDisplay = document.getElementById("codeDisplay");
+      const copyBtn = document.getElementById("copyBtn");
+      const copyText = document.getElementById("copyText");
+      const timerVal = document.getElementById("timerVal");
+      const timerRow = document.getElementById("timerRow");
+      const refreshBtn = document.getElementById("refreshBtn");
+
+      const STORAGE_KEY = "nexus_local_pairing";
+      let countdownTimer = null;
+
+      function saveToLocalStorage(code, expiresat) {
+        if (code && expiresat) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ code, expiresat }));
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+
+      function getFromLocalStorage() {
+        try {
+          const item = localStorage.getItem(STORAGE_KEY);
+          return item ? JSON.parse(item) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function updateStatus(status, label) {
+        statusPill.className = `status-pill status-${status}`;
+        statusLabel.textContent = label;
+      }
+
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+      }
+
+      function startCountdown(expiresAt) {
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        function tick() {
+          const now = Date.now();
+          const target = new Date(expiresAt).getTime();
+          const remaining = Math.max(0, Math.floor((target - now) / 1000));
+
+          timerVal.textContent = formatTime(remaining);
+
+          if (remaining <= 0) {
+            clearInterval(countdownTimer);
+            saveToLocalStorage(null);
+            fetchStatus();
+          }
+        }
+
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+      }
+
+      async function fetchStatus() {
+        try {
+          const res = await fetch("http://localhost:4100/api/pairing-status");
+          if (!res.ok) throw new Error("Failed to fetch pairing status");
+          const data = await res.json();
+
+          // 1. Device Already Paired
+          if (data.isPaired) {
+            pairingBox.style.display = "none";
+            offlineBanner.style.display = "none";
+            errorBanner.style.display = "none";
+            pairedBox.style.display = "block";
+            updateStatus("paired", "Device Paired & Ready");
+            saveToLocalStorage(null);
+            if (countdownTimer) clearInterval(countdownTimer);
+            return;
+          }
+
+          // 2. Handle Pairing / Verification Error
+          if (data.pairingError) {
+            errorBanner.style.display = "block";
+            errorBannerText.textContent = data.pairingError + " Please enter the new pairing code below to re-pair.";
+          } else {
+            errorBanner.style.display = "none";
+          }
+
+          // 3. Cloud Backend Offline
+          if (!data.isConnected) {
+            offlineBanner.style.display = "block";
+            updateStatus("offline", "Cloud Backend Offline");
+            codeDisplay.textContent = "------";
+            codeDisplay.classList.add("disabled");
+            copyBtn.disabled = true;
+            refreshBtn.disabled = true;
+            timerVal.textContent = "--:--";
+            saveToLocalStorage(null);
+            if (countdownTimer) clearInterval(countdownTimer);
+            return;
+          }
+
+          // 4. Connected to Cloud Backend
+          offlineBanner.style.display = "none";
+          updateStatus("connected", "Connected to Cloud Backend");
+
+          if (data.code) {
+            codeDisplay.textContent = data.code;
+            codeDisplay.classList.remove("disabled");
+            copyBtn.disabled = false;
+            refreshBtn.disabled = false;
+            saveToLocalStorage(data.code, data.expiresat);
+            startCountdown(data.expiresat);
+          }
+        } catch (err) {
+          console.error("Status fetch error:", err);
+          offlineBanner.style.display = "block";
+          errorBanner.style.display = "none";
+          updateStatus("offline", "Local Server Offline");
+          codeDisplay.textContent = "------";
+          codeDisplay.classList.add("disabled");
+          copyBtn.disabled = true;
+          refreshBtn.disabled = true;
+          timerVal.textContent = "--:--";
+        }
+      }
+
+      copyBtn.addEventListener("click", () => {
+        const code = codeDisplay.textContent;
+        if (code && code !== "------") {
+          navigator.clipboard.writeText(code);
+          copyBtn.classList.add("copied");
+          copyText.textContent = "Copied!";
+          setTimeout(() => {
+            copyBtn.classList.remove("copied");
+            copyText.textContent = "Copy Code";
+          }, 2000);
+        }
+      });
+
+      refreshBtn.addEventListener("click", async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Generating...";
+        try {
+          const res = await fetch("http://localhost:4100/api/generate-code", { method: "POST" });
+          const data = await res.json();
+          if (data.success && data.code) {
+            codeDisplay.textContent = data.code;
+            codeDisplay.classList.remove("disabled");
+            saveToLocalStorage(data.code, data.expiresat);
+            startCountdown(data.expiresat);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = "Generate New Code";
+        }
+      });
+
+      // Load cached from localStorage on fast start
+      const cached = getFromLocalStorage();
+      if (cached && new Date(cached.expiresat).getTime() > Date.now()) {
+        codeDisplay.textContent = cached.code;
+      }
+
+      // Initial check & auto-poll every 2.5s
+      fetchStatus();
+      setInterval(fetchStatus, 2500);
+    </script>
+  </body>
+</html>

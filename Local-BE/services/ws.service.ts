@@ -1,88 +1,216 @@
-import { WebSocketServer, WebSocket } from "ws";
-import { Server } from "http";
+import { WebSocket } from "ws";
+import fs from "fs/promises";
+import path from "path";
 import { runCommand } from "../controllers/cmd.controller";
-import url from "url";
 
-// let wss: WebSocketServer;
-// const initWebsocket = async (server: Server) => {
-//   wss = new WebSocketServer({ server });
-//   wss.on("connection", (ws: WebSocket, req) => {
-//     const ip = req.socket.remoteAddress;
-//     console.log(`[WS] Client connected: ${ip}`);
+const DEVICE_TOKEN_PATH = path.join(__dirname, "../deviceToken.json");
 
-//     ws.on("message", (event: any) => {
-//       const data = event.toString();
-//       console.log(`[WS] Message from ${ip}: \n${data}`);
-//       // console.log(JSON.parse(data).data.msg);
-//       wss.clients.forEach((client: WebSocket) => {
-//         if (client.readyState === 1) {
-//           client.send(data);
-//         }
-//       });
-//     });
-//     ws.on("close", (code: number, reason: Buffer) => {
-//       console.log(`[WS] Client disconnected: ${ip}`);
-//     });
-//   });
-// };
+let activeWS: WebSocket | null = null;
+export let isConnectedToBackend = false;
 
-// const broadCastMessage = (data: any) => {
-//   if (!wss) return;
+export interface DeviceTokenData {
+  token: string;
+}
 
-//   const dataStr = typeof data === "string" ? data : JSON.stringify(data);
-//   wss.clients.forEach((client: WebSocket) => {
-//     if (client.readyState === 1) {
-//       client.send(dataStr);
-//     }
-//   });
-// };
-// export { initWebsocket, broadCastMessage };
+interface InMemoryPairingState {
+  code: string;
+  expiresat: string;
+}
+export let paringMessage: string = "";
+// In-memory temporary pairing code state
+let currentPairingState: InMemoryPairingState | null = null;
 
-const email: string = "kashifahmead8755@gmail.com";
-const password: string = "kashifpassword";
-let currentToken = null;
-// const email: string = "";
-// const password: string = "";
-const ServerWSConnection = () => {
-  const ws = new WebSocket(
-    `ws://localhost:3100?email=${email}&password=${password}`,
-  );
-  ws.on("message", async (event: any, req: any) => {
-    const data = event.toString();
-    const parsedData = JSON.parse(data);
-    // console.log("Parsed Data Type: ", parsedData.type);
-    if (parsedData.type === "Auth") {
-      if (parsedData.status === 401) {
-        // console.log("Failed to Authenticate");
-      } else if (parsedData.data.token) {
-        (ws as any).token = parsedData.data.token;
-        console.log(
-          "Authentication Complete \nToken " +
-            (ws as any).token?.slice(0, 20) +
-            "...",
-        );
-        // console.log("Token: ", (ws as any).token);
-      } else {
-        console.log("Error in Authenticating");
+// Generate random 6-character code (e.g. NX-7824)
+export const generateRandomCode = (): string => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let result = "NX-";
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// Read persisted device token
+export const readDeviceTokenFile =
+  async (): Promise<DeviceTokenData | null> => {
+    try {
+      const data = await fs.readFile(DEVICE_TOKEN_PATH, "utf-8");
+      if (!data.trim()) return null;
+      return JSON.parse(data);
+    } catch (error) {
+      return null;
+    }
+  };
+
+// Save device token upon successful pairing
+export const saveDeviceTokenFile = async (
+  data: DeviceTokenData,
+): Promise<void> => {
+  await fs.writeFile(DEVICE_TOKEN_PATH, JSON.stringify(data, null, 2), "utf-8");
+};
+
+// Generate and manage temporary in-memory pairing code
+export const generatePairingCode = async (): Promise<{
+  code: string | null;
+  expiresat: string | null;
+  remainingSeconds: number;
+  isPaired: boolean;
+  isConnected: boolean;
+  message?: string;
+}> => {
+  const deviceData = await readDeviceTokenFile();
+
+  if (deviceData?.token) {
+    return {
+      code: null,
+      expiresat: null,
+      remainingSeconds: 0,
+      isPaired: true,
+      isConnected: isConnectedToBackend,
+    };
+  }
+
+  if (!isConnectedToBackend) {
+    return {
+      code: null,
+      expiresat: null,
+      remainingSeconds: 0,
+      isPaired: false,
+      isConnected: false,
+      message:
+        "Cloud Backend (ws://localhost:3100) is currently offline or unreachable.",
+    };
+  }
+
+  // Reuse existing in-memory code if not expired
+  if (currentPairingState) {
+    const timeLeft =
+      new Date(currentPairingState.expiresat).getTime() - Date.now();
+    if (timeLeft > 0) {
+      return {
+        code: currentPairingState.code,
+        expiresat: currentPairingState.expiresat,
+        remainingSeconds: Math.floor(timeLeft / 1000),
+        isPaired: false,
+        isConnected: true,
+      };
+    }
+  }
+
+  // Generate a new temporary in-memory pairing code
+  const code = generateRandomCode();
+  const expiresat = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  currentPairingState = { code, expiresat };
+
+  if (activeWS && activeWS.readyState === WebSocket.OPEN) {
+    activeWS.send(JSON.stringify({ type: "PairingInit", code }));
+    console.log(`[WS] Initialized with in-memory Pairing Code: ${code}`);
+  }
+
+  return {
+    code,
+    expiresat,
+    remainingSeconds: 300,
+    isPaired: false,
+    isConnected: true,
+  };
+};
+
+// Alias for compatibility
+export const getOrGeneratePairingCode = generatePairingCode;
+
+export const forceNewPairingCode = async () => {
+  if (!isConnectedToBackend) {
+    throw new Error("Cannot generate pairing code: Cloud Backend is offline.");
+  }
+
+  const code = generateRandomCode();
+  const expiresat = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  currentPairingState = { code, expiresat };
+
+  if (activeWS && activeWS.readyState === WebSocket.OPEN) {
+    activeWS.send(JSON.stringify({ type: "PairingInit", code }));
+    console.log(
+      `[WS] Sent refreshed in-memory pairing code to Cloud Backend: ${code}`,
+    );
+  }
+
+  return {
+    code,
+    expiresat,
+    remainingSeconds: 300,
+  };
+};
+
+const ServerWSConnection = async () => {
+  console.log("[WS] Connecting to Cloud Backend at ws://localhost:3100...");
+  const deviceData = await readDeviceTokenFile();
+  const headers: Record<string, string> = {};
+  if (deviceData?.token) {
+    headers.Authorization = `Bearer ${deviceData.token}`;
+  }
+  const ws = new WebSocket(`ws://localhost:3100`, { headers });
+  activeWS = ws;
+
+  ws.on("open", async () => {
+    isConnectedToBackend = true;
+    console.log("[WS] Connected to Cloud Backend!");
+
+    if (!deviceData?.token) {
+      const { code } = await generatePairingCode();
+      if (code) {
+        console.log(`[WS] Sent Pairing Code to Cloud Backend: ${code}`);
+        ws.send(JSON.stringify({ type: "PairingInit", code }));
       }
-    } else if (parsedData.type === "RunCMD") {
-      const cmd = JSON.parse(parsedData.cmd);
-      // console.log("Running CMD: ", cmd);
-      const cmdResponse = await runCommand(cmd.action, cmd.param, cmd.timeout);
-      ws.send(JSON.stringify({ type: "cmd_response", cmdResponse }));
+    }
+  });
+
+  ws.on("message", async (data: any) => {
+    try {
+      const parsed = JSON.parse(data.toString());
+      console.log("[WS] Received message:", parsed.type);
+
+      if (parsed.type === "PairingSuccess") {
+        paringMessage = "";
+        console.log("🎉 [WS] Pairing confirmed by Cloud Backend!");
+        const token = parsed.token || parsed.deviceToken;
+        if (token) {
+          await saveDeviceTokenFile({ token });
+        }
+        currentPairingState = null;
+      } else if (parsed.type === "PairingFailed") {
+        console.log("⛔ Device Verification failed from cloud backend!");
+        await saveDeviceTokenFile({ token: "" });
+        paringMessage = "Device Verification failed from cloud backend!";
+        await generatePairingCode();
+      } else if (parsed.type === "RunCMD") {
+        const cmd =
+          typeof parsed.cmd === "string" ? JSON.parse(parsed.cmd) : parsed.cmd;
+        const cmdResponse = await runCommand(
+          cmd.action,
+          cmd.param,
+          cmd.timeout,
+        );
+        ws.send(JSON.stringify({ type: "cmd_response", cmdResponse }));
+      }
+    } catch (err: any) {
+      console.error("[WS] Error parsing message:", err.message);
     }
   });
 
   ws.on("close", () => {
-    const retryIn = 2000;
+    isConnectedToBackend = false;
+    activeWS = null;
+    const retryIn = 5000;
     console.log(
-      `Connection closed. Reconnecting in ${retryIn / 1000} seconds...`,
+      `[WS] Disconnected from Cloud Backend. Reconnecting in ${retryIn / 1000}s...`,
     );
     setTimeout(ServerWSConnection, retryIn);
   });
 
   ws.on("error", (error) => {
-    console.error("WebSocket error:", error);
+    console.error("[WS] Connection error:", error.message);
   });
 };
+
 export default ServerWSConnection;

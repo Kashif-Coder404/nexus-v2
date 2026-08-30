@@ -1,12 +1,34 @@
 import { InferSchemaType, model, Schema } from "mongoose";
 
+const deviceSchema = new Schema({
+  deviceId: {
+    type: String,
+    required: true,
+  },
+  deviceToken: {
+    type: String,
+    required: true,
+  },
+  deviceName: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 const userSchema = new Schema({
   name: {
     type: String,
     required: true,
   },
   devices: {
-    type: Array,
+    type: [deviceSchema],
     default: [],
   },
   email: {
@@ -32,5 +54,6 @@ const userSchema = new Schema({
     default: false,
   },
 });
+
 type IUser = InferSchemaType<typeof userSchema>;
 export const UserModel = model<IUser>("Users", userSchema);

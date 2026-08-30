@@ -51,6 +51,9 @@ backend/AI/history/*
 backend/memory/*
 backend/AI/chats/*
 backend/screenshot.png
+Local-BE/deviceToken.json
+Local-BE/paringCode.json
+Local-BE/screenshot.png
 
 #others
 tasks.md

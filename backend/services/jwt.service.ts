@@ -3,6 +3,7 @@ import { JWT_SECRET } from "../EnvVariables.js";
 import jwt, { SignOptions } from "jsonwebtoken";
 export type JWT_PAYLOAD_TYPE = {
   userId: string;
+  deviceId?: string;
   email?: string;
   role?: string;
 };

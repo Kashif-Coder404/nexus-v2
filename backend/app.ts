@@ -8,6 +8,8 @@ import cors from "cors";
 import { connectDB } from "./db/connectDB.js";
 import { updateMemory } from "./services/memory.service.js";
 import authRoutes from "./routes/auth.routes.js";
+import { userAuthentication } from "./middlewares/auth/authUserLogin.js";
+import { startParingHandler } from "./services/websocket.service.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -15,7 +17,7 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: "*",
+    origin: "*", // Frontend url should be here!
     credentials: true,
   }),
 );
@@ -56,12 +58,11 @@ app.get("/api/health", async (req, res) => {
     },
   });
 });
-
+app.post("/api/pairrequest", userAuthentication, startParingHandler);
 app.use("/api/chat", chatRoutes);
 app.post("/api/memory", async (req, res) => {
   const { category, value, alias } = req.body;
   return res.json({ response: await updateMemory(alias, value, category) });
 });
 app.use("/api/auth", authRoutes);
-
 export default app;
