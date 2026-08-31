@@ -1,10 +1,6 @@
 import { InferSchemaType, model, Schema } from "mongoose";
 
 const deviceSchema = new Schema({
-  deviceId: {
-    type: String,
-    required: true,
-  },
   deviceToken: {
     type: String,
     required: true,

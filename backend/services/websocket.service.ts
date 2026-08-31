@@ -4,6 +4,7 @@ import { generateToken, verifyToken } from "./jwt.service.js";
 import { UserModel } from "../db/schema/user-schema.js";
 import { commandParserType } from "../AI/Types.js";
 import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
+import { Types } from "mongoose";
 
 export interface CustomWebSocket extends WebSocket {
   userId?: string;
@@ -48,7 +49,8 @@ const connectDevice = async (
 
   const user = await UserModel.findOne({
     _id: decodedUserId,
-    "devices.deviceId": decodedDeviceId,
+    "devices._id": decodedDeviceId,
+    "devices.deviceToken": actualToken,
   });
 
   if (!user) {
@@ -215,7 +217,8 @@ const startParingHandler = async (req: any, res: any) => {
       client.pairingCode === paringcode &&
       client.readyState === WebSocket.OPEN
     ) {
-      const deviceId = crypto.randomUUID();
+      const deviceId = new Types.ObjectId().toString();
+
       const deviceToken = generateToken(
         {
           userId: userId,
@@ -253,7 +256,7 @@ const startParingHandler = async (req: any, res: any) => {
         {
           $push: {
             devices: {
-              deviceId: deviceId,
+              _id: deviceId,
               deviceToken: deviceToken,
               deviceName: "Nexus Local Device",
               createdAt: new Date(),
