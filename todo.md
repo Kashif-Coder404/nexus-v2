@@ -9,3 +9,6 @@
 - **Proposed Solution:** 
   1. Modify `askAI.ts` so that it appends the entire sequence of intermediate messages (the commands run by the AI and the terminal outputs/errors fed back to it) to the `chat_{session}.json` file.
   2. Ensure that as each command finishes in the recursive loop, its output is broadcasted over the WebSocket so the frontend can render a "Terminal Output" block for the user to see in real-time.
+
+
+##Problem 3: The App Should be search globally otherwise for all users the nexus search for the same app folder and did not able to find it!

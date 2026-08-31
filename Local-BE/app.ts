@@ -3,11 +3,11 @@ import cors from "cors";
 import router from "./routes/cmd.route";
 import path from "path";
 import {
-  getOrGeneratePairingCode,
+  generatePairingCode,
   forceNewPairingCode,
   readDeviceTokenFile,
   isConnectedToBackend,
-  paringMessage,
+  pairingMessage,
 } from "./services/ws.service";
 
 const app = express();
@@ -40,7 +40,7 @@ app.get("/paring", serveSetupPage);
 app.get("/api/pairing-status", async (req, res) => {
   try {
     const wsState = isConnectedToBackend;
-    const pairingState = await getOrGeneratePairingCode();
+    const pairingState = await generatePairingCode();
     const deviceData = await readDeviceTokenFile();
 
     return res.status(200).json({
@@ -50,7 +50,7 @@ app.get("/api/pairing-status", async (req, res) => {
       code: pairingState.code,
       expiresat: pairingState.expiresat,
       remainingSeconds: pairingState.remainingSeconds,
-      pairingError: paringMessage,
+      pairingError: pairingMessage,
       message: pairingState.message,
     });
   } catch (error: any) {
@@ -64,7 +64,7 @@ app.get("/api/pairing-status", async (req, res) => {
 // Backwards compatibility alias
 app.get("/getParingCode", async (req, res) => {
   try {
-    const pairingState = await getOrGeneratePairingCode();
+    const pairingState = await generatePairingCode();
     return res.status(200).json({
       success: true,
       hasCode: !!pairingState.code,

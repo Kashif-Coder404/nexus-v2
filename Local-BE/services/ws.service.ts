@@ -1,12 +1,13 @@
 import { WebSocket } from "ws";
 import fs from "fs/promises";
 import path from "path";
-import { runCommand } from "../controllers/cmd.controller";
+import { runCommand } from "../controllers/cmd.controller.js";
 
 const DEVICE_TOKEN_PATH = path.join(__dirname, "../deviceToken.json");
 
 let activeWS: WebSocket | null = null;
 export let isConnectedToBackend = false;
+export let pairingMessage: string = "";
 
 export interface DeviceTokenData {
   token: string;
@@ -16,9 +17,16 @@ interface InMemoryPairingState {
   code: string;
   expiresat: string;
 }
-export let paringMessage: string = "";
+
 // In-memory temporary pairing code state
 let currentPairingState: InMemoryPairingState | null = null;
+
+// Helper to safely send JSON over WebSocket
+function sendJson(ws: WebSocket | null, payload: Record<string, any>) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+  }
+}
 
 // Generate random 6-character code (e.g. NX-7824)
 export const generateRandomCode = (): string => {
@@ -37,7 +45,7 @@ export const readDeviceTokenFile =
       const data = await fs.readFile(DEVICE_TOKEN_PATH, "utf-8");
       if (!data.trim()) return null;
       return JSON.parse(data);
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -82,7 +90,7 @@ export const generatePairingCode = async (): Promise<{
     };
   }
 
-  // Reuse existing in-memory code if not expired
+  // Reuse existing in-memory code if still valid
   if (currentPairingState) {
     const timeLeft =
       new Date(currentPairingState.expiresat).getTime() - Date.now();
@@ -97,15 +105,13 @@ export const generatePairingCode = async (): Promise<{
     }
   }
 
-  // Generate a new temporary in-memory pairing code
+  // Generate a fresh temporary code (5-minute TTL)
   const code = generateRandomCode();
   const expiresat = new Date(Date.now() + 5 * 60 * 1000).toISOString();
   currentPairingState = { code, expiresat };
 
-  if (activeWS && activeWS.readyState === WebSocket.OPEN) {
-    activeWS.send(JSON.stringify({ type: "PairingInit", code }));
-    console.log(`[WS] Initialized with in-memory Pairing Code: ${code}`);
-  }
+  sendJson(activeWS, { type: "PairingInit", code });
+  console.log(`[WS] Initialized with Pairing Code: ${code}`);
 
   return {
     code,
@@ -116,9 +122,7 @@ export const generatePairingCode = async (): Promise<{
   };
 };
 
-// Alias for compatibility
-export const getOrGeneratePairingCode = generatePairingCode;
-
+// Force generate a new pairing code immediately
 export const forceNewPairingCode = async () => {
   if (!isConnectedToBackend) {
     throw new Error("Cannot generate pairing code: Cloud Backend is offline.");
@@ -128,12 +132,8 @@ export const forceNewPairingCode = async () => {
   const expiresat = new Date(Date.now() + 5 * 60 * 1000).toISOString();
   currentPairingState = { code, expiresat };
 
-  if (activeWS && activeWS.readyState === WebSocket.OPEN) {
-    activeWS.send(JSON.stringify({ type: "PairingInit", code }));
-    console.log(
-      `[WS] Sent refreshed in-memory pairing code to Cloud Backend: ${code}`,
-    );
-  }
+  sendJson(activeWS, { type: "PairingInit", code });
+  console.log(`[WS] Refreshed pairing code: ${code}`);
 
   return {
     code,
@@ -142,13 +142,16 @@ export const forceNewPairingCode = async () => {
   };
 };
 
+// WebSocket Connection to Cloud Backend
 const ServerWSConnection = async () => {
   console.log("[WS] Connecting to Cloud Backend at ws://localhost:3100...");
   const deviceData = await readDeviceTokenFile();
   const headers: Record<string, string> = {};
+
   if (deviceData?.token) {
     headers.Authorization = `Bearer ${deviceData.token}`;
   }
+
   const ws = new WebSocket(`ws://localhost:3100`, { headers });
   activeWS = ws;
 
@@ -159,8 +162,7 @@ const ServerWSConnection = async () => {
     if (!deviceData?.token) {
       const { code } = await generatePairingCode();
       if (code) {
-        console.log(`[WS] Sent Pairing Code to Cloud Backend: ${code}`);
-        ws.send(JSON.stringify({ type: "PairingInit", code }));
+        sendJson(ws, { type: "PairingInit", code });
       }
     }
   });
@@ -170,28 +172,48 @@ const ServerWSConnection = async () => {
       const parsed = JSON.parse(data.toString());
       console.log("[WS] Received message:", parsed.type);
 
-      if (parsed.type === "PairingSuccess") {
-        paringMessage = "";
-        console.log("🎉 [WS] Pairing confirmed by Cloud Backend!");
-        const token = parsed.token || parsed.deviceToken;
-        if (token) {
-          await saveDeviceTokenFile({ token });
+      switch (parsed.type) {
+        case "PairingSuccess": {
+          pairingMessage = "";
+          console.log("🎉 [WS] Pairing confirmed by Cloud Backend!");
+          const token = parsed.token || parsed.deviceToken;
+          if (token) {
+            await saveDeviceTokenFile({ token });
+          }
+          currentPairingState = null;
+          break;
         }
-        currentPairingState = null;
-      } else if (parsed.type === "PairingFailed") {
-        console.log("⛔ Device Verification failed from cloud backend!");
-        await saveDeviceTokenFile({ token: "" });
-        paringMessage = "Device Verification failed from cloud backend!";
-        await generatePairingCode();
-      } else if (parsed.type === "RunCMD") {
-        const cmd =
-          typeof parsed.cmd === "string" ? JSON.parse(parsed.cmd) : parsed.cmd;
-        const cmdResponse = await runCommand(
-          cmd.action,
-          cmd.param,
-          cmd.timeout,
-        );
-        ws.send(JSON.stringify({ type: "cmd_response", cmdResponse }));
+
+        case "PairingFailed": {
+          console.log("⛔ [WS] Device verification failed from cloud backend!");
+          await saveDeviceTokenFile({ token: "" });
+          pairingMessage =
+            parsed.message || "Device verification failed from cloud backend!";
+          await generatePairingCode();
+          break;
+        }
+
+        case "RunCMD": {
+          const { requestId, cmd } = parsed;
+          const parsedCmd = typeof cmd === "string" ? JSON.parse(cmd) : cmd;
+
+          const cmdResponse = await runCommand(
+            parsedCmd.action,
+            parsedCmd.param,
+            parsedCmd.timeout,
+          );
+          console.log("[LOCAL BE -> SERVER cmd_response]:", cmdResponse);
+
+          sendJson(ws, {
+            type: "cmd_response",
+            requestId,
+            cmdResponse,
+          });
+          break;
+        }
+
+        default:
+          console.log("[WS] Unhandled message type:", parsed.type);
       }
     } catch (err: any) {
       console.error("[WS] Error parsing message:", err.message);

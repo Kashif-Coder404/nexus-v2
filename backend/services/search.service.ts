@@ -26,7 +26,7 @@ export interface SearchResponse {
 
 export async function search(
   path_arg: string = "",
-  expected_name: string,
+  expected_name: string = "",
   extension: string = "",
 ): Promise<SearchResponse> {
   return new Promise<SearchResponse>((resolve, reject) => {
@@ -63,11 +63,11 @@ export async function search(
           reject(json.error);
         }
       } catch (e) {
-        reject(new Error(`Failed to parse Python script output: ${stdout}`));
+        reject(new Error(`Failed to parse Python script output: ${stdout || stderr}`));
       }
     });
 
-    // Handle spawn error (e.g. python3 not installed or path incorrect)
+    // Handle spawn error (e.g. python not installed or path incorrect)
     pythonProcess.on("error", (err) => {
       reject(err);
     });
@@ -75,50 +75,44 @@ export async function search(
 }
 
 export const search_app = async (
-  isDeapSearch: boolean = false,
-  name: string,
+  isDeepSearch: boolean = false,
+  name: string = "",
   extension: string = ".lnk",
-) => {
+): Promise<SearchResultItem[]> => {
+  const userProfile = process.env.USERPROFILE || "C:/Users/Default";
+  const publicProfile = process.env.PUBLIC || "C:/Users/Public";
+
+  const userDesktop = path.join(userProfile, "Desktop");
+  const appsDesktop = path.join(userDesktop, "APPS");
+  const publicDesktop = path.join(publicProfile, "Desktop");
+
   // Desktop search
-  let desktopResult: any = [];
+  let desktopResult: SearchResultItem[] = [];
   try {
-    desktopResult = (await search("C:/Users/Kashif/Desktop/", name, extension))
-      .results;
+    const res = await search(userDesktop, name, extension);
+    desktopResult = res.results || [];
   } catch (e) {
     console.error("[SEARCH SERVICE] Desktop search failed:", e);
   }
 
-  // Desktop/APPS search
-  let appsResult: any = [];
-  let publicDesktopResult: any = [];
-  if (isDeapSearch) {
+  // Desktop/APPS & Public Desktop search
+  let appsResult: SearchResultItem[] = [];
+  let publicDesktopResult: SearchResultItem[] = [];
+  if (isDeepSearch) {
     try {
-      appsResult = (
-        await search("C:/Users/Kashif/Desktop/APPS", name, extension)
-      ).results;
+      const res = await search(appsDesktop, name, extension);
+      appsResult = res.results || [];
     } catch (e) {
       console.error("[SEARCH SERVICE] Desktop/APPS search failed:", e);
     }
 
     try {
-      publicDesktopResult = (
-        await search("C:/Users/Public/Desktop", name, extension)
-      ).results;
+      const res = await search(publicDesktop, name, extension);
+      publicDesktopResult = res.results || [];
     } catch (e) {
       console.error("[SEARCH SERVICE] Public/Desktop search failed:", e);
     }
   }
-  type ResultType = {
-    name: string;
-    path: string;
-    folder: string;
-    extension: string;
-    size: number;
-  };
-  let totalResult: ResultType[] = [
-    ...desktopResult,
-    ...publicDesktopResult,
-    ...appsResult,
-  ];
-  return totalResult;
+
+  return [...desktopResult, ...publicDesktopResult, ...appsResult];
 };

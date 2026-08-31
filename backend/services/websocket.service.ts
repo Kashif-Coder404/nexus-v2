@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { generateToken, verifyToken } from "./jwt.service.js";
 import { UserModel } from "../db/schema/user-schema.js";
+import { commandParserType } from "../AI/Types.js";
 
 export interface CustomWebSocket extends WebSocket {
   userId?: string;
@@ -9,20 +10,16 @@ export interface CustomWebSocket extends WebSocket {
   isAuthenticated?: boolean;
   pairingCode?: string;
 }
+// Practice Promise for ws await function!
+const pendingRequests = new Map();
 
+//Main
 let wss: WebSocketServer;
-
-const sendJson = (ws: WebSocket, payload: Record<string, any>) => {
+function sendJson(ws: WebSocket, payload: Record<string, any>) {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(payload));
   }
-};
-type deviceTokenType = {
-  token: {
-    userId: string;
-    deviceId: string;
-  };
-};
+}
 type JwtPayload = {
   token: {
     userId: string;
@@ -30,7 +27,10 @@ type JwtPayload = {
   };
   success: boolean;
 };
-const connectDevice = async (ws: CustomWebSocket, token: string): Promise<void> => {
+const connectDevice = async (
+  ws: CustomWebSocket,
+  token: string,
+): Promise<void> => {
   const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
   const decodedToken = verifyToken(actualToken) as JwtPayload;
   const decodedUserId = decodedToken.token?.userId as string;
@@ -85,12 +85,17 @@ const initWebsocket = (server: Server) => {
 
         if (parsedData.type === "PairingInit") {
           ws.pairingCode = parsedData.code;
-        } else if (
-          parsedData.type === "cmd_response" ||
-          parsedData.type === "CMDResponse"
-        ) {
+        } else if (parsedData.type === "cmd_response") {
           if (ws.isAuthenticated) {
-            console.log("[WS] CMD Response:", parsedData.cmdResponse);
+            const { requestId, cmdResponse } = parsedData;
+            const requestHandler = pendingRequests.get(requestId);
+            if (requestHandler) {
+              if (requestHandler.timer) {
+                clearTimeout(requestHandler.timer);
+              }
+              requestHandler.resolve(cmdResponse);
+              pendingRequests.delete(requestId);
+            }
           }
         }
       } catch (err: any) {
@@ -122,6 +127,47 @@ const sendToUser = (userId: string, data: any, deviceId?: string) => {
     ) {
       client.send(dataStr);
     }
+  });
+};
+
+const sendCmdRequest = async (
+  userId: string,
+  cmd: any,
+  timeoutMs: number = 30000,
+) => {
+  return new Promise((resolve, reject) => {
+    const requestId = crypto.randomUUID();
+    const parsedCmd = typeof cmd === "string" ? JSON.parse(cmd) : cmd;
+    const dataStr = JSON.stringify({
+      type: "RunCMD",
+      cmd: parsedCmd,
+      requestId,
+    });
+
+    (wss.clients as Set<CustomWebSocket>).forEach((client) => {
+      const isSameUser = client.userId === userId.toString();
+
+      if (
+        isSameUser &&
+        client.isAuthenticated &&
+        client.readyState === WebSocket.OPEN
+      ) {
+        client.send(dataStr);
+      }
+    });
+
+    const timer = setTimeout(() => {
+      if (pendingRequests.has(requestId)) {
+        reject(new Error(`Command request timed out after ${timeoutMs}ms`));
+        pendingRequests.delete(requestId);
+      }
+    }, timeoutMs);
+
+    pendingRequests.set(requestId, {
+      resolve,
+      reject,
+      timer,
+    });
   });
 };
 
@@ -213,4 +259,4 @@ const startParingHandler = async (req: any, res: any) => {
   });
 };
 
-export { initWebsocket, sendToUser, startParingHandler };
+export { initWebsocket, sendToUser, startParingHandler, sendCmdRequest };

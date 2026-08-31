@@ -8,7 +8,7 @@ import {
 import * as readlinePromises from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { callAI } from "./CallAI.js";
-import { sendToUser } from "../services/websocket.service.js";
+import { sendCmdRequest, sendToUser } from "../services/websocket.service.js";
 import {
   behaviourInstructions,
   behaviourPrompt,
@@ -61,7 +61,7 @@ export const askAI = async (
       let currentMainInstructions: string =
         behaviourPrompt(behaviour) + "\n" + instructions;
 
-      aiResponse = await callAI("tokenrouter", {
+      aiResponse = await callAI("gemini", {
         chatMessages: ChatMsgs,
         session: session,
         instructions: currentMainInstructions,
@@ -105,10 +105,13 @@ export const askAI = async (
           JSON.parse(command) as CommandTypes,
           ChatMsgs,
         );
-        sendToUser(userId, {
-          type: "RunCMD",
-          cmd: command,
-        });
+        console.log("[EXECUTING]:", command);
+        const cloudResponse = await sendCmdRequest(userId, command);
+        console.log("[LOCAL-BE RESPONSE]:", cloudResponse);
+        // sendToUser(userId, {
+        //   type: "RunCMD",
+        //   cmd: command,
+        // });
         //Settting variables
         capturedImage = commandOutput.imageBase64 || "";
         terminalOutput += commandOutput.terminalOutput
