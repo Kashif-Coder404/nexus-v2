@@ -1,6 +1,10 @@
 import { Schema, model, InferSchemaType } from "mongoose";
 
 const memorySchema = new Schema({
+  userId: {
+    type: String,
+    required: true,
+  },
   aliases: {
     type: [String],
     required: true,

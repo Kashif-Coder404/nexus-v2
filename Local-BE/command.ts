@@ -9,7 +9,6 @@ import {
 
 export const commandParser = async (
   cmd: CommandTypes,
-  session?: string,
 ): Promise<CommandParserResponseType> => {
   const returningCmd: string = JSON.stringify(cmd);
   let finalResponse: CommandParserResponseType = {

@@ -202,7 +202,6 @@ const ServerWSConnection = async () => {
             parsedCmd.param,
             parsedCmd.timeout,
           );
-          console.log("[LOCAL BE -> SERVER cmd_response]:", cmdResponse);
 
           sendJson(ws, {
             type: "cmd_response",

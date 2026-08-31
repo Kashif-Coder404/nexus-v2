@@ -60,9 +60,5 @@ app.get("/api/health", async (req, res) => {
 });
 app.post("/api/pairrequest", userAuthentication, startParingHandler);
 app.use("/api/chat", chatRoutes);
-app.post("/api/memory", async (req, res) => {
-  const { category, value, alias } = req.body;
-  return res.json({ response: await updateMemory(alias, value, category) });
-});
 app.use("/api/auth", authRoutes);
 export default app;

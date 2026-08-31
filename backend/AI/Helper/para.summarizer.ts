@@ -71,8 +71,6 @@ export const summarize = async (
     const summaryResults = await summarizerCall(chatHistory, session);
     if (!summaryResults.success || !summaryResults.content) return "";
 
-    console.log("[SUMMARIZER] Background summary generated successfully.");
-
     return `[System Context - Previous Chat Summary]: ${summaryResults.content}`;
   } catch (error) {
     console.error("[SUMMARIZER] ERROR: ", error);

@@ -191,28 +191,7 @@ const delete_Chat_Session_Handler = async (req: any, res: any) => {
     });
   }
 };
-(async () => {
-  // let tempAiResponse: any = {
-  //   role: "user",
-  //   content: "hello i am kashif!",
-  // };
-  // let results2: any = await setChat(
-  //   "6a8bdcf4abce18495b3ba269",
-  //   "6a8bdcfeabce18495b3ba26a",
-  //   tempAiResponse,
-  // );
-  // console.log(results2.doc.chatMessage);
-  // const result: any = await getChat(
-  //   "6a8bdcf4abce18495b3ba269",
-  //   "6a8bdcfeabce18495b3ba26a",
-  // );
-  // console.log(result);
-  // let results3: any = await deleteChat(
-  //   "6a8bdcf4abce18495b3ba269",
-  //   "6a8bdcfeabce18495b3ba26a",
-  // );
-  // console.log(results3);
-})();
+
 export {
   getChatHandler,
   updateChatHandler,

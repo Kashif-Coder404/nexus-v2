@@ -1,0 +1,176 @@
+{
+  "info": {
+    "name": "Nexus v2 Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3100",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pairingCode",
+      "value": "NX-RV3P",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "2. Auth - Signup (New User)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var res = pm.response.json();",
+              "    pm.collectionVariables.set('token', res.data.token);",
+              "    pm.environment.set('token', res.data.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Nexus Tester\",\n  \"email\": \"tester_dev_01@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/signup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "signup"]
+        }
+      }
+    },
+    {
+      "name": "3. Auth - Login (New User)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var res = pm.response.json();",
+              "    var token = res.token || res.data?.token;",
+              "    pm.collectionVariables.set('token', token);",
+              "    pm.environment.set('token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"tester_dev_01@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "4. Device - Pair Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paringcode\": \"{{pairingCode}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/pairrequest",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "pairrequest"]
+        }
+      }
+    },
+    {
+      "name": "5. Chat - Send Message",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var res = pm.response.json();",
+              "    pm.collectionVariables.set('sessionId', res.sessionId);",
+              "    pm.environment.set('sessionId', res.sessionId);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-session-id", "value": "{{sessionId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Check my system info\",\n  \"behaviour\": \"developer\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chat/message",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "chat", "message"]
+        }
+      }
+    },
+    {
+      "name": "6. Chat - Get History",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-session-id", "value": "{{sessionId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"limit\": 20\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chat/history",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "chat", "history"]
+        }
+      }
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { Server } from "http";
 import { generateToken, verifyToken } from "./jwt.service.js";
 import { UserModel } from "../db/schema/user-schema.js";
 import { commandParserType } from "../AI/Types.js";
+import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
 
 export interface CustomWebSocket extends WebSocket {
   userId?: string;
@@ -80,7 +81,6 @@ const initWebsocket = (server: Server) => {
     ws.on("message", (event: any) => {
       try {
         const data = event.toString();
-        console.log("[WS] Received message:", data);
         const parsedData = JSON.parse(data);
 
         if (parsedData.type === "PairingInit") {
@@ -134,8 +134,12 @@ const sendCmdRequest = async (
   userId: string,
   cmd: any,
   timeoutMs: number = 30000,
-) => {
+): Promise<CommandParserResponseType> => {
   return new Promise((resolve, reject) => {
+    if (!wss) {
+      return reject(new Error("WebSocket server is not initialized"));
+    }
+
     const requestId = crypto.randomUUID();
     const parsedCmd = typeof cmd === "string" ? JSON.parse(cmd) : cmd;
     const dataStr = JSON.stringify({
@@ -143,6 +147,8 @@ const sendCmdRequest = async (
       cmd: parsedCmd,
       requestId,
     });
+
+    let clientFound = false;
 
     (wss.clients as Set<CustomWebSocket>).forEach((client) => {
       const isSameUser = client.userId === userId.toString();
@@ -153,12 +159,25 @@ const sendCmdRequest = async (
         client.readyState === WebSocket.OPEN
       ) {
         client.send(dataStr);
+        clientFound = true;
       }
     });
 
+    if (!clientFound) {
+      return reject(
+        new Error(
+          "Local backend server is not connected or authenticated. Please ensure your local backend is running and paired.",
+        ),
+      );
+    }
+
     const timer = setTimeout(() => {
       if (pendingRequests.has(requestId)) {
-        reject(new Error(`Command request timed out after ${timeoutMs}ms`));
+        reject(
+          new Error(
+            `Command request timed out after ${timeoutMs / 1000}s without response from local backend.`,
+          ),
+        );
         pendingRequests.delete(requestId);
       }
     }, timeoutMs);

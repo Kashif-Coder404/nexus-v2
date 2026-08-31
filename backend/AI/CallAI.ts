@@ -42,9 +42,6 @@ export const callAI = async (
   } = params;
 
   if (name === "nvidia") {
-    console.log(
-      `[CALL AI - NVIDIA] Initiating request for session: ${session}`,
-    );
     const res = await callNvidia(
       params.workingOn || "",
       chatMessages,
@@ -71,10 +68,6 @@ export const callAI = async (
         // Ignore parsing errors
       }
     }
-
-    console.log(
-      `[CALL AI - NVIDIA] Request completed. Success: ${res.success}`,
-    );
 
     return {
       cmd,

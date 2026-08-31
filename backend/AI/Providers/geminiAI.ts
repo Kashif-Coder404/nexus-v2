@@ -189,12 +189,9 @@ export const liveGeminiAICall = async (
         outputAudioTranscription: {},
       },
       callbacks: {
-        onmessage: (message: any) => {
-          console.log("Message : ", message);
-        },
+        onmessage: (message: any) => {},
       },
     });
-    console.log(session);
   } catch (error) {
     console.error("Error connecting to Gemini Live API:", error);
     throw error;

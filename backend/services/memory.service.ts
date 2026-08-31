@@ -26,6 +26,7 @@ const standardizePath = async (val: string) => {
 };
 
 export async function updateMemory(
+  userId: string,
   alias: string,
   value: string,
   category: string,
@@ -39,7 +40,7 @@ export async function updateMemory(
   const cleanedAlias = alias.toLowerCase().trim();
   try {
     const memoryUpdate: object = await MemoryModel.findOneAndUpdate(
-      { value: cleanedValue },
+      { userId: userId, value: cleanedValue },
       {
         $addToSet: {
           aliases: cleanedAlias,
@@ -73,6 +74,7 @@ export async function updateMemory(
 }
 
 export async function getMemory(
+  userId: string,
   alias: string,
   category: string = "",
 ): Promise<object | object[] | null> {
@@ -95,6 +97,7 @@ export async function getMemory(
       };
     }
     const dbResults = await MemoryModel.find({
+      userId: userId,
       $or: orConditions,
     } as any);
     if (dbResults.length === 0) {
@@ -132,6 +135,7 @@ export async function getMemory(
 }
 
 export const deleteMemory = async (
+  userId: string,
   value: string = "",
   alias: string = "",
   category: string = "",
@@ -169,6 +173,7 @@ export const deleteMemory = async (
   try {
     // 4. Single database hit using $or to evaluate all conditions at once
     const deletedMemory = await MemoryModel.findOneAndDelete({
+      userId: userId,
       $or: orConditions,
     });
 
@@ -192,6 +197,7 @@ export const deleteMemory = async (
 };
 
 export async function accessMemory(
+  userId: string,
   action: string = "",
   alias: string = "",
   value: string = "",
@@ -208,19 +214,28 @@ export async function accessMemory(
   const cleanedAlias = alias.trim();
   const cleanedValue = value.trim();
   const cleanedCategory = category.trim();
-  console.log(cleanedAction, cleanedAlias, cleanedValue, cleanedCategory);
   if (cleanedAction === "memory_write" || cleanedAction.includes("write")) {
-    results = await updateMemory(cleanedAlias, cleanedValue, cleanedCategory);
+    results = await updateMemory(
+      userId,
+      cleanedAlias,
+      cleanedValue,
+      cleanedCategory,
+    );
   } else if (
     cleanedAction === "memory_read" ||
     cleanedAction.includes("read")
   ) {
-    results = await getMemory(cleanedAlias, cleanedCategory);
+    results = await getMemory(userId, cleanedAlias, cleanedCategory);
   } else if (
     cleanedAction === "memory_delete" ||
     cleanedAction.includes("delete")
   ) {
-    results = await deleteMemory(cleanedValue, cleanedAlias, cleanedCategory);
+    results = await deleteMemory(
+      userId,
+      cleanedValue,
+      cleanedAlias,
+      cleanedCategory,
+    );
   }
   if (results) {
     return JSON.stringify(results);

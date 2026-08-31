@@ -19,13 +19,53 @@ export const imageCheck = async (): Promise<{
     return { success: false, buffer: null, error: error.message || "" };
   }
 };
+export const summarizeBase64Image = async (
+  base64Raw: string,
+  chatMessages: ChatMessageType[],
+  moreContext: string,
+): Promise<{ summary: string; base64: string } | false> => {
+  if (!base64Raw) return false;
+  const base64Str = base64Raw.startsWith("data:")
+    ? base64Raw
+    : `data:image/png;base64,${base64Raw}`;
+  const toPass: any = {
+    role: "user",
+    content: [
+      ...(moreContext
+        ? [
+            {
+              type: "text",
+              text: moreContext,
+            },
+          ]
+        : []),
+      {
+        type: "image_url",
+        image_url: {
+          url: base64Str,
+        },
+      },
+    ],
+  };
+  const chatToPass = [...chatMessages, toPass];
+  const response = await geminiAICall({
+    chatMessages: chatToPass,
+    retryCount: 0,
+    model: "gemini-3.5-flash-lite",
+    instructionString: imageInstructions,
+    isJson: false,
+  });
+  if (!response.success) return false;
+  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
+  return { summary, base64: base64Str };
+};
+
 export const imageSet = async (
   chatMessages: ChatMessageType[],
   moreContext: string,
 ): Promise<{ summary: string; base64: string } | false> => {
   const isImage = await imageCheck();
   if (!isImage.success) return false;
-  console.log("[IMAGE SUMMARIZER] Summarizing screenshot...");
   const imageBuffer = isImage.buffer;
   const base64Str = `data:image/jpeg;base64,${imageBuffer?.toString("base64")}`;
   const toPass: any = {
@@ -57,8 +97,6 @@ export const imageSet = async (
   });
   if (!response.success) return false;
   const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
-  console.log("[IMAGE SUMMARIZER] : SUMMARY: ", summary);
-  console.log("[IMAGE SUMMARIZER] Screenshot summarized successfully.");
   return { summary, base64: base64Str };
 };
 

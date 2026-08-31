@@ -3,10 +3,12 @@ import {
   updateMemory,
   getMemory,
   deleteMemory,
+  accessMemory,
 } from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
+import { sendCmdRequest } from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
-import { imageSet } from "./Helper/image.summarizer.js";
+import { imageSet, summarizeBase64Image } from "./Helper/image.summarizer.js";
 import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
@@ -144,7 +146,7 @@ export const commandParser = async (
   const commandHandlerDict = {
     search: async () => {
       const { path, expected_name, extension } =
-        cmd.param as ParametersType<"search">;
+        (cmd.param as ParametersType<"search">) || {};
       if (
         !expected_name ||
         (!path && path !== "") ||
@@ -155,41 +157,57 @@ export const commandParser = async (
         finalResponse.isSuccess = false;
         return;
       }
-      const searchResults = await search(path, expected_name, extension);
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = JSON.stringify(
-        searchResults.results || searchResults,
-      );
-      finalResponse.terminalError = "";
-      finalResponse.isSuccess =
-        searchResults.results && searchResults.results.length > 0;
+      try {
+        const searchResults = await sendCmdRequest(userId, returningCmd);
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = searchResults?.msg || "";
+        finalResponse.terminalOutput = searchResults?.terminalOutput || "";
+        finalResponse.terminalError = searchResults?.terminalError || "";
+        finalResponse.isSuccess = Boolean(searchResults?.isSuccess);
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.isSuccess = false;
+      }
     },
     search_app: async () => {
-      const { isDeepSearch, name, extention } =
-        cmd.param as ParametersType<"search_app">;
-      const results: string = JSON.stringify(
-        await search_app(isDeepSearch, name, extention),
-      );
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = results;
-      finalResponse.terminalError = "";
-      finalResponse.isSuccess = !!results && results !== "[[],[],[]]";
+      try {
+        const results = await sendCmdRequest(userId, returningCmd);
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = results?.msg || "";
+        finalResponse.terminalOutput = results?.terminalOutput || "";
+        finalResponse.terminalError = results?.terminalError || "";
+        finalResponse.isSuccess = Boolean(results?.isSuccess);
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.isSuccess = false;
+      }
     },
     system_info: async () => {
-      const sysInfo = await getSystemInfo();
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = sysInfo.info || "";
-      finalResponse.terminalError = sysInfo.error || "";
-      finalResponse.isSuccess = sysInfo.success;
+      try {
+        const sysInfo = await sendCmdRequest(userId, returningCmd);
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = sysInfo?.msg || "";
+        finalResponse.terminalOutput = sysInfo?.terminalOutput || "";
+        finalResponse.terminalError = sysInfo?.terminalError || "";
+        finalResponse.isSuccess = Boolean(sysInfo?.isSuccess);
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.isSuccess = false;
+      }
     },
     memory_write: async () => {
       const { alias, value, category } =
         cmd.param as ParametersType<"memory_write">;
-      const result: any = await updateMemory(alias, value, category);
-
+      const result: any = await updateMemory(userId, alias, value, category);
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -202,7 +220,7 @@ export const commandParser = async (
     },
     memory_read: async () => {
       const { alias, category } = cmd.param as ParametersType<"memory_read">;
-      const result: any = await getMemory(alias || "", category || "");
+      const result: any = await getMemory(userId, alias || "", category || "");
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -217,6 +235,7 @@ export const commandParser = async (
       const { value, alias, category } =
         cmd.param as ParametersType<"memory_delete">;
       const result: any = await deleteMemory(
+        userId,
         value,
         alias || "",
         category || "",
@@ -232,68 +251,74 @@ export const commandParser = async (
       finalResponse.isSuccess = result?.success || true;
     },
     capture_screen: async () => {
-      const moreContext = (cmd.param as string) || "";
-      const summaryOrFalse = await imageSet(chatMessages, moreContext);
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = summaryOrFalse
-        ? summaryOrFalse.summary
-        : "Image Not Taken";
-      finalResponse.terminalError = "";
-      finalResponse.isSuccess = !!summaryOrFalse;
-      finalResponse.imageBase64 = summaryOrFalse
-        ? summaryOrFalse.base64
-        : undefined;
+      try {
+        const moreContext = (cmd.param as string) || "";
+        const localResponse = await sendCmdRequest(userId, returningCmd);
+        if (!localResponse?.isSuccess || !localResponse?.imageBase64) {
+          finalResponse.cmd = returningCmd;
+          finalResponse.msg = localResponse?.msg || "Image Not Captured";
+          finalResponse.terminalOutput = "Image Not Captured";
+          finalResponse.terminalError =
+            localResponse?.terminalError ||
+            "Could not capture screenshot from local machine.";
+          finalResponse.isSuccess = false;
+          return;
+        }
+
+        const summarized = await summarizeBase64Image(
+          localResponse.imageBase64,
+          chatMessages,
+          moreContext,
+        );
+
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "";
+        finalResponse.terminalOutput = summarized
+          ? summarized.summary
+          : "Image Captured but Summarization Failed";
+        finalResponse.terminalError = "";
+        finalResponse.isSuccess = !!summarized;
+        finalResponse.imageBase64 = summarized
+          ? summarized.base64
+          : localResponse.imageBase64;
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.isSuccess = false;
+      }
     },
     in_built: async () => {
       const timeoutMs =
         cmd.timeout && !isNaN(Number(cmd.timeout))
           ? Number(cmd.timeout)
           : 30000;
-      const executionResponse: ExecutionResponse = await executeCmd(
-        cmd.param as string,
-        timeoutMs,
-        userId,
-      );
-      finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
-      finalResponse.terminalOutput = executionResponse.stdout;
-      finalResponse.terminalError = executionResponse.stderr;
-      finalResponse.exitCode = executionResponse.exitCode;
-      finalResponse.isSuccess = executionResponse.exitCode === 0;
+      try {
+        const executionResponse = await sendCmdRequest(
+          userId,
+          returningCmd,
+          timeoutMs,
+        );
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = executionResponse?.msg || "";
+        finalResponse.terminalOutput = executionResponse?.terminalOutput || "";
+        finalResponse.terminalError = executionResponse?.terminalError || "";
+        finalResponse.exitCode = executionResponse?.exitCode;
+        finalResponse.isSuccess = Boolean(executionResponse?.isSuccess);
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.isSuccess = false;
+      }
     },
   };
 
-  // const matchedKey: string = cmd.trim().split("|")[0].trim();
   const matchedKey: string = cmd.action;
-  let allCommandKeys: string[] = [];
-  for (let keys in commandHandlerDict) allCommandKeys.push(keys);
-  console.log("[COMMAND PARSER] All Command Keys => ", allCommandKeys);
   if (commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
     await commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]();
   }
   return finalResponse;
 };
-
-async function TempTestingLocalBE() {
-  const res = await fetch("http://localhost:4100/commands/run-command", {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify({
-      commands: {
-        action: "search_app",
-        param: {
-          isDeepSearch: true,
-          name: "roblox",
-          extention: "",
-        },
-        timeout: 5000,
-      },
-    }),
-  });
-  const data = await res.json();
-  console.log("data from the local be", data);
-}
-// TempTestingLocalBE();

@@ -74,7 +74,6 @@ export const askAI = async (
       });
 
       workingOn = aiResponse.workingOn || "";
-      console.log("BROADCASTING (workingon): ", workingOn);
       sendToUser(userId, {
         type: "ai_data",
         data: {
@@ -105,14 +104,6 @@ export const askAI = async (
           JSON.parse(command) as CommandTypes,
           ChatMsgs,
         );
-        console.log("[EXECUTING]:", command);
-        const cloudResponse = await sendCmdRequest(userId, command);
-        console.log("[LOCAL-BE RESPONSE]:", cloudResponse);
-        // sendToUser(userId, {
-        //   type: "RunCMD",
-        //   cmd: command,
-        // });
-        //Settting variables
         capturedImage = commandOutput.imageBase64 || "";
         terminalOutput += commandOutput.terminalOutput
           ? commandOutput.terminalOutput + "\n"
