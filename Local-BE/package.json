@@ -14,9 +14,14 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "@types/screenshot-desktop": "^1.15.0"
+    "@types/screenshot-desktop": "^1.15.0",
+    "@yao-pkg/pkg": "^6.22.0",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   },
   "scripts": {
-    "dev": "tsx watch server.ts"
+    "dev": "tsx watch server.ts",
+    "bundle": "esbuild server.ts --bundle --platform=node --target=node20 --outfile=dist/bundle.cjs",
+    "build:exe": "npm run bundle && node --experimental-sea-config sea-config.json && node -e \"require('fs').copyFileSync(process.execPath, 'dist/nexus.exe')\" && postject dist/nexus.exe NODE_SEA_BLOB dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
   }
 }

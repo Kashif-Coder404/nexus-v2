@@ -168,7 +168,7 @@ export const commandParser = async (
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
         finalResponse.terminalOutput = "";
-        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.terminalError = `Command execution failed: ${err.message}`;
         finalResponse.isSuccess = false;
       }
     },
@@ -184,7 +184,7 @@ export const commandParser = async (
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
         finalResponse.terminalOutput = "";
-        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.terminalError = `Command execution failed: ${err.message}.`;
         finalResponse.isSuccess = false;
       }
     },
@@ -200,7 +200,7 @@ export const commandParser = async (
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
         finalResponse.terminalOutput = "";
-        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.terminalError = `Command execution failed: ${err.message}`;
         finalResponse.isSuccess = false;
       }
     },
@@ -208,6 +208,13 @@ export const commandParser = async (
       const { alias, value, category } =
         cmd.param as ParametersType<"memory_write">;
       const result: any = await updateMemory(userId, alias, value, category);
+      const result1: any = await accessMemory(
+        userId,
+        "memory_read",
+        alias || "",
+        category || "",
+      );
+      console.log("Results from accessmemory (after WRITE): ", result1);
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -221,6 +228,13 @@ export const commandParser = async (
     memory_read: async () => {
       const { alias, category } = cmd.param as ParametersType<"memory_read">;
       const result: any = await getMemory(userId, alias || "", category || "");
+      const result1: any = await accessMemory(
+        userId,
+        "memory_read",
+        alias || "",
+        category || "",
+      );
+      console.log("Results from accessmemory (after READ): ", result1);
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -285,7 +299,7 @@ export const commandParser = async (
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
         finalResponse.terminalOutput = "";
-        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.terminalError = `Command execution failed: ${err.message}.`;
         finalResponse.isSuccess = false;
       }
     },
@@ -300,6 +314,7 @@ export const commandParser = async (
           returningCmd,
           timeoutMs,
         );
+        console.log(executionResponse);
         finalResponse.cmd = returningCmd;
         finalResponse.msg = executionResponse?.msg || "";
         finalResponse.terminalOutput = executionResponse?.terminalOutput || "";
@@ -310,7 +325,7 @@ export const commandParser = async (
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
         finalResponse.terminalOutput = "";
-        finalResponse.terminalError = `Command execution failed: ${err.message}. The user's local backend server is not running or connected. Please prompt the user to start and connect their local backend server.`;
+        finalResponse.terminalError = `Command execution failed: ${err.message}.`;
         finalResponse.isSuccess = false;
       }
     },

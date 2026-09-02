@@ -2,8 +2,9 @@ import { WebSocket } from "ws";
 import fs from "fs/promises";
 import path from "path";
 import { runCommand } from "../controllers/cmd.controller.js";
-
-const DEVICE_TOKEN_PATH = path.join(__dirname, "../deviceToken.json");
+import dotenv from "dotenv";
+dotenv.config();
+const DEVICE_TOKEN_PATH = path.join(__dirname, "deviceToken.json");
 
 let activeWS: WebSocket | null = null;
 export let isConnectedToBackend = false;
@@ -85,8 +86,7 @@ export const generatePairingCode = async (): Promise<{
       remainingSeconds: 0,
       isPaired: false,
       isConnected: false,
-      message:
-        "Cloud Backend (ws://localhost:3100) is currently offline or unreachable.",
+      message: "Cloud Backend is currently offline or unreachable.",
     };
   }
 
@@ -144,15 +144,15 @@ export const forceNewPairingCode = async () => {
 
 // WebSocket Connection to Cloud Backend
 const ServerWSConnection = async () => {
-  console.log("[WS] Connecting to Cloud Backend at ws://localhost:3100...");
+  console.log("[WS] Connecting to Cloud Backend...");
   const deviceData = await readDeviceTokenFile();
   const headers: Record<string, string> = {};
 
   if (deviceData?.token) {
     headers.Authorization = `Bearer ${deviceData.token}`;
   }
-
-  const ws = new WebSocket(`ws://localhost:3100`, { headers });
+  const backend_URL = process.env.CLOUD_BACKEND_WS || "ws://localhost:3100";
+  const ws = new WebSocket(`${backend_URL}`, { headers });
   activeWS = ws;
 
   ws.on("open", async () => {

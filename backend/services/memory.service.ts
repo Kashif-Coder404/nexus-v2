@@ -196,13 +196,32 @@ export const deleteMemory = async (
   }
 };
 
+type ActionTypes = {
+  memory_write: (
+    alias: string,
+    category: string,
+    value: string,
+  ) => Promise<object | null>;
+  memory_read: (
+    alias: string,
+    category: string,
+    value?: string,
+  ) => Promise<object | null>;
+  memory_delete: (
+    alias: string,
+    category: string,
+    value: string,
+  ) => Promise<object | null>;
+};
 export async function accessMemory(
   userId: string,
-  action: string = "",
-  alias: string = "",
-  value: string = "",
-  category: string = "",
+  action: keyof ActionTypes,
+  ...args: Parameters<ActionTypes[keyof ActionTypes]>
 ) {
+  const alias = args[0];
+  const category = args[1];
+  const value = args[2];
+
   if (!action)
     return JSON.stringify({
       success: false,
@@ -211,9 +230,9 @@ export async function accessMemory(
     });
   let results: any = null;
   const cleanedAction = action.trim().toLowerCase();
-  const cleanedAlias = alias.trim();
-  const cleanedValue = value.trim();
-  const cleanedCategory = category.trim();
+  const cleanedAlias = alias?.trim() || "";
+  const cleanedValue = value?.trim() || "";
+  const cleanedCategory = category?.trim() || "";
   if (cleanedAction === "memory_write" || cleanedAction.includes("write")) {
     results = await updateMemory(
       userId,

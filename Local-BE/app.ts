@@ -24,7 +24,7 @@ app.use("/commands", router); // Temp usage
 // Serve pairing setup page
 const serveSetupPage = (req: express.Request, res: express.Response) => {
   try {
-    return res.sendFile(path.join(__dirname, "paringcode.html"));
+    return res.sendFile(path.join(process.cwd(), "paringcode.html"));
   } catch (error) {
     console.error(error);
     return res.status(500).send("Internal Server Error");

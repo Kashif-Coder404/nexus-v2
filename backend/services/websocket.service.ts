@@ -201,10 +201,10 @@ const startParingHandler = async (req: any, res: any) => {
     });
   }
 
-  const { paringcode } = req.body;
+  const { pairingcode } = req.body;
   const userId: string = req.userId;
 
-  if (!paringcode) {
+  if (!pairingcode) {
     return res.status(400).json({
       success: false,
       message: "Pairing code is required",
@@ -214,7 +214,7 @@ const startParingHandler = async (req: any, res: any) => {
 
   for (const client of wss.clients as Set<CustomWebSocket>) {
     if (
-      client.pairingCode === paringcode &&
+      client.pairingCode === pairingcode &&
       client.readyState === WebSocket.OPEN
     ) {
       const deviceId = new Types.ObjectId().toString();

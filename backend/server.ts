@@ -6,7 +6,8 @@ import { initializeKeys } from "./EnvVariables.js";
 dotenv.config();
 
 await initializeKeys();
-const PORT: number = 3100;
+const PORT: number = Number(process.env.PORT) || 3100;
+
 const server: Server = http.createServer(app);
 
 initWebsocket(server);
