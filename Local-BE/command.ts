@@ -1,6 +1,7 @@
 import { executeCmd, ExecutionResponse } from "./services/execute.service";
 import { search, search_app } from "./services/search.service";
 import { takeScreenshot } from "./Tools/takeScreenShot";
+import getSystemInfo from "./Tools/getSystemInfo";
 import {
   CommandParserResponseType,
   CommandTypes,
@@ -22,6 +23,24 @@ export const commandParser = async (
   };
 
   const commandHandlerDict = {
+    system_info: async () => {
+      try {
+        const sysInfo = await getSystemInfo();
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = sysInfo.success
+          ? "System info retrieved"
+          : "Failed to retrieve system info";
+        finalResponse.terminalOutput = sysInfo.info || "";
+        finalResponse.terminalError = sysInfo.error || "";
+        finalResponse.exitCode = sysInfo.success ? 0 : 1;
+        finalResponse.isSuccess = sysInfo.success;
+      } catch (err: any) {
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = err.message || String(err);
+        finalResponse.exitCode = 1;
+        finalResponse.isSuccess = false;
+      }
+    },
     search: async () => {
       const { path, expected_name, extension } =
         (cmd.param as ParametersType<"search">) || {};

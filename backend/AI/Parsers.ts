@@ -214,7 +214,6 @@ export const commandParser = async (
         alias || "",
         category || "",
       );
-      console.log("Results from accessmemory (after WRITE): ", result1);
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -234,7 +233,6 @@ export const commandParser = async (
         alias || "",
         category || "",
       );
-      console.log("Results from accessmemory (after READ): ", result1);
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = JSON.stringify(
@@ -314,7 +312,6 @@ export const commandParser = async (
           returningCmd,
           timeoutMs,
         );
-        console.log(executionResponse);
         finalResponse.cmd = returningCmd;
         finalResponse.msg = executionResponse?.msg || "";
         finalResponse.terminalOutput = executionResponse?.terminalOutput || "";
