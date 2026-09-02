@@ -1,12 +1,13 @@
 {
   "info": {
-    "name": "Nexus v2 Backend API",
+    "name": "Nexus v2 Backend Cloud API",
+    "description": "Postman Collection for testing Nexus v2 Cloud Backend on Render",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3100",
+      "value": "https://nexus-v2-e38m.onrender.com",
       "type": "string"
     },
     {
@@ -21,7 +22,7 @@
     },
     {
       "key": "pairingCode",
-      "value": "NX-RV3P",
+      "value": "NX-7824",
       "type": "string"
     }
   ],
@@ -45,10 +46,11 @@
           "listen": "test",
           "script": {
             "exec": [
-              "if (pm.response.code === 200) {",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
               "    var res = pm.response.json();",
-              "    pm.collectionVariables.set('token', res.data.token);",
-              "    pm.environment.set('token', res.data.token);",
+              "    var token = res.token || res.data?.token;",
+              "    pm.collectionVariables.set('token', token);",
+              "    pm.environment.set('token', token);",
               "}"
             ]
           }
@@ -59,7 +61,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Nexus Tester\",\n  \"email\": \"tester_dev_01@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"name\": \"Nexus Developer\",\n  \"email\": \"testuser_01@example.com\",\n  \"password\": \"password123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/auth/signup",
@@ -69,7 +71,7 @@
       }
     },
     {
-      "name": "3. Auth - Login (New User)",
+      "name": "3. Auth - Login",
       "event": [
         {
           "listen": "test",
@@ -90,7 +92,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"tester_dev_01@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"testuser_01@example.com\",\n  \"password\": \"password123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/auth/login",
@@ -100,7 +102,7 @@
       }
     },
     {
-      "name": "4. Device - Pair Request",
+      "name": "4. Device - Pair Companion (nexus.exe)",
       "request": {
         "method": "POST",
         "header": [
@@ -109,7 +111,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"paringcode\": \"{{pairingCode}}\"\n}"
+          "raw": "{\n  \"pairingcode\": \"{{pairingCode}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/pairrequest",
@@ -119,7 +121,7 @@
       }
     },
     {
-      "name": "5. Chat - Send Message",
+      "name": "5. Chat - AI System Info",
       "event": [
         {
           "listen": "test",
@@ -143,7 +145,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"content\": \"Check my system info\",\n  \"behaviour\": \"developer\"\n}"
+          "raw": "{\n  \"content\": \"Check my system info and hardware status\",\n  \"behaviour\": \"developer\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/chat/message",
@@ -153,7 +155,27 @@
       }
     },
     {
-      "name": "6. Chat - Get History",
+      "name": "6. Chat - AI Desktop Search & Launch",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-session-id", "value": "{{sessionId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Search for Roblox player on my PC and open it\",\n  \"behaviour\": \"friendly\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chat/message",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "chat", "message"]
+        }
+      }
+    },
+    {
+      "name": "7. Chat - Get Conversation History",
       "request": {
         "method": "POST",
         "header": [
@@ -169,6 +191,21 @@
           "raw": "{{baseUrl}}/api/chat/history",
           "host": ["{{baseUrl}}"],
           "path": ["api", "chat", "history"]
+        }
+      }
+    },
+    {
+      "name": "8. Chat - Delete Session",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-session-id", "value": "{{sessionId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/chat/session",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "chat", "session"]
         }
       }
     }

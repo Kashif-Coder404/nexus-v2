@@ -474,7 +474,31 @@
         }
       });
 
+      let isGenerating = false;
+      let cooldownInterval = null;
+
+      function setButtonCooldown(seconds) {
+        if (cooldownInterval) clearInterval(cooldownInterval);
+        refreshBtn.disabled = true;
+        let remaining = seconds;
+        refreshBtn.textContent = `Wait ${remaining}s...`;
+
+        cooldownInterval = setInterval(() => {
+          remaining--;
+          if (remaining > 0) {
+            refreshBtn.textContent = `Wait ${remaining}s...`;
+          } else {
+            clearInterval(cooldownInterval);
+            cooldownInterval = null;
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = "Generate New Code";
+          }
+        }, 1000);
+      }
+
       refreshBtn.addEventListener("click", async () => {
+        if (isGenerating || refreshBtn.disabled) return;
+        isGenerating = true;
         refreshBtn.disabled = true;
         refreshBtn.textContent = "Generating...";
         try {
@@ -485,12 +509,18 @@
             codeDisplay.classList.remove("disabled");
             saveToLocalStorage(data.code, data.expiresat);
             startCountdown(data.expiresat);
+            setButtonCooldown(15);
+          } else {
+            alert(data.message || "Failed to generate pairing code");
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = "Generate New Code";
           }
         } catch (e) {
           console.error(e);
-        } finally {
           refreshBtn.disabled = false;
           refreshBtn.textContent = "Generate New Code";
+        } finally {
+          isGenerating = false;
         }
       });
 

@@ -1,8 +1,30 @@
 {
   "info": {
-    "name": "Nexus v2 Backend API",
+    "name": "Nexus v2 Backend Cloud API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://nexus-v2-e38m.onrender.com",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pairingCode",
+      "value": "NX-7824",
+      "type": "string"
+    }
+  ],
   "item": [
     {
       "name": "Health Check",
@@ -19,9 +41,9 @@
           "listen": "test",
           "script": {
             "exec": [
-              "if (pm.response.code === 200) {",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
               "    var res = pm.response.json();",
-              "    pm.environment.set('token', res.data.token);",
+              "    pm.environment.set('token', res.data?.token || res.token);",
               "}"
             ]
           }
@@ -32,7 +54,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Kashif\",\n  \"email\": \"kashif@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"name\": \"Nexus Dev\",\n  \"email\": \"testuser_01@example.com\",\n  \"password\": \"password123\"\n}"
         },
         "url": "{{baseUrl}}/api/auth/signup"
       }
@@ -57,13 +79,28 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"kashif@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"testuser_01@example.com\",\n  \"password\": \"password123\"\n}"
         },
         "url": "{{baseUrl}}/api/auth/login"
       }
     },
     {
-      "name": "Chat - Send Message",
+      "name": "Device - Pair Companion",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pairingcode\": \"{{pairingCode}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/pairrequest"
+      }
+    },
+    {
+      "name": "Chat - Send AI Message",
       "event": [
         {
           "listen": "test",
@@ -86,7 +123,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"content\": \"Check my system info\",\n  \"behaviour\": \"developer\"\n}"
+          "raw": "{\n  \"content\": \"Check my system info and performance\",\n  \"behaviour\": \"developer\"\n}"
         },
         "url": "{{baseUrl}}/api/chat/message"
       }
@@ -105,21 +142,6 @@
           "raw": "{\n  \"limit\": 20\n}"
         },
         "url": "{{baseUrl}}/api/chat/history"
-      }
-    },
-    {
-      "name": "Device - Pair Request",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"paringcode\": \"NX-7824\"\n}"
-        },
-        "url": "{{baseUrl}}/api/pairrequest"
       }
     }
   ]

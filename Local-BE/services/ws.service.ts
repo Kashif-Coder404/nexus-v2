@@ -122,24 +122,58 @@ export const generatePairingCode = async (): Promise<{
   };
 };
 
+let isGeneratingLock = false;
+let lastGeneratedAt = 0;
+const REFRESH_COOLDOWN_MS = 15000; // 15-second debounce/cooldown
+
 // Force generate a new pairing code immediately
 export const forceNewPairingCode = async () => {
   if (!isConnectedToBackend) {
     throw new Error("Cannot generate pairing code: Cloud Backend is offline.");
   }
 
-  const code = generateRandomCode();
-  const expiresat = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-  currentPairingState = { code, expiresat };
+  const deviceData = await readDeviceTokenFile();
+  if (deviceData?.token) {
+    throw new Error("Device is already paired. Unpair before generating a new code.");
+  }
 
-  sendJson(activeWS, { type: "PairingInit", code });
-  console.log(`[WS] Refreshed pairing code: ${code}`);
+  const now = Date.now();
+  // Reuse existing code if requested within cooldown period to prevent spamming
+  if (currentPairingState && now - lastGeneratedAt < REFRESH_COOLDOWN_MS) {
+    const remainingSeconds = Math.max(
+      0,
+      Math.floor((new Date(currentPairingState.expiresat).getTime() - now) / 1000),
+    );
+    return {
+      code: currentPairingState.code,
+      expiresat: currentPairingState.expiresat,
+      remainingSeconds,
+    };
+  }
 
-  return {
-    code,
-    expiresat,
-    remainingSeconds: 300,
-  };
+  if (isGeneratingLock) {
+    throw new Error("A code generation request is already in progress.");
+  }
+
+  try {
+    isGeneratingLock = true;
+    lastGeneratedAt = now;
+
+    const code = generateRandomCode();
+    const expiresat = new Date(now + 5 * 60 * 1000).toISOString();
+    currentPairingState = { code, expiresat };
+
+    sendJson(activeWS, { type: "PairingInit", code });
+    console.log(`[WS] Refreshed pairing code: ${code}`);
+
+    return {
+      code,
+      expiresat,
+      remainingSeconds: 300,
+    };
+  } finally {
+    isGeneratingLock = false;
+  }
 };
 
 // WebSocket Connection to Cloud Backend
@@ -151,7 +185,8 @@ const ServerWSConnection = async () => {
   if (deviceData?.token) {
     headers.Authorization = `Bearer ${deviceData.token}`;
   }
-  const backend_URL = process.env.CLOUD_BACKEND_WS || "ws://localhost:3100";
+  const backend_URL =
+    process.env.CLOUD_BACKEND_WS || "wss://nexus-v2-e38m.onrender.com";
   const ws = new WebSocket(`${backend_URL}`, { headers });
   activeWS = ws;
 

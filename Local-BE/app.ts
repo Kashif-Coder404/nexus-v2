@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import router from "./routes/cmd.route";
 import path from "path";
+import fs from "fs";
+import { isSea, getAsset } from "node:sea";
 import {
   generatePairingCode,
   forceNewPairingCode,
@@ -24,7 +26,18 @@ app.use("/commands", router); // Temp usage
 // Serve pairing setup page
 const serveSetupPage = (req: express.Request, res: express.Response) => {
   try {
-    return res.sendFile(path.join(process.cwd(), "paringcode.html"));
+    if (isSea()) {
+      const asset = getAsset("paringcode.html", "utf8");
+      const html = typeof asset === "string" ? asset : Buffer.from(asset).toString("utf-8");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
+    }
+
+    const localFilePath = path.join(__dirname, "paringcode.html");
+    const cwdFilePath = path.join(process.cwd(), "paringcode.html");
+    const targetPath = fs.existsSync(localFilePath) ? localFilePath : cwdFilePath;
+
+    return res.sendFile(targetPath);
   } catch (error) {
     console.error(error);
     return res.status(500).send("Internal Server Error");

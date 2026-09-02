@@ -118,7 +118,7 @@ const sendToUser = (userId: string, data: any, deviceId?: string) => {
   const dataStr = typeof data === "string" ? data : JSON.stringify(data);
 
   (wss.clients as Set<CustomWebSocket>).forEach((client) => {
-    const isSameUser = client.userId === userId.toString();
+    const isSameUser = client.userId?.toString() === userId?.toString();
     const isSameDevice = !deviceId || client.deviceId === deviceId;
 
     if (
@@ -153,7 +153,7 @@ const sendCmdRequest = async (
     let clientFound = false;
 
     (wss.clients as Set<CustomWebSocket>).forEach((client) => {
-      const isSameUser = client.userId === userId.toString();
+      const isSameUser = client.userId?.toString() === userId?.toString();
 
       if (
         isSameUser &&
@@ -202,7 +202,7 @@ const startParingHandler = async (req: any, res: any) => {
   }
 
   const { pairingcode } = req.body;
-  const userId: string = req.userId;
+  const userId: string = req.userId ? req.userId.toString() : "";
 
   if (!pairingcode) {
     return res.status(400).json({

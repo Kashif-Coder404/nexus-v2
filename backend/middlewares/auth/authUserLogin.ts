@@ -34,7 +34,7 @@ const userAuthentication = async (req: any, res: any, next: NextFunction) => {
       });
     }
 
-    req.userId = user._id;
+    req.userId = user._id.toString();
     req.user = user;
     next();
   } catch (error: any) {
