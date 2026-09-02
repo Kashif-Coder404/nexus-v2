@@ -1,6 +1,9 @@
 import { callNvidia } from "./Providers/nvidiaAPICall.js";
 import { geminiAICall, GeminiModelsTypes } from "./Providers/geminiAI.js";
-import { tokenRouterAICall, TokenRouterModelsTypes } from "./Providers/tokenRouterAI.js";
+import {
+  tokenRouterAICall,
+  TokenRouterModelsTypes,
+} from "./Providers/tokenRouterAI.js";
 import { instructions as defaultInstructions } from "./instructions/main.Instructions.js";
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
 
@@ -29,7 +32,7 @@ export type UnifiedAIResponse = {
   success: boolean;
   rawContent: any;
 };
-
+let geminiKeyIndex: number = 0;
 export const callAI = async (
   name: AIName,
   params: AIProviderParams,
@@ -79,29 +82,14 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    // const res = await geminiAICall(
-    //   chatMessages,
-    //   params.retryCount || 0,
-    //   params.model || "gemini-3.5-flash-lite",
-    //   instructions,
-    //   isJson,
-    // );
     const res = await geminiAICall({
       chatMessages,
       retryCount: params.retryCount || 0,
       model: params.model || "gemini-3.5-flash-lite",
       instructionString: instructions,
       isJson: true,
-      keyIndex: 1,
+      keyIndex: geminiKeyIndex,
     });
-    // const res: GeminiResponse = {
-    //   content: {
-    //     cmd: "",
-    //     msg: "this message for testing purpose only",
-    //     workingon: "",
-    //   },
-    //   success: true,
-    // };
     const actualContent = res.content || {};
 
     return {

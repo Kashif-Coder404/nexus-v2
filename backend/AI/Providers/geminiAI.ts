@@ -123,37 +123,48 @@ export const geminiAICall = async ({
     const isParseError = error instanceof SyntaxError;
 
     if (isRateLimited || isParseError) {
-      console.log(
-        `Gemini error (${isRateLimited ? "Rate Limited" : "JSON Parse Error"}). Retrying... (Retry ${retryCount + 1}/2)`,
-      );
-      // console.log("Current API Key Index => ", keyIndex);
-      console.log("Error Message => ", error.message);
-      console.log("Error Details => ", error.response.data);
-      console.log("Waiting for 5 seconds before retry...");
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      return geminiAICall({
-        chatMessages,
-        retryCount: retryCount + 1,
-        model,
-        instructionString,
-        isJson,
-        keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
-      });
+      if (retryCount < 2) {
+        console.log(
+          `Gemini error (${isRateLimited ? "Rate Limited" : "JSON Parse Error"}). Retrying with next key... (Retry ${retryCount + 1}/2)`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return geminiAICall({
+          chatMessages,
+          retryCount: retryCount + 1,
+          model,
+          instructionString,
+          isJson,
+          keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
+        });
+      }
     }
+
+    let userFriendlyMsg = "AI service encountered an unexpected error. Please try again.";
+    const status = error.response?.status;
+    const errorMsg = error.message || "";
+    const errorData = JSON.stringify(error.response?.data || "");
+
+    if (status === 429 || errorData.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("quota")) {
+      userFriendlyMsg = "AI request limit or quota exceeded. Please wait a few moments before trying again.";
+    } else if (status === 401 || status === 403) {
+      userFriendlyMsg = "AI authentication error. Please verify your API key in configuration.";
+    } else if (status === 503 || status === 500 || error.code === "ECONNABORTED") {
+      userFriendlyMsg = "AI service is currently busy or experiencing high traffic. Please try again shortly.";
+    } else if (error instanceof SyntaxError) {
+      userFriendlyMsg = "AI response format was invalid. Please try rephrasing your request.";
+    }
+
     if (error.response) {
       console.error("[GEMINI AI] Status:", error.response.status);
-      console.error(
-        "[GEMINI AI] Error Details:",
-        JSON.stringify(error.response.data, null, 2),
-      );
     } else {
-      console.error("[GEMINI AI] Error Message:", error.message);
+      console.error("[GEMINI AI] Error:", error.message);
     }
+
     return {
       success: false,
       content: {
         cmd: "",
-        msg: "Gemini API Failed!",
+        msg: userFriendlyMsg,
         workingon: "",
       },
     };

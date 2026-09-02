@@ -83,6 +83,10 @@ export const askAI = async (
         },
       });
       const actualContent = aiResponse;
+      if (!actualContent || actualContent.success === false) {
+        command = "";
+        break;
+      }
       if (
         actualContent.cmd == null ||
         String(actualContent.cmd).trim() === "" ||
@@ -170,20 +174,16 @@ export const askAI = async (
       }),
     },
   ];
-
   await setChat(userId, session, finalTurnSave);
-  if (retries >= 15) {
-    return {
-      cmd: command || "",
-      msg: "Maximum try reached!",
-      terminalOutput: terminalOutput || "",
-      terminalError: terminalError || "",
-      imageBase64: capturedImage || "",
-    };
-  }
+  const finalMsg =
+    aiResponse?.msg ||
+    (retries >= 15
+      ? "Maximum try reached!"
+      : "AI service encountered an issue. Please try again.");
+
   return {
     cmd: command || "",
-    msg: aiResponse.msg || "",
+    msg: finalMsg,
     terminalOutput: terminalOutput || "",
     terminalError: terminalError || "",
     imageBase64: capturedImage || "",
