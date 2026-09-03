@@ -3,9 +3,21 @@ import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
 import { askAI } from "../AI/askAI.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
+import { SessionModel } from "../db/schema/session-schema.js";
+import { ModelType } from "../AI/CallAI.js";
 
 export const sendMessage = async (req: any, res: any) => {
-  const { role, content, behaviour = "friendly" } = req.body;
+  const defaultModel: ModelType = {
+    provider: "gemini",
+    name: "gemini-3.5-flash-lite",
+    isLiveModel: false,
+  };
+  const {
+    role,
+    content,
+    behaviour = "friendly",
+    model = defaultModel,
+  } = req.body;
   const userId = req.userId;
   const session = req.sessionId;
   console.log(`[CHAT] User: ${userId} | Session: ${session}`);
@@ -30,8 +42,20 @@ export const sendMessage = async (req: any, res: any) => {
         workingon: "Analyzing your request...",
       },
     });
+
+    // Auto-update session title if default "New Chat" and bump updatedAt
+    const titleSnippet = content.toString().trim().slice(0, 30);
+    SessionModel.findOneAndUpdate(
+      { _id: session, userId, title: "New Chat" },
+      { title: titleSnippet, updatedAt: new Date() },
+    ).catch(() => {});
+    SessionModel.updateOne(
+      { _id: session, userId },
+      { updatedAt: new Date() },
+    ).catch(() => {});
+    // const model: ModelType = { provider: "gemini", name: "gemini-3.5-flash" };
     const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
-      await askAI(userId, session, content, behaviour);
+      await askAI(userId, session, content, behaviour, model);
     sendToUser(userId, {
       type: "ai_done",
       data: {

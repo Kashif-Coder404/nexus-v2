@@ -1,10 +1,15 @@
 import { WebSocket } from "ws";
 import fs from "fs/promises";
 import path from "path";
+import os from "os";
 import { runCommand } from "../controllers/cmd.controller.js";
 import dotenv from "dotenv";
 dotenv.config();
-const DEVICE_TOKEN_PATH = path.join(__dirname, "deviceToken.json");
+
+const CONFIG_DIR = process.env.APPDATA
+  ? path.join(process.env.APPDATA, "Nexus")
+  : path.join(os.homedir(), ".nexus");
+const DEVICE_TOKEN_PATH = path.join(CONFIG_DIR, "deviceToken.json");
 
 let activeWS: WebSocket | null = null;
 export let isConnectedToBackend = false;
@@ -55,6 +60,7 @@ export const readDeviceTokenFile =
 export const saveDeviceTokenFile = async (
   data: DeviceTokenData,
 ): Promise<void> => {
+  await fs.mkdir(CONFIG_DIR, { recursive: true });
   await fs.writeFile(DEVICE_TOKEN_PATH, JSON.stringify(data, null, 2), "utf-8");
 };
 
@@ -124,7 +130,7 @@ export const generatePairingCode = async (): Promise<{
 
 let isGeneratingLock = false;
 let lastGeneratedAt = 0;
-const REFRESH_COOLDOWN_MS = 15000; // 15-second debounce/cooldown
+const REFRESH_COOLDOWN_MS = 15000;
 
 // Force generate a new pairing code immediately
 export const forceNewPairingCode = async () => {
@@ -134,15 +140,18 @@ export const forceNewPairingCode = async () => {
 
   const deviceData = await readDeviceTokenFile();
   if (deviceData?.token) {
-    throw new Error("Device is already paired. Unpair before generating a new code.");
+    throw new Error(
+      "Device is already paired. Unpair before generating a new code.",
+    );
   }
 
   const now = Date.now();
-  // Reuse existing code if requested within cooldown period to prevent spamming
   if (currentPairingState && now - lastGeneratedAt < REFRESH_COOLDOWN_MS) {
     const remainingSeconds = Math.max(
       0,
-      Math.floor((new Date(currentPairingState.expiresat).getTime() - now) / 1000),
+      Math.floor(
+        (new Date(currentPairingState.expiresat).getTime() - now) / 1000,
+      ),
     );
     return {
       code: currentPairingState.code,
@@ -187,6 +196,7 @@ const ServerWSConnection = async () => {
   }
   const backend_URL =
     process.env.CLOUD_BACKEND_WS || "wss://nexus-v2-e38m.onrender.com";
+  console.log("Backend URL: ", backend_URL);
   const ws = new WebSocket(`${backend_URL}`, { headers });
   activeWS = ws;
 

@@ -1,5 +1,8 @@
 import { executeCmd, ExecutionResponse } from "./services/execute.service";
-import { search, search_app } from "./services/search.service";
+import {
+  nexusSmartSearch,
+  nexusSmartSearchApp,
+} from "./services/search.service";
 import getSystemInfo from "./Tools/getSystemInfo";
 import { imageCapture } from "./Tools/takeScreenShot";
 import { ChatMessageType } from "./Types";
@@ -24,35 +27,52 @@ export const commandParser = async (
   };
   const commandHandlerDict = {
     search: async () => {
-      const { path, expected_name, extension } =
-        cmd.param as ParametersType<"search">;
+      const { path, expected_name, extension, isDeepSearch, type } =
+        (cmd.param as ParametersType<"search">) || {};
       if (!expected_name) {
-        finalResponse.msg = "Missing parameters";
+        finalResponse.msg = "Missing parameters: expected_name is required";
         finalResponse.terminalError = "Missing parameters";
         finalResponse.isSuccess = false;
         return;
       }
-      const searchResults = await search(path, expected_name, extension);
+      const isGlobal = !path || isDeepSearch === true;
+      const searchResults = await nexusSmartSearch(
+        path || "",
+        expected_name,
+        type || "all",
+        extension || "",
+        isGlobal,
+        isDeepSearch ?? false,
+        10,
+      );
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
-      finalResponse.terminalOutput = JSON.stringify(
-        searchResults.results || searchResults,
-      );
+      finalResponse.terminalOutput = JSON.stringify(searchResults);
       finalResponse.terminalError = "";
       finalResponse.isSuccess =
-        searchResults.results && searchResults.results.length > 0;
+        Array.isArray(searchResults) && searchResults.length > 0;
     },
     search_app: async () => {
-      const { isDeepSearch, name, extention } =
-        cmd.param as ParametersType<"search_app">;
-      const results: string = JSON.stringify(
-        await search_app(isDeepSearch, name, extention),
+      const { isDeepSearch, name, extension, extention } =
+        (cmd.param as ParametersType<"search_app">) || {};
+      if (!name) {
+        finalResponse.msg = "Missing parameters: name is required";
+        finalResponse.terminalError = "Missing parameters";
+        finalResponse.isSuccess = false;
+        return;
+      }
+      const targetExt = extension || extention || "";
+      const results = await nexusSmartSearchApp(
+        name,
+        !!isDeepSearch,
+        10,
+        targetExt,
       );
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
-      finalResponse.terminalOutput = results;
+      finalResponse.terminalOutput = JSON.stringify(results);
       finalResponse.terminalError = "";
-      finalResponse.isSuccess = !!results && results !== "[[],[],[]]";
+      finalResponse.isSuccess = Array.isArray(results) && results.length > 0;
     },
     system_info: async () => {
       const sysInfo = await getSystemInfo();

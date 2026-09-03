@@ -3,10 +3,12 @@ import dotenv from "dotenv";
 import http, { Server } from "http";
 import { initWebsocket } from "./services/websocket.service.js";
 import { initializeKeys } from "./EnvVariables.js";
+import { liveGeminiAICall } from "./AI/Providers/geminiAI.js";
 dotenv.config();
 
 await initializeKeys();
 const PORT: number = Number(process.env.PORT) || 3100;
+
 
 const server: Server = http.createServer(app);
 

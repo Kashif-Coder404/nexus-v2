@@ -7,9 +7,13 @@ import {
   delete_Chat_Session_Handler,
   getChatHandler,
   updateChatHandler,
+  getUserSessionsHandler,
 } from "../services/chat.history.service.js";
 
 const router = express.Router();
+
+router.get("/sessions", userAuthentication, getUserSessionsHandler);
+router.post("/sessions", userAuthentication, getUserSessionsHandler);
 
 router.post(
   "/message",

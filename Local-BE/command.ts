@@ -42,11 +42,17 @@ export const commandParser = async (
       }
     },
     search: async () => {
-      const { path, expected_name, extension } =
-        (cmd.param as ParametersType<"search">) || {};
+      const {
+        path,
+        expected_name = "",
+        extension,
+        isDeepSearch,
+        type,
+      } = (cmd.param as ParametersType<"search">) || {};
 
-      if (!expected_name) {
-        finalResponse.msg = "Missing parameters: expected_name is required";
+      if (!path && !expected_name) {
+        finalResponse.msg =
+          "Missing parameters: either path or expected_name is required";
         finalResponse.terminalError = "Missing parameters";
         finalResponse.exitCode = 1;
         finalResponse.isSuccess = false;
@@ -54,15 +60,24 @@ export const commandParser = async (
       }
 
       try {
-        const results = await search(path, expected_name, extension);
+        const isGlobal = !path || isDeepSearch === true;
+        const results = await search(
+          path || "",
+          expected_name,
+          type || "all",
+          extension || "",
+          isGlobal,
+          isDeepSearch ?? false,
+          10,
+        );
         finalResponse.cmd = returningCmd;
-        finalResponse.msg = "";
-        finalResponse.terminalOutput = results.success
-          ? JSON.stringify(results.results || results)
+        finalResponse.msg = Array.isArray(results)
+          ? `Found ${results.length} items`
           : "";
-        finalResponse.terminalError = results.success ? "" : "Search failed";
-        finalResponse.exitCode = results.success ? 0 : 1;
-        finalResponse.isSuccess = results.success && (results.results?.length ?? 0) > 0;
+        finalResponse.terminalOutput = JSON.stringify(results);
+        finalResponse.terminalError = "";
+        finalResponse.exitCode = 0;
+        finalResponse.isSuccess = Array.isArray(results) && results.length > 0;
       } catch (err: any) {
         finalResponse.terminalOutput = "";
         finalResponse.terminalError = err.message || String(err);
@@ -72,7 +87,7 @@ export const commandParser = async (
     },
 
     search_app: async () => {
-      const { isDeepSearch, name, extention } =
+      const { isDeepSearch, name, extension, extention } =
         (cmd.param as ParametersType<"search_app">) || {};
 
       if (!name) {
@@ -84,7 +99,8 @@ export const commandParser = async (
       }
 
       try {
-        const results = await search_app(isDeepSearch, name, extention);
+        const targetExt = extension || extention || "";
+        const results = await search_app(name, !!isDeepSearch, 10, targetExt);
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "";
         finalResponse.terminalOutput = JSON.stringify(results);
@@ -102,7 +118,9 @@ export const commandParser = async (
     capture_screen: async () => {
       const { imageBuffer, success, error } = await takeScreenshot();
       finalResponse.cmd = returningCmd;
-      finalResponse.msg = success ? "Screenshot Captured" : "Error capturing screenshot";
+      finalResponse.msg = success
+        ? "Screenshot Captured"
+        : "Error capturing screenshot";
       finalResponse.terminalOutput = success ? "ScreenShot Captured" : "";
       finalResponse.terminalError = error || "";
       finalResponse.exitCode = success ? 0 : 1;

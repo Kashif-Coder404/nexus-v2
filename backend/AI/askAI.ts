@@ -1,30 +1,27 @@
-import { appendHistory, getHistory } from "./LocalChatHistory.js";
 import { commandParser } from "./Parsers.js";
 import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
+  commandParserType,
   CommandTypes,
 } from "./Types/ParserTypes.js";
-import * as readlinePromises from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
-import { callAI } from "./CallAI.js";
-import { sendCmdRequest, sendToUser } from "../services/websocket.service.js";
-import {
-  behaviourInstructions,
-  behaviourPrompt,
-} from "./instructions/behaviour.instructions.js";
+
+import { callAI, ModelType } from "./CallAI.js";
+import { sendToUser } from "../services/websocket.service.js";
+import { behaviourPrompt } from "./instructions/behaviour.instructions.js";
 import { instructions } from "./instructions/main.Instructions.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
-
 export const askAI = async (
   userId: string,
   session: string,
   userMessage: string,
   behaviour: string,
+  model: ModelType,
 ) => {
   let retries = 0;
   let aiResponse: any = null;
   let command: string = "";
+  let lastExecutedCmd: string = "";
   let terminalOutput = "";
   let terminalError = "";
   let capturedImage = "";
@@ -54,18 +51,20 @@ export const askAI = async (
       data: {
         workingon: "Nexus is thinking...",
         msg: "",
-        cmd: command || "",
+        cmd: command || lastExecutedCmd || "",
       },
     });
     try {
       let currentMainInstructions: string =
         behaviourPrompt(behaviour) + "\n" + instructions;
-
-      aiResponse = await callAI("gemini", {
+      aiResponse = await callAI(model.provider, {
         chatMessages: ChatMsgs,
         session: session,
         instructions: currentMainInstructions,
         isJson: true,
+        isLiveModel: model.isLiveModel,
+        retryCount: 0,
+        model: model.name,
       });
 
       commandRunningMsgs.push({
@@ -73,18 +72,18 @@ export const askAI = async (
         content: JSON.stringify(aiResponse.rawContent),
       });
 
-      workingOn = aiResponse.workingOn || "";
+      workingOn =
+        aiResponse.workingon || (aiResponse as any).workingOn || "Thinking...";
       sendToUser(userId, {
         type: "ai_data",
         data: {
           workingon: workingOn,
-          msg: "Nexus is thinking...",
-          cmd: command || "",
+          msg: aiResponse.msg || "",
+          cmd: command || lastExecutedCmd || "",
         },
       });
       const actualContent = aiResponse;
       if (!actualContent || actualContent.success === false) {
-        command = "";
         break;
       }
       if (
@@ -92,7 +91,6 @@ export const askAI = async (
         String(actualContent.cmd).trim() === "" ||
         (typeof actualContent.cmd === "object" && !actualContent.cmd.action)
       ) {
-        command = "";
         break;
       }
       if (typeof actualContent.cmd === "object" && actualContent.cmd.action) {
@@ -103,9 +101,23 @@ export const askAI = async (
         command = "";
       }
       if (command) {
+        lastExecutedCmd = command;
+        const parsedCMD: CommandTypes = JSON.parse(command);
+        let actionDesc: string = cmd_explainer(
+          parsedCMD.action,
+          parsedCMD.param,
+        );
+        sendToUser(userId, {
+          type: "ai_data",
+          data: {
+            workingon: actionDesc,
+            msg: aiResponse?.msg || "",
+            cmd: command,
+          },
+        });
         const commandOutput: CommandParserResponseType = await commandParser(
           userId,
-          JSON.parse(command) as CommandTypes,
+          parsedCMD,
           ChatMsgs,
         );
         capturedImage = commandOutput.imageBase64 || "";
@@ -167,7 +179,7 @@ export const askAI = async (
     {
       role: "assistant",
       content: JSON.stringify({
-        cmd: command || "",
+        cmd: lastExecutedCmd || "",
         msg: aiResponse?.msg || "API CALL NO OUTPUT AS A MESSAGE!",
         terminalError: terminalError || "",
         terminalOutput: terminalOutput || "",
@@ -182,10 +194,27 @@ export const askAI = async (
       : "AI service encountered an issue. Please try again.");
 
   return {
-    cmd: command || "",
+    cmd: lastExecutedCmd || "",
     msg: finalMsg,
     terminalOutput: terminalOutput || "",
     terminalError: terminalError || "",
     imageBase64: capturedImage || "",
   };
 };
+function cmd_explainer(action: string, param: any) {
+  if (action === "search") {
+    return `🔍 Searching files for "${param?.expected_name || ""}"...`;
+  } else if (action === "search_app") {
+    return `🚀 Searching for app "${param?.name || ""}"...`;
+  } else if (action === "in_built") {
+    return `⚡ Running: ${param}...`;
+  } else if (action === "capture_screen") {
+    return "📸 Capturing desktop screenshot...";
+  } else if (action === "system_info") {
+    return "📊 Fetching system diagnostics...";
+  } else if (action === "memory_read") {
+    return `🧠 Checking memory for "${param?.alias || ""}"...`;
+  } else {
+    return "💻 Executing command...";
+  }
+}

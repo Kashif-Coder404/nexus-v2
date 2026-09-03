@@ -140,6 +140,12 @@ async function getFullLiveResponse(promptText: string) {
 // }
 
 (async () => {
-  const result = await liveGeminiAICall("Hello, how are you?");
+  const result = await liveGeminiAICall({
+    chatMessages: [{ role: "user", content: "Hello, how are you?" }],
+    retryCount: 0,
+    model: "gemini-3.1-flash-live-preview",
+    instructionString: "",
+    isJson: false,
+  });
   console.log(result);
 })();

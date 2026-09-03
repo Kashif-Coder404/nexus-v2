@@ -15,14 +15,17 @@ export interface ActionTypes {
   memory_write: { alias: string; value: string; category: string };
   memory_delete: { value: string; alias?: string; category?: string };
   search_app: {
-    isDeepSearch: boolean;
+    isDeepSearch?: boolean;
     name: string;
+    extension?: string;
     extention?: string;
   };
   search: {
     path?: string;
     expected_name: string;
     extension?: string;
+    isDeepSearch?: boolean;
+    type?: "folder" | "file" | "all";
   };
   capture_screen: string;
   volume_up: { level?: number; times: number };

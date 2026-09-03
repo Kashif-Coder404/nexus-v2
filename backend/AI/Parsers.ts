@@ -145,14 +145,10 @@ export const commandParser = async (
   };
   const commandHandlerDict = {
     search: async () => {
-      const { path, expected_name, extension } =
+      const { expected_name } =
         (cmd.param as ParametersType<"search">) || {};
-      if (
-        !expected_name ||
-        (!path && path !== "") ||
-        (!extension && extension !== "")
-      ) {
-        finalResponse.msg = "Missing parameters";
+      if (!expected_name) {
+        finalResponse.msg = "Missing parameters: expected_name is required";
         finalResponse.terminalError = "Missing parameters";
         finalResponse.isSuccess = false;
         return;

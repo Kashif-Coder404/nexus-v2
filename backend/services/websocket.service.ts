@@ -35,10 +35,14 @@ const connectDevice = async (
 ): Promise<void> => {
   const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
   const decodedToken = verifyToken(actualToken) as JwtPayload;
-  const decodedUserId = decodedToken.token?.userId as string;
-  const decodedDeviceId = decodedToken.token?.deviceId as string;
+  const decodedUserId =
+    (decodedToken.token?.userId as string) ||
+    ((decodedToken.token as any)?.id as string);
+  const decodedDeviceId =
+    (decodedToken.token?.deviceId as string) ||
+    ((decodedToken.token as any)?.deviceId as string);
 
-  if (!decodedToken.success || !decodedUserId || !decodedDeviceId) {
+  if (!decodedToken.success || !decodedUserId) {
     sendJson(ws, {
       type: "PairingFailed",
       message: "Invalid token or Expired",
@@ -47,26 +51,38 @@ const connectDevice = async (
     return;
   }
 
-  const user = await UserModel.findOne({
-    _id: decodedUserId,
-    "devices._id": decodedDeviceId,
-    "devices.deviceToken": actualToken,
-  });
-
-  if (!user) {
-    sendJson(ws, {
-      type: "PairingFailed",
-      message: "Device has been revoked.",
-      data: null,
+  if (decodedDeviceId) {
+    const user = await UserModel.findOne({
+      _id: decodedUserId,
+      "devices._id": decodedDeviceId,
+      "devices.deviceToken": actualToken,
     });
-    return;
+
+    if (!user) {
+      sendJson(ws, {
+        type: "PairingFailed",
+        message: "Device has been revoked.",
+        data: null,
+      });
+      return;
+    }
+  } else {
+    const user = await UserModel.findById(decodedUserId);
+    if (!user) {
+      sendJson(ws, {
+        type: "PairingFailed",
+        message: "User not found.",
+        data: null,
+      });
+      return;
+    }
   }
 
   ws.isAuthenticated = true;
   ws.userId = decodedUserId;
-  ws.deviceId = decodedDeviceId;
+  ws.deviceId = decodedDeviceId || "web_client";
   console.log(
-    `[WS] Authenticated device ${decodedDeviceId} for user ${decodedUserId}`,
+    `[WS] Authenticated ${decodedDeviceId ? `device ${decodedDeviceId}` : "web client"} for user ${decodedUserId}`,
   );
 };
 
@@ -74,19 +90,28 @@ const initWebsocket = (server: Server) => {
   wss = new WebSocketServer({ server });
 
   wss.on("connection", async (ws: CustomWebSocket, req: any) => {
+    const url = new URL(
+      req.url || "",
+      `http://${req.headers.host || "localhost"}`,
+    );
+    const queryToken = url.searchParams.get("token");
     const authHeader =
-      req.headers["authorization"] || req.headers["Authorization"];
+      req.headers["authorization"] ||
+      req.headers["Authorization"] ||
+      queryToken;
     if (authHeader) {
       await connectDevice(ws, authHeader);
     }
 
-    ws.on("message", (event: any) => {
+    ws.on("message", async (event: any) => {
       try {
         const data = event.toString();
         const parsedData = JSON.parse(data);
 
         if (parsedData.type === "PairingInit") {
           ws.pairingCode = parsedData.code;
+        } else if (parsedData.type === "auth" && parsedData.token) {
+          await connectDevice(ws, parsedData.token);
         } else if (parsedData.type === "cmd_response") {
           if (ws.isAuthenticated) {
             const { requestId, cmdResponse } = parsedData;

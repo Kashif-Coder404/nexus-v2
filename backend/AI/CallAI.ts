@@ -1,5 +1,9 @@
 import { callNvidia } from "./Providers/nvidiaAPICall.js";
-import { geminiAICall, GeminiModelsTypes } from "./Providers/geminiAI.js";
+import {
+  geminiAICall,
+  GeminiModelsTypes,
+  liveGeminiAICall,
+} from "./Providers/geminiAI.js";
 import {
   tokenRouterAICall,
   TokenRouterModelsTypes,
@@ -8,12 +12,30 @@ import { instructions as defaultInstructions } from "./instructions/main.Instruc
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
 
 export type AIName = "nvidia" | "gemini" | "tokenrouter";
+export type GeminiModels =
+  | "gemini-3.5-flash-lite"
+  | "gemini-3.5-flash"
+  | "gemini-3-pro-preview"
+  | "gemini-3.1-flash-live-preview";
+export type TokenRouterModels =
+  | "qwen/qwen3.8-max-free"
+  | "google/gemini-2.0-flash-exp-image-preview"
+  | "google/gemini-2.0-flash-exp-video-preview-09-2024"
+  | "mistralai/mistral-large-2407"
+  | "openai/gpt-oss-20b-instruct-20241022"
+  | "google/nano-banana-128b-1218";
 
+export type ModelType = {
+  provider: AIName;
+  name: GeminiModels | TokenRouterModels | string;
+  isLiveModel?: boolean;
+};
 export type AIProviderParams = {
   chatMessages: ChatMessageType[];
   session: string;
   instructions?: string;
   isJson?: boolean;
+  isLiveModel?: boolean;
 
   // Specific to Gemini / TokenRouter
   retryCount?: number;
@@ -42,6 +64,7 @@ export const callAI = async (
     session,
     instructions = defaultInstructions,
     isJson = true,
+    isLiveModel = false,
   } = params;
 
   if (name === "nvidia") {
@@ -82,14 +105,24 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    const res = await geminiAICall({
-      chatMessages,
-      retryCount: params.retryCount || 0,
-      model: params.model || "gemini-3.5-flash-lite",
-      instructionString: instructions,
-      isJson: true,
-      keyIndex: geminiKeyIndex,
-    });
+    const isLive = isLiveModel || params.model === "gemini-3.1-flash-live-preview";
+    const res = isLive
+      ? await liveGeminiAICall({
+          chatMessages,
+          retryCount: params.retryCount || 0,
+          model: params.model || "gemini-3.1-flash-live-preview",
+          instructionString: instructions,
+          isJson: isJson,
+          keyIndex: geminiKeyIndex,
+        })
+      : await geminiAICall({
+          chatMessages,
+          retryCount: params.retryCount || 0,
+          model: params.model || "gemini-3.5-flash-lite",
+          instructionString: instructions,
+          isJson: isJson,
+          keyIndex: geminiKeyIndex,
+        });
     const actualContent = res.content || {};
 
     return {

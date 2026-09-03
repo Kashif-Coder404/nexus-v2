@@ -192,10 +192,31 @@ const delete_Chat_Session_Handler = async (req: any, res: any) => {
   }
 };
 
+const getUserSessionsHandler = async (req: any, res: any) => {
+  try {
+    const sessions = await SessionModel.find({ userId: req.userId }).sort({
+      updatedAt: -1,
+      _id: -1,
+    });
+    return res.status(200).json({
+      success: true,
+      message: "User Sessions",
+      data: sessions,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      data: null,
+    });
+  }
+};
+
 export {
   getChatHandler,
   updateChatHandler,
   delete_Chat_Session_Handler,
+  getUserSessionsHandler,
   getChat,
   setChat,
 };
