@@ -65,6 +65,34 @@ export const saveDeviceTokenFile = async (
   await fs.writeFile(DEVICE_TOKEN_PATH, JSON.stringify(data, null, 2), "utf-8");
 };
 
+// Notify Cloud Backend over WebSocket to revoke this device registration
+export const sendRevokeRequestToCloud = async (): Promise<boolean> => {
+  try {
+    const deviceData = await readDeviceTokenFile();
+    if (!deviceData?.token) {
+      return false;
+    }
+
+    if (activeWS && activeWS.readyState === WebSocket.OPEN) {
+      console.log("[WS] Sending revoke-device request to Cloud Backend...");
+      sendJson(activeWS, {
+        type: "revoke-device",
+        deviceToken: deviceData.token,
+      });
+
+      // Allow 600ms for network packet transmission
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return true;
+    } else {
+      console.warn("[WS] Cloud Backend offline; skipping remote revoke notification.");
+      return false;
+    }
+  } catch (err: any) {
+    console.warn("[WS] Error sending revoke request:", err.message);
+    return false;
+  }
+};
+
 // Generate and manage temporary in-memory pairing code
 export const generatePairingCode = async (): Promise<{
   code: string | null;
@@ -237,6 +265,15 @@ const ServerWSConnection = async () => {
           pairingMessage =
             parsed.message || "Device verification failed from cloud backend!";
           await generatePairingCode();
+          break;
+        }
+
+        case "RevokeResponse": {
+          console.log(
+            "🗑️ [WS] Device revoke confirmed by cloud backend:",
+            parsed.message,
+          );
+          await saveDeviceTokenFile({ token: "" });
           break;
         }
 

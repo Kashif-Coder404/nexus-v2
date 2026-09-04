@@ -3,6 +3,7 @@
   "output": "dist/sea-prep.blob",
   "disableExperimentalSEAWarning": true,
   "assets": {
-    "paringcode.html": "paringcode.html"
+    "paringcode.html": "paringcode.html",
+    "run_nexus.vbs": "run_nexus.vbs"
   }
 }

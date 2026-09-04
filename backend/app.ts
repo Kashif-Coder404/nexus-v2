@@ -1,15 +1,14 @@
 import express from "express";
-import http from "http";
-import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import chatRoutes from "./routes/chat.routes.js";
 import cors from "cors";
 import { connectDB } from "./db/connectDB.js";
-import { updateMemory } from "./services/memory.service.js";
 import authRoutes from "./routes/auth.routes.js";
 import { userAuthentication } from "./middlewares/auth/authUserLogin.js";
-import { startParingHandler } from "./services/websocket.service.js";
+import {
+  startParingHandler,
+  revokeDeviceHandler,
+} from "./services/websocket.service.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -42,9 +41,6 @@ app.use(
   },
 );
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // --- 1. HEALTH CHECK ---
 app.get("/api/health", async (req, res) => {
   res.status(200).json({
@@ -61,4 +57,5 @@ app.get("/api/health", async (req, res) => {
 app.post("/api/pairrequest", userAuthentication, startParingHandler);
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
+app.delete("/api/device/:deviceId", userAuthentication, revokeDeviceHandler);
 export default app;

@@ -10,7 +10,9 @@ import {
   readDeviceTokenFile,
   isConnectedToBackend,
   pairingMessage,
+  sendRevokeRequestToCloud,
 } from "./services/ws.service";
+import { uninstallNexus } from "./setupnexus";
 
 const app = express();
 app.use(express.json());
@@ -107,6 +109,37 @@ app.post("/api/generate-code", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to generate pairing code",
+    });
+  }
+});
+
+// API to completely uninstall Nexus, unregister device, and stop service
+app.post("/api/uninstall", async (req, res) => {
+  try {
+    console.log("[API] /api/uninstall requested.");
+
+    // 1. Notify Cloud Backend to remove this device registration
+    await sendRevokeRequestToCloud();
+
+    // 2. Perform file & startup script removal
+    const uninstallResult = await uninstallNexus();
+
+    // 3. Respond to browser client
+    res.status(200).json({
+      success: true,
+      message: uninstallResult.message,
+    });
+
+    // 4. Terminate process shortly after response is flushed
+    setTimeout(() => {
+      console.log("[SERVER] Exiting process after uninstallation.");
+      process.exit(0);
+    }, 1000);
+  } catch (error: any) {
+    console.error("[API UNINSTALL ERROR]", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to uninstall: " + error.message,
     });
   }
 });

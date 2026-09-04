@@ -124,6 +124,56 @@ const initWebsocket = (server: Server) => {
               pendingRequests.delete(requestId);
             }
           }
+        } else if (parsedData.type === "revoke-device" && ws.isAuthenticated) {
+          let targetDeviceId = parsedData.deviceId;
+
+          if (parsedData.deviceToken) {
+            const actualToken = parsedData.deviceToken.startsWith("Bearer ")
+              ? parsedData.deviceToken.slice(7)
+              : parsedData.deviceToken;
+            const decodedToken = verifyToken(actualToken) as JwtPayload;
+            if (!decodedToken || !decodedToken.success || !decodedToken.token) {
+              sendJson(ws, {
+                type: "PairingFailed",
+                message: "Invalid token",
+              });
+              return;
+            }
+            const tokenUserId =
+              (decodedToken.token?.userId as string) ||
+              ((decodedToken.token as any)?.id as string);
+            if (tokenUserId !== ws.userId) {
+              sendJson(ws, {
+                type: "PairingFailed",
+                message: "You cannot revoke another user's device",
+              });
+              return;
+            }
+            targetDeviceId =
+              (decodedToken.token?.deviceId as string) ||
+              ((decodedToken.token as any)?.deviceId as string);
+          }
+
+          // If no specific deviceId provided and sender is an authenticated companion device, target itself
+          if (!targetDeviceId && ws.deviceId && ws.deviceId !== "web_client") {
+            targetDeviceId = ws.deviceId;
+          }
+
+          if (!targetDeviceId) {
+            sendJson(ws, {
+              type: "Error",
+              message: "Device ID required to revoke",
+            });
+            return;
+          }
+
+          const result = await revokeDevice(ws.userId!, targetDeviceId);
+          sendJson(ws, {
+            type: "RevokeResponse",
+            success: result.success,
+            message: result.message,
+            deviceId: targetDeviceId,
+          });
         }
       } catch (err: any) {
         console.error("[WS] Message parsing error:", err.message);
@@ -131,13 +181,12 @@ const initWebsocket = (server: Server) => {
     });
 
     ws.on("close", () => {
+      console.log(
+        `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"}, device: ${ws.deviceId || "none"})`,
+      );
       ws.userId = "";
       ws.isAuthenticated = false;
       ws.deviceId = "";
-      console.log(ws.userId);
-      console.log(
-        `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"})`,
-      );
     });
   });
 };
@@ -227,7 +276,51 @@ const sendCmdRequest = async (
     });
   });
 };
-
+export const revokeDevice = async (userId: string, deviceId: string) => {
+  const result = await UserModel.updateOne(
+    { _id: userId },
+    {
+      $pull: {
+        devices: {
+          _id: deviceId,
+        },
+      },
+    },
+  );
+  if (result.modifiedCount === 0) {
+    return {
+      success: false,
+      message: "Failed to revoke device",
+      data: null,
+    };
+  }
+  if (wss) {
+    for (const client of wss.clients as Set<CustomWebSocket>) {
+      if (client.deviceId === deviceId && client.userId === userId) {
+        sendJson(client, {
+          type: "PairingFailed",
+          message: "Device has been revoked",
+        });
+        client.close(4003, "Device revoked by user");
+      }
+    }
+  }
+  return {
+    success: true,
+    message: "Device revoked successfully",
+    data: null,
+  };
+};
+export const revokeDeviceHandler = async (req: any, res: any) => {
+  const userId: string = req.userId ? req.userId.toString() : "";
+  const { deviceId } = req.params;
+  const result = await revokeDevice(userId, deviceId);
+  return res.status(200).json({
+    success: result.success,
+    message: result.message,
+    data: result.data,
+  });
+};
 const startParingHandler = async (req: any, res: any) => {
   if (!wss) {
     return res.status(500).json({

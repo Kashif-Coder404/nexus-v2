@@ -285,6 +285,39 @@
         margin: 0 auto 1.25rem;
         font-size: 2rem;
       }
+      .uninstall-btn {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 10px;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s ease;
+      }
+      .uninstall-btn:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: #ef4444;
+        color: #ffffff;
+      }
+      .uninstall-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .footer-uninstall-btn {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 0.78rem;
+        cursor: pointer;
+        text-decoration: underline;
+        transition: color 0.2s ease;
+      }
+      .footer-uninstall-btn:hover:not(:disabled) {
+        color: #ef4444;
+      }
     </style>
   </head>
   <body>
@@ -388,6 +421,31 @@
           Your local machine is authenticated and connected to Nexus. You can
           safely close this window.
         </p>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+          <button id="pairedUninstallBtn" class="uninstall-btn">
+            🗑️ Unlink &amp; Uninstall Nexus
+          </button>
+        </div>
+      </div>
+
+      <!-- Uninstalled View -->
+      <div id="uninstalledBox" style="display: none; padding: 1.5rem 0;">
+        <div class="success-icon" style="background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8; font-size: 1.8rem;">
+          ✓
+        </div>
+        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">Nexus Uninstalled</h2>
+        <p style="font-size: 0.875rem; color: #94a3b8; line-height: 1.6; margin-bottom: 1rem;">
+          Startup scripts, device credentials, and local program files have been removed from your PC.
+          The background companion service has stopped. You can safely close this browser window.
+        </p>
+      </div>
+
+      <!-- Card Footer / Discreet Uninstall Option -->
+      <div id="unpairedUninstallContainer" style="margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <button id="footerUninstallBtn" class="footer-uninstall-btn">
+          Uninstall Nexus from this PC
+        </button>
       </div>
     </div>
 
@@ -409,6 +467,7 @@
       const refreshBtn = document.getElementById("refreshBtn");
 
       const STORAGE_KEY = "nexus_local_pairing";
+      let isUninstalling = false;
       let countdownTimer = null;
 
       function saveToLocalStorage(code, expiresat) {
@@ -473,6 +532,7 @@
       }
 
       async function fetchStatus() {
+        if (isUninstalling) return;
         try {
           const res = await fetch("http://localhost:4100/api/pairing-status");
           if (!res.ok) throw new Error("Failed to fetch pairing status");
@@ -631,6 +691,65 @@
         }
       });
 
+      // Uninstall Handling
+      const pairedUninstallBtn = document.getElementById("pairedUninstallBtn");
+      const footerUninstallBtn = document.getElementById("footerUninstallBtn");
+      const uninstalledBox = document.getElementById("uninstalledBox");
+      const unpairedUninstallContainer = document.getElementById(
+        "unpairedUninstallContainer",
+      );
+
+      async function handleUninstall() {
+        if (isUninstalling) return;
+        const confirmed = confirm(
+          "Are you sure you want to completely uninstall Nexus from this PC?\n\nThis will revoke the device from your account, delete background startup scripts, and remove local program files.",
+        );
+        if (!confirmed) return;
+
+        isUninstalling = true;
+        if (pairedUninstallBtn) {
+          pairedUninstallBtn.disabled = true;
+          pairedUninstallBtn.textContent = "Uninstalling...";
+        }
+        if (footerUninstallBtn) {
+          footerUninstallBtn.disabled = true;
+          footerUninstallBtn.textContent = "Uninstalling...";
+        }
+
+        if (pollInterval) clearInterval(pollInterval);
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        try {
+          await fetch("http://localhost:4100/api/uninstall", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (e) {
+          // Expected when server terminates itself during uninstall
+          console.log("Server terminated as expected during uninstall");
+        }
+
+        // Display uninstalled state
+        pairingBox.style.display = "none";
+        pairedBox.style.display = "none";
+        offlineBanner.style.display = "none";
+        errorBanner.style.display = "none";
+        if (unpairedUninstallContainer) {
+          unpairedUninstallContainer.style.display = "none";
+        }
+        uninstalledBox.style.display = "block";
+
+        updateCloudStatus("offline", "Cloud: Disconnected", false);
+        updateDeviceStatus("unpaired", "Device: Uninstalled");
+      }
+
+      if (pairedUninstallBtn) {
+        pairedUninstallBtn.addEventListener("click", handleUninstall);
+      }
+      if (footerUninstallBtn) {
+        footerUninstallBtn.addEventListener("click", handleUninstall);
+      }
+
       // Load cached from localStorage on fast start
       const cached = getFromLocalStorage();
       if (cached && new Date(cached.expiresat).getTime() > Date.now()) {
@@ -639,7 +758,7 @@
 
       // Initial check & auto-poll every 2.5s
       fetchStatus();
-      setInterval(fetchStatus, 2500);
+      const pollInterval = setInterval(fetchStatus, 2500);
     </script>
   </body>
 </html>
