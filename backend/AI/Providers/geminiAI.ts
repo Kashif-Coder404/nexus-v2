@@ -35,9 +35,14 @@ export const geminiAICall = async ({
   isJson = true,
   keyIndex = 0,
 }: GeminiAICallOptions): Promise<GeminiResponse> => {
-  const Current_API_KEY = GEMINI_API_KEYS[keyIndex];
-  console.log(`[GEMINI AI CALL] Model: ${model} | Retry: ${retryCount}`);
-  if (retryCount >= GEMINI_API_KEYS.length) {
+  const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
+  const safeKeyIndex =
+    GEMINI_API_KEYS.length > 0 ? keyIndex % GEMINI_API_KEYS.length : 0;
+  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API;
+  console.log(
+    `[GEMINI AI CALL] Model: ${model} | KeyIndex: ${safeKeyIndex} | Retry: ${retryCount}`,
+  );
+  if (retryCount >= maxKeys) {
     return {
       success: false,
       content: {
@@ -111,37 +116,52 @@ export const geminiAICall = async ({
     return {
       content: parsedContent,
       success: true,
+      usedKeyIndex: safeKeyIndex,
     };
   } catch (error: any) {
     console.error("[GEMINI AI] API CALL FAILED");
 
-    const isRateLimited = error.response && error.response.status === 429;
-
-    // Check if the error is a JSON parsing error (SyntaxError)
+    const status = error.response?.status;
+    const errorMsg = error.message || "";
+    const errorData = JSON.stringify(error.response?.data || "");
     const isParseError = error instanceof SyntaxError;
 
-    if (isRateLimited || isParseError) {
-      if (retryCount < 2) {
-        console.log(
-          `Gemini error (${isRateLimited ? "Rate Limited" : "JSON Parse Error"}). Retrying with next key... (Retry ${retryCount + 1}/2)`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return geminiAICall({
-          chatMessages,
-          retryCount: retryCount + 1,
-          model,
-          instructionString,
-          isJson,
-          keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
-        });
-      }
+    // Detect Service Busy, Overloaded, Rate Limits (429), or Quota Exceeded
+    const isRetryableError =
+      status === 429 ||
+      status === 503 ||
+      status === 500 ||
+      status === 504 ||
+      error.code === "ECONNABORTED" ||
+      error.code === "ETIMEDOUT" ||
+      errorMsg.toLowerCase().includes("overloaded") ||
+      errorMsg.toLowerCase().includes("busy") ||
+      errorMsg.toLowerCase().includes("capacity") ||
+      errorMsg.toLowerCase().includes("unavailable") ||
+      errorData.includes("RESOURCE_EXHAUSTED") ||
+      errorData.includes("UNAVAILABLE") ||
+      errorData.toLowerCase().includes("overloaded") ||
+      isParseError;
+
+    const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
+    if (isRetryableError && retryCount < maxKeys - 1) {
+      const nextKeyIndex = (safeKeyIndex + 1) % maxKeys;
+      console.warn(
+        `[GEMINI AI] Service busy or rate-limited (${status || errorMsg}). Silently switching to key index ${nextKeyIndex} (Attempt ${retryCount + 1}/${maxKeys})...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return geminiAICall({
+        chatMessages,
+        retryCount: retryCount + 1,
+        model,
+        instructionString,
+        isJson,
+        keyIndex: nextKeyIndex,
+      });
     }
 
     let userFriendlyMsg =
       "AI service encountered an unexpected error. Please try again.";
-    const status = error.response?.status;
-    const errorMsg = error.message || "";
-    const errorData = JSON.stringify(error.response?.data || "");
 
     if (
       status === 429 ||
@@ -190,10 +210,15 @@ export const liveGeminiAICall = async ({
   isJson = true,
   keyIndex = 0,
 }: GeminiAICallOptions): Promise<GeminiResponse> => {
-  const Current_API_KEY = GEMINI_API_KEYS[keyIndex] || GEMINI_API;
-  console.log(`[GEMINI LIVE AI CALL] Model: ${model} | Retry: ${retryCount}`);
+  const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
+  const safeKeyIndex =
+    GEMINI_API_KEYS.length > 0 ? keyIndex % GEMINI_API_KEYS.length : 0;
+  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API;
+  console.log(
+    `[GEMINI LIVE AI CALL] Model: ${model} | KeyIndex: ${safeKeyIndex} | Retry: ${retryCount}`,
+  );
 
-  if (retryCount >= GEMINI_API_KEYS.length) {
+  if (retryCount >= maxKeys) {
     return {
       success: false,
       content: {
@@ -258,12 +283,10 @@ export const liveGeminiAICall = async ({
             console.error("[GEMINI LIVE] Error:", error);
           },
           onclose: async (event: any) => {
-            if (
-              !fullResponseText.trim() &&
-              retryCount < GEMINI_API_KEYS.length - 1
-            ) {
+            if (!fullResponseText.trim() && retryCount < maxKeys - 1) {
+              const nextKeyIndex = (safeKeyIndex + 1) % maxKeys;
               console.log(
-                `[GEMINI LIVE] Empty response / closed early (code ${event?.code}). Retrying with next key... (Retry ${retryCount + 1})`,
+                `[GEMINI LIVE] Empty response / closed early (code ${event?.code}). Retrying with next key index ${nextKeyIndex}... (Attempt ${retryCount + 1}/${maxKeys})`,
               );
               await new Promise((r) => setTimeout(r, 1500));
               const retryRes = await liveGeminiAICall({
@@ -272,7 +295,7 @@ export const liveGeminiAICall = async ({
                 model,
                 instructionString,
                 isJson,
-                keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
+                keyIndex: nextKeyIndex,
               });
               return resolve(retryRes);
             }
@@ -320,6 +343,7 @@ export const liveGeminiAICall = async ({
             resolve({
               content: parsedContent,
               success: Boolean(fullResponseText.trim()),
+              usedKeyIndex: safeKeyIndex,
             });
           },
         },
@@ -355,18 +379,19 @@ export const liveGeminiAICall = async ({
     } catch (error: any) {
       console.error("[GEMINI LIVE] Failed to execute call:", error);
 
-      if (retryCount < GEMINI_API_KEYS.length - 1) {
-        console.log(
-          `[GEMINI LIVE] Retrying with next key... (Retry ${retryCount + 1})`,
+      if (retryCount < maxKeys - 1) {
+        const nextKeyIndex = (safeKeyIndex + 1) % maxKeys;
+        console.warn(
+          `[GEMINI LIVE] Service busy or disconnected. Retrying with next key index ${nextKeyIndex}... (Attempt ${retryCount + 1}/${maxKeys})`,
         );
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1200));
         const retryRes = await liveGeminiAICall({
           chatMessages,
           retryCount: retryCount + 1,
           model,
           instructionString,
           isJson,
-          keyIndex: (keyIndex + 1) % GEMINI_API_KEYS.length,
+          keyIndex: nextKeyIndex,
         });
         return resolve(retryRes);
       }

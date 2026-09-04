@@ -11,6 +11,7 @@ export type GeminiResponse = {
     workingon: string;
   };
   success: boolean;
+  usedKeyIndex?: number;
 };
 export type AIResponse = {
   cmd: string;

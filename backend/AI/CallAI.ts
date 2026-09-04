@@ -124,6 +124,9 @@ export const callAI = async (
           keyIndex: geminiKeyIndex,
         });
     const actualContent = res.content || {};
+    if (res.success && res.usedKeyIndex !== undefined) {
+      geminiKeyIndex = res.usedKeyIndex;
+    }
 
     return {
       cmd: actualContent.cmd || "",

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { exec, spawn } from "child_process";
+import { exec, execSync, spawn } from "child_process";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -70,6 +70,10 @@ export const uninstallNexus = async (): Promise<{
     if (fs.existsSync(targetDir)) {
       if (isDev) {
         try {
+          try {
+            execSync("taskkill /f /im nexus.exe", { stdio: "ignore" });
+          } catch {}
+          await sleep(500);
           fs.rmSync(targetDir, { recursive: true, force: true });
           console.log(`[UNINSTALL] Removed target directory: ${targetDir}`);
         } catch (e: any) {
@@ -78,15 +82,34 @@ export const uninstallNexus = async (): Promise<{
           );
         }
       } else {
-        // In production Windows binary: schedule self-deletion after process exit
-        const cleanupCmd = `timeout /t 2 /nobreak > NUL & taskkill /f /im nexus.exe > NUL 2>&1 & rmdir /s /q "${targetDir}"`;
-        const child = spawn("cmd.exe", ["/c", cleanupCmd], {
-          detached: true,
-          stdio: "ignore",
-          windowsHide: true,
-        });
+        // In production Windows binary: schedule detached PowerShell with retry to bypass file locks
+        const escapedPath = targetDir.replace(/'/g, "''");
+        const psCommand = [
+          "Start-Sleep -Seconds 2;",
+          "Stop-Process -Name nexus -Force -ErrorAction SilentlyContinue;",
+          "Start-Sleep -Seconds 1;",
+          "for ($i=0; $i -lt 5; $i++) {",
+          `  if (Test-Path -LiteralPath '${escapedPath}') {`,
+          `    Remove-Item -LiteralPath '${escapedPath}' -Recurse -Force -ErrorAction SilentlyContinue;`,
+          `    if (-not (Test-Path -LiteralPath '${escapedPath}')) { break; }`,
+          "    Start-Sleep -Seconds 1;",
+          "  } else { break; }",
+          "}",
+        ].join(" ");
+
+        const child = spawn(
+          "powershell.exe",
+          ["-NoProfile", "-WindowStyle", "Hidden", "-Command", psCommand],
+          {
+            detached: true,
+            stdio: "ignore",
+            windowsHide: true,
+          },
+        );
         child.unref();
-        console.log(`[UNINSTALL] Scheduled directory removal: ${targetDir}`);
+        console.log(
+          `[UNINSTALL] Scheduled directory removal via PowerShell: ${targetDir}`,
+        );
       }
     }
 

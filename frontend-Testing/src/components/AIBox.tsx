@@ -42,44 +42,76 @@ const AIBox: React.FC<AIBoxProps> = ({
         switch (parsed.action) {
           case "in_built":
             label = "Terminal / Shell";
-            display = parsed.param || "";
+            display =
+              typeof parsed.param === "object"
+                ? JSON.stringify(parsed.param)
+                : String(parsed.param || "");
             break;
           case "capture_screen":
             label = "Screen Capture";
             display = parsed.param
-              ? `capture_screen (${parsed.param})`
-              : "Desktop screenshot captured";
+              ? `capture_screen ${JSON.stringify(parsed.param)}`
+              : "capture_screen";
             break;
           case "system_info":
             label = "System Diagnostics";
-            display = "Querying CPU, RAM, OS and system metrics";
+            display = "system_info";
             break;
           case "search":
             label = "File Search";
-            display = `search "${parsed.param?.expected_name || ""}" in "${
-              parsed.param?.path || "."
-            }"`;
+            display =
+              typeof parsed.param === "object"
+                ? `search ${JSON.stringify(parsed.param?.expected_name || "")} in ${JSON.stringify(
+                    parsed.param?.path || ".",
+                  )}${
+                    parsed.param?.extension
+                      ? ` ${JSON.stringify(parsed.param.extension)}`
+                      : ""
+                  }`
+                : `search ${JSON.stringify(parsed.param)}`;
             break;
           case "search_app":
             label = "App Search";
-            display = `search_app "${parsed.param}"`;
+            display =
+              typeof parsed.param === "object"
+                ? `search_app ${JSON.stringify(parsed.param?.name || "")}${
+                    parsed.param?.extension
+                      ? ` ${JSON.stringify(parsed.param.extension)}`
+                      : ""
+                  }${parsed.param?.isDeepSearch ? " [deep]" : ""}`
+                : `search_app ${JSON.stringify(parsed.param)}`;
             break;
           case "memory_write":
             label = "Memory Write";
-            display = `Save memory [${parsed.param?.category || "general"}]: ${
-              parsed.param?.alias
-            } = ${parsed.param?.value}`;
+            display =
+              typeof parsed.param === "object"
+                ? `memory_write [${parsed.param?.category || "general"}] ${JSON.stringify(
+                    parsed.param?.alias || "",
+                  )} = ${JSON.stringify(parsed.param?.value || "")}`
+                : `memory_write ${JSON.stringify(parsed.param)}`;
             break;
           case "memory_read":
             label = "Memory Read";
-            display = `Read memory: ${parsed.param?.alias || ""}`;
+            display =
+              typeof parsed.param === "object"
+                ? `memory_read ${JSON.stringify(parsed.param?.alias || "")}`
+                : `memory_read ${JSON.stringify(parsed.param)}`;
+            break;
+          case "memory_delete":
+            label = "Memory Delete";
+            display =
+              typeof parsed.param === "object"
+                ? `memory_delete ${JSON.stringify(
+                    parsed.param?.value || parsed.param?.alias || "",
+                  )}`
+                : `memory_delete ${JSON.stringify(parsed.param)}`;
             break;
           default:
             label = `Action: ${parsed.action}`;
             display =
               typeof parsed.param === "object"
-                ? JSON.stringify(parsed.param, null, 2)
-                : String(parsed.param || "");
+                ? `${parsed.action} ${JSON.stringify(parsed.param)}`
+                : `${parsed.action} ${String(parsed.param || "")}`;
         }
         return { label, display: display || JSON.stringify(parsed, null, 2) };
       }

@@ -248,6 +248,23 @@ export async function nexusSmartSearchApp(
 ): Promise<SearchResult[]> {
   if (!appName) return [];
 
+  // Strip trailing extension if user/AI passed e.g. "spider man 2.exe" or "spider man 2 .exe"
+  let cleanAppName = appName.trim();
+  const trailingExt = cleanAppName.match(/\s*\.(exe|lnk|url|bat|cmd)$/i);
+  if (trailingExt) {
+    if (!extension) {
+      extension = trailingExt[0].trim();
+    }
+    cleanAppName = cleanAppName.slice(0, -trailingExt[0].length).trim();
+  }
+
+  const tokenLower = cleanAppName.toLowerCase();
+  const extNormalized = extension.trim()
+    ? extension.trim().startsWith(".")
+      ? extension.trim().toLowerCase()
+      : `.${extension.trim().toLowerCase()}`
+    : "";
+
   const userProfile = process.env.USERPROFILE || "C:/Users/Default";
   const publicProfile = process.env.PUBLIC || "C:/Users/Public";
   const appData =
@@ -284,23 +301,26 @@ export async function nexusSmartSearchApp(
     { dir: path.join(localAppData, "Microsoft", "WindowsApps"), maxDepth: 2 },
   ];
 
-  // 4. If Deep Search enabled, also include main Program Files and custom drives
-  if (isDeepSearch) {
+  // Dynamically include active system drives (e.g. C:, D:, E:, etc.) for common app/game paths
+  const availableDrives = getAvailableDrives();
+  for (const drive of availableDrives) {
+    const driveLetter = drive.slice(0, 2);
     appRoots.push(
-      { dir: "C:/Program Files", maxDepth: 3 },
-      { dir: "C:/Program Files (x86)", maxDepth: 3 },
-      { dir: path.join(userProfile, "Downloads"), maxDepth: 2 },
-      { dir: "D:/Games", maxDepth: 3 },
-      { dir: "D:/Apps", maxDepth: 3 },
+      { dir: `${driveLetter}/Games`, maxDepth: 3 },
+      { dir: `${driveLetter}/Apps`, maxDepth: 3 },
+      { dir: `${driveLetter}/Program Files`, maxDepth: 3 },
+      { dir: `${driveLetter}/Program Files (x86)`, maxDepth: 3 },
     );
   }
 
-  const tokenLower = appName.trim().toLowerCase();
-  const extNormalized = extension.trim()
-    ? extension.trim().startsWith(".")
-      ? extension.trim().toLowerCase()
-      : `.${extension.trim().toLowerCase()}`
-    : "";
+  // If Deep Search enabled, also include user Downloads and top-level drive roots
+  if (isDeepSearch) {
+    appRoots.push({ dir: path.join(userProfile, "Downloads"), maxDepth: 2 });
+    for (const drive of availableDrives) {
+      const driveLetter = drive.slice(0, 2);
+      appRoots.push({ dir: `${driveLetter}/`, maxDepth: 2 });
+    }
+  }
 
   const results: SearchResult[] = [];
   const seen = new Set<string>();
@@ -333,10 +353,16 @@ export async function nexusSmartSearchApp(
       const isExecutableExt =
         lowerPath.endsWith(".lnk") ||
         lowerPath.endsWith(".exe") ||
-        lowerPath.endsWith(".url");
+        lowerPath.endsWith(".url") ||
+        lowerPath.endsWith(".bat") ||
+        lowerPath.endsWith(".cmd");
 
+      // An app search should always accept .lnk shortcuts AND .exe binaries,
+      // even if .exe or .lnk was explicitly passed in extension.
       const isMatch = extNormalized
-        ? lowerPath.endsWith(extNormalized)
+        ? lowerPath.endsWith(extNormalized) ||
+          ((extNormalized === ".exe" || extNormalized === ".lnk") &&
+            isExecutableExt)
         : isExecutableExt || match.type === "folder";
 
       if (isMatch && !seen.has(lowerPath)) {
@@ -346,24 +372,19 @@ export async function nexusSmartSearchApp(
     }
   }
 
-  // Fallback: If not found in standard paths and not deep search, check Program Files
+  // Fallback: If not found and not deep search, check drive roots at depth 2 (catches E:/Marvel's Spider-Man 2/...)
   if (results.length === 0 && !isDeepSearch) {
-    const fallbackRoots = [
-      { dir: "C:/Program Files", maxDepth: 3 },
-      { dir: "C:/Program Files (x86)", maxDepth: 3 },
-    ];
-
-    for (const { dir, maxDepth } of fallbackRoots) {
+    for (const drive of availableDrives) {
       if (results.length >= maxResults) break;
-
+      const driveLetter = drive.slice(0, 2);
       try {
-        await fs.access(dir);
+        await fs.access(driveLetter);
       } catch {
         continue;
       }
 
       const matches = await nexusSmartSearch(
-        dir,
+        `${driveLetter}/`,
         tokenLower,
         "all",
         extNormalized,
@@ -371,7 +392,7 @@ export async function nexusSmartSearchApp(
         false,
         maxResults - results.length,
         [],
-        maxDepth,
+        2,
         0,
       );
 
@@ -380,10 +401,14 @@ export async function nexusSmartSearchApp(
         const isExecutableExt =
           lowerPath.endsWith(".lnk") ||
           lowerPath.endsWith(".exe") ||
-          lowerPath.endsWith(".url");
+          lowerPath.endsWith(".url") ||
+          lowerPath.endsWith(".bat") ||
+          lowerPath.endsWith(".cmd");
 
         const isMatch = extNormalized
-          ? lowerPath.endsWith(extNormalized)
+          ? lowerPath.endsWith(extNormalized) ||
+            ((extNormalized === ".exe" || extNormalized === ".lnk") &&
+              isExecutableExt)
           : isExecutableExt || match.type === "folder";
 
         if (isMatch && !seen.has(lowerPath)) {

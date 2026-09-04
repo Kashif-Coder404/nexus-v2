@@ -133,7 +133,7 @@ export const commandParser = async (
   cmd: CommandTypes,
   chatMessages: ChatMessageType[],
 ): Promise<CommandParserResponseType> => {
-  const returningCmd: string = JSON.stringify(cmd);
+  let returningCmd: string = JSON.stringify(cmd);
   let finalResponse: CommandParserResponseType = {
     cmd: returningCmd,
     msg: "No command Runs!",
@@ -324,7 +324,31 @@ export const commandParser = async (
     },
   };
 
-  const matchedKey: string = cmd.action;
+  let matchedKey: string = cmd.action;
+
+  // Auto-correct shell command emitted as action name (e.g. action: "start \"\" \"path\"")
+  if (!commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
+    const isShellCmd =
+      typeof matchedKey === "string" &&
+      (matchedKey.includes(" ") ||
+        /^(start|code|powershell|cmd|shutdown|rundll32|type|explorer|npm|npx|node|git|taskkill|dir|cd|cls|echo)\b/i.test(
+          matchedKey.trim(),
+        ));
+
+    if (isShellCmd) {
+      console.warn(
+        `[PARSER] Auto-correcting shell action "${matchedKey}" to "in_built"`,
+      );
+      const combinedParam = cmd.param
+        ? `${matchedKey} ${typeof cmd.param === "string" ? cmd.param : JSON.stringify(cmd.param)}`
+        : matchedKey;
+      (cmd as any).param = combinedParam;
+      (cmd as any).action = "in_built";
+      returningCmd = JSON.stringify(cmd);
+      matchedKey = "in_built";
+    }
+  }
+
   if (commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
     await commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]();
   }
