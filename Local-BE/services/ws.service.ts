@@ -4,6 +4,7 @@ import path from "path";
 import os from "os";
 import { runCommand } from "../controllers/cmd.controller.js";
 import dotenv from "dotenv";
+import { exec } from "child_process";
 dotenv.config();
 
 const CONFIG_DIR = process.env.APPDATA
@@ -186,6 +187,7 @@ export const forceNewPairingCode = async () => {
 };
 
 // WebSocket Connection to Cloud Backend
+let isOpened = false;
 const ServerWSConnection = async () => {
   console.log("[WS] Connecting to Cloud Backend...");
   const deviceData = await readDeviceTokenFile();
@@ -275,6 +277,10 @@ const ServerWSConnection = async () => {
   });
 
   ws.on("error", (error) => {
+    if (!isOpened) {
+      exec("start http://localhost:4100");
+    }
+    isOpened = true;
     console.error("[WS] Connection error:", error.message);
   });
 };

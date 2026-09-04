@@ -3,13 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexus Device Pairing</title>
+    <title>Nexus Device Pairing | Status</title>
     <style>
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       }
       body {
         background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
@@ -59,15 +61,23 @@
         color: #94a3b8;
         margin-bottom: 1.5rem;
       }
+      .status-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+      }
       .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 0.35rem 0.9rem;
+        padding: 0.35rem 0.85rem;
         border-radius: 9999px;
         font-size: 0.8rem;
         font-weight: 600;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0;
         transition: all 0.3s ease;
       }
       .status-connected {
@@ -85,6 +95,11 @@
         color: #38bdf8;
         border: 1px solid rgba(56, 189, 248, 0.3);
       }
+      .status-unpaired {
+        background: rgba(234, 179, 8, 0.15);
+        color: #facc15;
+        border: 1px solid rgba(234, 179, 8, 0.3);
+      }
       .status-dot {
         width: 8px;
         height: 8px;
@@ -95,9 +110,18 @@
         animation: pulse 1.5s infinite;
       }
       @keyframes pulse {
-        0% { transform: scale(0.9); opacity: 0.6; }
-        50% { transform: scale(1.3); opacity: 1; }
-        100% { transform: scale(0.9); opacity: 0.6; }
+        0% {
+          transform: scale(0.9);
+          opacity: 0.6;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.9);
+          opacity: 0.6;
+        }
       }
       /* Offline Banner */
       .offline-banner {
@@ -231,7 +255,9 @@
         font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s, opacity 0.2s;
+        transition:
+          background 0.2s,
+          opacity 0.2s;
       }
       .refresh-btn:hover:not(:disabled) {
         background: #0369a1;
@@ -265,28 +291,41 @@
     <div class="card">
       <div class="logo-icon">
         <svg viewBox="0 0 24 24">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
         </svg>
       </div>
 
       <h1>Nexus Device Pairing</h1>
       <p class="subtitle">Connect your local machine to the Nexus Cloud</p>
 
-      <div id="statusPill" class="status-pill status-offline">
-        <span class="status-dot pulse"></span>
-        <span id="statusLabel">Checking Connection...</span>
+      <div class="status-container">
+        <!-- Cloud Backend WebSocket Status -->
+        <div id="cloudStatusPill" class="status-pill status-offline">
+          <span class="status-dot pulse"></span>
+          <span id="cloudStatusLabel">Cloud: Checking...</span>
+        </div>
+
+        <!-- Local Device Registration / Token Status -->
+        <div id="deviceStatusPill" class="status-pill status-unpaired">
+          <span class="status-dot"></span>
+          <span id="deviceStatusLabel">Device: Checking...</span>
+        </div>
       </div>
 
       <!-- Offline Error Warning -->
       <div id="offlineBanner" class="offline-banner">
         <strong>⚠️ Cloud Backend Offline</strong>
-        Cannot generate a pairing code because the Cloud Backend (ws://localhost:3100) is unreachable. Please start the backend server.
+        Cannot generate a pairing code because the Cloud Backend
+        (ws://localhost:3100) is unreachable. Please start the backend server.
       </div>
 
       <!-- Device Verification Failed / Re-Pair Banner -->
       <div id="errorBanner" class="error-banner">
         <strong>⚠️ Verification Failed &mdash; Re-pair Required</strong>
-        <span id="errorBannerText">Device verification failed from cloud backend. Please enter the new pairing code below to re-pair.</span>
+        <span id="errorBannerText"
+          >Device verification failed from cloud backend. Please enter the new
+          pairing code below to re-pair.</span
+        >
       </div>
 
       <!-- Pairing Active Box -->
@@ -295,9 +334,18 @@
           <div class="code-label">Your Device Pairing Code</div>
           <div id="codeDisplay" class="code-display disabled">------</div>
           <button id="copyBtn" class="copy-btn" disabled>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              ></path>
             </svg>
             <span id="copyText">Copy Code</span>
           </button>
@@ -307,7 +355,9 @@
           <ol>
             <li>Go to the <span>Nexus Web App</span> on your browser.</li>
             <li>Navigate to <span>Settings &rarr; Add Device</span>.</li>
-            <li>Enter the <span>6-digit code</span> shown above to link this PC.</li>
+            <li>
+              Enter the <span>6-digit code</span> shown above to link this PC.
+            </li>
           </ol>
         </div>
 
@@ -316,22 +366,36 @@
           <span id="timerVal" class="timer-val">--:--</span>
         </div>
 
-        <button id="refreshBtn" class="refresh-btn" disabled>Generate New Code</button>
+        <button id="refreshBtn" class="refresh-btn" disabled>
+          Generate New Code
+        </button>
       </div>
 
       <!-- Paired Success State -->
       <div id="pairedBox" class="paired-view">
         <div class="success-icon">&#10003;</div>
-        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #4ade80;">Device Linked Successfully!</h2>
-        <p style="font-size: 0.875rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem;">
-          Your local machine is authenticated and connected to Nexus. You can safely close this window.
+        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #4ade80">
+          Device Linked Successfully!
+        </h2>
+        <p
+          style="
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+          "
+        >
+          Your local machine is authenticated and connected to Nexus. You can
+          safely close this window.
         </p>
       </div>
     </div>
 
     <script>
-      const statusPill = document.getElementById("statusPill");
-      const statusLabel = document.getElementById("statusLabel");
+      const cloudStatusPill = document.getElementById("cloudStatusPill");
+      const cloudStatusLabel = document.getElementById("cloudStatusLabel");
+      const deviceStatusPill = document.getElementById("deviceStatusPill");
+      const deviceStatusLabel = document.getElementById("deviceStatusLabel");
       const offlineBanner = document.getElementById("offlineBanner");
       const errorBanner = document.getElementById("errorBanner");
       const errorBannerText = document.getElementById("errorBannerText");
@@ -349,7 +413,10 @@
 
       function saveToLocalStorage(code, expiresat) {
         if (code && expiresat) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ code, expiresat }));
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ code, expiresat }),
+          );
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
@@ -364,9 +431,18 @@
         }
       }
 
-      function updateStatus(status, label) {
-        statusPill.className = `status-pill status-${status}`;
-        statusLabel.textContent = label;
+      function updateCloudStatus(status, label, pulse = false) {
+        cloudStatusPill.className = `status-pill status-${status}`;
+        const dot = cloudStatusPill.querySelector(".status-dot");
+        if (dot) {
+          dot.className = `status-dot${pulse ? " pulse" : ""}`;
+        }
+        cloudStatusLabel.textContent = label;
+      }
+
+      function updateDeviceStatus(status, label) {
+        deviceStatusPill.className = `status-pill status-${status}`;
+        deviceStatusLabel.textContent = label;
       }
 
       function formatTime(seconds) {
@@ -402,30 +478,57 @@
           if (!res.ok) throw new Error("Failed to fetch pairing status");
           const data = await res.json();
 
-          // 1. Device Already Paired
+          // 1. Update Cloud Status Pill independently
+          if (data.isConnected) {
+            updateCloudStatus("connected", "Cloud: Connected", false);
+          } else {
+            updateCloudStatus("offline", "Cloud: Offline", true);
+          }
+
+          // 2. Update Device Status Pill independently
+          if (data.isPaired) {
+            updateDeviceStatus("paired", "Device: Paired");
+          } else {
+            updateDeviceStatus("unpaired", "Device: Not Paired");
+          }
+
+          // 3. Handle Pairing / Verification Error Banner
+          if (data.pairingError) {
+            errorBanner.style.display = "block";
+            errorBannerText.textContent =
+              data.pairingError +
+              " Please enter the new pairing code below to re-pair.";
+          } else {
+            errorBanner.style.display = "none";
+          }
+
+          // 4. Handle Paired View
           if (data.isPaired) {
             pairingBox.style.display = "none";
-            offlineBanner.style.display = "none";
-            errorBanner.style.display = "none";
             pairedBox.style.display = "block";
-            updateStatus("paired", "Device Paired & Ready");
+
+            // If paired but Cloud is offline, alert user that commands cannot be received
+            if (!data.isConnected) {
+              offlineBanner.style.display = "block";
+              offlineBanner.innerHTML =
+                "<strong>⚠️ Cloud Backend Offline:</strong> This device is paired, but the Cloud Backend is unreachable. Remote commands cannot be received until reconnected.";
+            } else {
+              offlineBanner.style.display = "none";
+            }
+
             saveToLocalStorage(null);
             if (countdownTimer) clearInterval(countdownTimer);
             return;
           }
 
-          // 2. Handle Pairing / Verification Error
-          if (data.pairingError) {
-            errorBanner.style.display = "block";
-            errorBannerText.textContent = data.pairingError + " Please enter the new pairing code below to re-pair.";
-          } else {
-            errorBanner.style.display = "none";
-          }
+          // 5. Handle Unpaired View (Pairing Setup)
+          pairedBox.style.display = "none";
+          pairingBox.style.display = "block";
 
-          // 3. Cloud Backend Offline
           if (!data.isConnected) {
             offlineBanner.style.display = "block";
-            updateStatus("offline", "Cloud Backend Offline");
+            offlineBanner.innerHTML =
+              "<strong>⚠️ Cloud Backend Offline:</strong> Cannot generate a pairing code because the Cloud Backend is unreachable. Please start the backend server.";
             codeDisplay.textContent = "------";
             codeDisplay.classList.add("disabled");
             copyBtn.disabled = true;
@@ -436,10 +539,9 @@
             return;
           }
 
-          // 4. Connected to Cloud Backend
           offlineBanner.style.display = "none";
-          updateStatus("connected", "Connected to Cloud Backend");
 
+          // Cloud connected and pairing code received
           if (data.code) {
             codeDisplay.textContent = data.code;
             codeDisplay.classList.remove("disabled");
@@ -450,9 +552,12 @@
           }
         } catch (err) {
           console.error("Status fetch error:", err);
+          updateCloudStatus("offline", "Cloud: Offline", true);
+          updateDeviceStatus("offline", "Local Server Offline");
           offlineBanner.style.display = "block";
+          offlineBanner.innerHTML =
+            "<strong>⚠️ Local Server Offline:</strong> Cannot connect to local companion server on port 4100.";
           errorBanner.style.display = "none";
-          updateStatus("offline", "Local Server Offline");
           codeDisplay.textContent = "------";
           codeDisplay.classList.add("disabled");
           copyBtn.disabled = true;
@@ -502,7 +607,9 @@
         refreshBtn.disabled = true;
         refreshBtn.textContent = "Generating...";
         try {
-          const res = await fetch("http://localhost:4100/api/generate-code", { method: "POST" });
+          const res = await fetch("http://localhost:4100/api/generate-code", {
+            method: "POST",
+          });
           const data = await res.json();
           if (data.success && data.code) {
             codeDisplay.textContent = data.code;
