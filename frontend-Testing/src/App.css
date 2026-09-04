@@ -1384,12 +1384,17 @@ body {
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
+@media (max-width: 1024px) {
+  .floating-input-wrapper { width: calc(100% - 2rem); }
+}
+
 @media (max-width: 768px) {
   .app-sidebar {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
+    max-width: 85vw;
     transform: translateX(-100%);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
   }
@@ -1406,15 +1411,142 @@ body {
     z-index: 35;
   }
 
-  .chat-header { padding: 0.75rem 1rem; }
-  .chat-feed { padding: 1rem 1rem 110px; }
+  .chat-header { 
+    padding: 0.5rem; 
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+
+  .chat-feed { padding: 1rem 1rem 120px; }
   .action-pill-btn .btn-label { display: none; }
   .user-header-name { display: none; }
   .quick-suggestions { grid-template-columns: 1fr; }
-  .floating-input-wrapper { width: calc(100% - 1.5rem); bottom: 1rem; }
+  
+  .floating-input-wrapper { 
+    width: 100%; 
+    padding: 0 0.5rem;
+    bottom: 0.5rem;
+  }
+
+  .chat-input-area {
+    padding: 0.35rem 0.35rem 0.35rem 0.8rem;
+  }
+
+  .auth-card {
+    padding: 1.75rem;
+    max-width: 100%;
+  }
+
+  .behaviour-select {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .chat-item.user-item {
+    max-width: 95%;
+  }
+
+  .message-text {
+    font-size: 0.9rem;
+    padding: 0.65rem 0.9rem;
+  }
+
+  .avatar-wrapper {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    padding: 1.25rem;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+  }
 }
 
 @media (max-width: 480px) {
   .session-badge { display: none; }
   .brand-title .title-text { display: none; }
+  
+  .chat-header {
+    padding: 0.4rem;
+  }
+
+  .header-actions {
+    gap: 0.3rem;
+  }
+
+  .behaviour-select {
+    max-width: 80px;
+    font-size: 0.7rem;
+    text-overflow: ellipsis;
+  }
+
+  .action-pill-btn {
+    padding: 0.25rem 0.4rem;
+  }
+
+  .icon-btn {
+    padding: 0.3rem;
+  }
+
+  .auth-card {
+    padding: 1.25rem;
+    gap: 1rem;
+    border-radius: 12px;
+  }
+
+  .auth-logo {
+    font-size: 2.2rem;
+  }
+
+  .auth-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .chat-feed { padding: 0.75rem 0.75rem 110px; gap: 1rem; }
+
+  .empty-state {
+    padding: 1rem 0.5rem;
+  }
+
+  .empty-logo {
+    font-size: 2.2rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.15rem;
+  }
+
+  .suggestion-chip {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .send-button {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .chat-input {
+    font-size: 0.9rem;
+  }
+
+  .code-body {
+    font-size: 0.75rem;
+    padding: 0.6rem 0.75rem;
+  }
 }

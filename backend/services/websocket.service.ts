@@ -131,6 +131,10 @@ const initWebsocket = (server: Server) => {
     });
 
     ws.on("close", () => {
+      ws.userId = "";
+      ws.isAuthenticated = false;
+      ws.deviceId = "";
+      console.log(ws.userId);
       console.log(
         `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"})`,
       );
@@ -175,11 +179,18 @@ const sendCmdRequest = async (
       requestId,
     });
 
+    console.log("Starting searching for the client localbackend!");
     let clientFound = false;
-
     (wss.clients as Set<CustomWebSocket>).forEach((client) => {
       const isSameUser = client.userId?.toString() === userId?.toString();
-
+      console.log("Userid:", userId);
+      console.log("Client userId:", client.userId);
+      console.log("Device Id: ", client.deviceId);
+      console.log("Is Authenticated:", client.isAuthenticated);
+      console.log("Ready State:", client.readyState);
+      if (client.deviceId === "web_client") {
+        return;
+      }
       if (
         isSameUser &&
         client.isAuthenticated &&
@@ -189,7 +200,7 @@ const sendCmdRequest = async (
         clientFound = true;
       }
     });
-
+    console.log("Ended search!", clientFound);
     if (!clientFound) {
       return reject(
         new Error(
