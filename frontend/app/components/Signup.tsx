@@ -1,27 +1,42 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
 
-const Login = (): React.JSX.Element => {
+const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    if (!email || !password) return;
-    console.log("LOGIN IN....", email, password);
+    if (!email || !password || !name) return;
+    console.log("LOGIN IN....", email, password, name);
   };
 
   return (
     <div className={style.container}>
       <div className={style.card}>
-        <h1 className={style.title}>Log in</h1>
-        <p className={style.subtitle}>Welcome back to Nexus</p>
+        <h1 className={style.title}>Sign Up</h1>
+        <p className={style.subtitle}>Get your Desktop AI Today</p>
         <div id="form" className={style.formWrapper}>
-          <form onSubmit={handleLogin} className={style.form}>
+          <form onSubmit={handleSignup} className={style.form}>
+            <div className={style.inputGroup}>
+              <label htmlFor="name" className={style.label}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                id="name"
+                placeholder="Enter your name..."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className={style.input}
+              />
+            </div>
             <div className={style.inputGroup}>
               <label htmlFor="email" className={style.label}>
                 Email Address
@@ -30,7 +45,7 @@ const Login = (): React.JSX.Element => {
                 type="email"
                 name="email"
                 id="email"
-                placeholder="Enter your email"
+                placeholder="Enter your email..."
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -45,7 +60,7 @@ const Login = (): React.JSX.Element => {
                 type="password"
                 name="password"
                 required
-                placeholder="Enter your password"
+                placeholder="Enter your password..."
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -58,14 +73,14 @@ const Login = (): React.JSX.Element => {
               disabled={isLoading}
               className={style.submitBtn}
             >
-              {isLoading ? "Logging in..." : "Login"}
+              {isLoading ? "Signing up..." : "Sign Up"}
             </button>
           </form>
 
           <p className={style.footerText}>
-            Don&apos;t have an account?
-            <Link href="/auth/signup" className={style.footerLink}>
-              Sign up
+            Already have an account?
+            <Link href="/auth/login" className={style.footerLink}>
+              Log in
             </Link>
           </p>
         </div>
@@ -92,4 +107,4 @@ const style = {
     "font-semibold text-[#DCD3FF] hover:text-white hover:underline transition-colors ml-1",
 };
 
-export default Login;
+export default Signup;

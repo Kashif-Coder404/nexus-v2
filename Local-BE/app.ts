@@ -11,6 +11,8 @@ import {
   isConnectedToBackend,
   pairingMessage,
   sendRevokeRequestToCloud,
+  setService,
+  getService,
 } from "./services/ws.service";
 import { uninstallNexus } from "./setupnexus";
 
@@ -30,14 +32,19 @@ const serveSetupPage = (req: express.Request, res: express.Response) => {
   try {
     if (isSea()) {
       const asset = getAsset("paringcode.html", "utf8");
-      const html = typeof asset === "string" ? asset : Buffer.from(asset).toString("utf-8");
+      const html =
+        typeof asset === "string"
+          ? asset
+          : Buffer.from(asset).toString("utf-8");
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(html);
     }
 
     const localFilePath = path.join(__dirname, "paringcode.html");
     const cwdFilePath = path.join(process.cwd(), "paringcode.html");
-    const targetPath = fs.existsSync(localFilePath) ? localFilePath : cwdFilePath;
+    const targetPath = fs.existsSync(localFilePath)
+      ? localFilePath
+      : cwdFilePath;
 
     return res.sendFile(targetPath);
   } catch (error) {
@@ -50,7 +57,20 @@ app.get("/", serveSetupPage);
 app.get("/login", serveSetupPage);
 app.get("/setup", serveSetupPage);
 app.get("/paring", serveSetupPage);
-
+app.put("/switch", (req, res) => {
+  const { value } = req.body;
+  setService(value);
+  res.status(200).json({
+    success: true,
+    message: "Service switched successfully.",
+  });
+});
+app.get("/getService", (req, res) => {
+  res.status(200).json({
+    success: true,
+    isEnable: getService(),
+  });
+});
 // API to get current status and pairing code
 app.get("/api/pairing-status", async (req, res) => {
   try {
@@ -62,6 +82,7 @@ app.get("/api/pairing-status", async (req, res) => {
       success: true,
       isConnected: wsState,
       isPaired: !!deviceData?.token,
+      isEnable: getService(),
       code: pairingState.code,
       expiresat: pairingState.expiresat,
       remainingSeconds: pairingState.remainingSeconds,

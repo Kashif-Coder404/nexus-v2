@@ -318,6 +318,109 @@
       .footer-uninstall-btn:hover:not(:disabled) {
         color: #ef4444;
       }
+
+      /* Service Control Card & Toggle Switch */
+      #serviceStatusPill {
+        cursor: pointer;
+        user-select: none;
+      }
+      .service-card {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin: 1.5rem 0 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        text-align: left;
+      }
+      .service-info {
+        flex: 1;
+      }
+      .service-header-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 0.35rem;
+      }
+      .service-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+      .service-desc {
+        font-size: 0.82rem;
+        color: #94a3b8;
+        line-height: 1.4;
+      }
+      .service-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.18rem 0.55rem;
+        border-radius: 9999px;
+        transition: all 0.2s ease;
+      }
+      .badge-active {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+      .badge-paused {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 26px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #334155;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 9999px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      .toggle-switch input:checked + .slider {
+        background: linear-gradient(135deg, #38bdf8 0%, #22c55e 100%);
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+        border-color: rgba(56, 189, 248, 0.5);
+      }
+      .toggle-switch input:checked + .slider:before {
+        transform: translateX(22px);
+      }
+      .toggle-switch input:disabled + .slider {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -342,6 +445,16 @@
         <div id="deviceStatusPill" class="status-pill status-unpaired">
           <span class="status-dot"></span>
           <span id="deviceStatusLabel">Device: Checking...</span>
+        </div>
+
+        <!-- Local Service Execution Status -->
+        <div
+          id="serviceStatusPill"
+          class="status-pill status-connected"
+          title="Click to toggle command service"
+        >
+          <span class="status-dot"></span>
+          <span id="serviceStatusLabel">Service: Active</span>
         </div>
       </div>
 
@@ -422,6 +535,23 @@
           safely close this window.
         </p>
 
+        <!-- Service Execution Control Card -->
+        <div class="service-card">
+          <div class="service-info">
+            <div class="service-header-row">
+              <span class="service-title">Remote Execution</span>
+              <span id="serviceBadge" class="service-badge badge-active">Active</span>
+            </div>
+            <p class="service-desc" id="serviceDesc">
+              Allowing incoming commands from Nexus Cloud.
+            </p>
+          </div>
+          <label class="toggle-switch" title="Toggle remote command execution">
+            <input type="checkbox" id="serviceToggle" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
         <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <button id="pairedUninstallBtn" class="uninstall-btn">
             🗑️ Unlink &amp; Uninstall Nexus
@@ -465,10 +595,78 @@
       const timerVal = document.getElementById("timerVal");
       const timerRow = document.getElementById("timerRow");
       const refreshBtn = document.getElementById("refreshBtn");
+      const serviceStatusPill = document.getElementById("serviceStatusPill");
+      const serviceStatusLabel = document.getElementById("serviceStatusLabel");
+      const serviceBadge = document.getElementById("serviceBadge");
+      const serviceDesc = document.getElementById("serviceDesc");
+      const serviceToggle = document.getElementById("serviceToggle");
 
       const STORAGE_KEY = "nexus_local_pairing";
       let isUninstalling = false;
+      let isSwitching = false;
+      let isServiceEnabled = true;
       let countdownTimer = null;
+
+      function updateServiceUI(isEnabled) {
+        isServiceEnabled = isEnabled;
+        if (serviceToggle) serviceToggle.checked = isEnabled;
+
+        if (serviceStatusPill) {
+          serviceStatusPill.className = `status-pill status-${isEnabled ? "connected" : "offline"}`;
+          serviceStatusLabel.textContent = `Service: ${isEnabled ? "Active" : "Paused"}`;
+        }
+        if (serviceBadge) {
+          serviceBadge.className = `service-badge ${isEnabled ? "badge-active" : "badge-paused"}`;
+          serviceBadge.textContent = isEnabled ? "Active" : "Paused";
+        }
+        if (serviceDesc) {
+          serviceDesc.textContent = isEnabled
+            ? "Allowing incoming commands from Nexus Cloud."
+            : "Command execution is paused on this machine.";
+        }
+      }
+
+      async function toggleService(targetState) {
+        if (isSwitching || isUninstalling) return;
+        isSwitching = true;
+        if (serviceToggle) serviceToggle.disabled = true;
+
+        try {
+          const res = await fetch("http://localhost:4100/switch", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: targetState }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            updateServiceUI(targetState);
+          } else {
+            throw new Error(data.message || "Failed to switch service");
+          }
+        } catch (error) {
+          console.error("Error toggling service:", error);
+          if (serviceToggle) serviceToggle.checked = !targetState;
+          updateServiceUI(!targetState);
+          alert("Could not update service state: " + error.message);
+        } finally {
+          if (serviceToggle) serviceToggle.disabled = false;
+          isSwitching = false;
+        }
+      }
+
+      async function fetchServiceStatus() {
+        if (isSwitching || isUninstalling) return;
+        try {
+          const res = await fetch("http://localhost:4100/getService");
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.success && typeof data.isEnable === "boolean") {
+            updateServiceUI(data.isEnable);
+          }
+        } catch (err) {
+          console.error("Service status fetch error:", err);
+        }
+      }
 
       function saveToLocalStorage(code, expiresat) {
         if (code && expiresat) {
@@ -552,7 +750,12 @@
             updateDeviceStatus("unpaired", "Device: Not Paired");
           }
 
-          // 3. Handle Pairing / Verification Error Banner
+          // 3. Update Service Execution Status
+          if (typeof data.isEnable === "boolean" && !isSwitching) {
+            updateServiceUI(data.isEnable);
+          }
+
+          // 4. Handle Pairing / Verification Error Banner
           if (data.pairingError) {
             errorBanner.style.display = "block";
             errorBannerText.textContent =
@@ -562,7 +765,7 @@
             errorBanner.style.display = "none";
           }
 
-          // 4. Handle Paired View
+          // 5. Handle Paired View
           if (data.isPaired) {
             pairingBox.style.display = "none";
             pairedBox.style.display = "block";
@@ -581,7 +784,7 @@
             return;
           }
 
-          // 5. Handle Unpaired View (Pairing Setup)
+          // 6. Handle Unpaired View (Pairing Setup)
           pairedBox.style.display = "none";
           pairingBox.style.display = "block";
 
@@ -614,6 +817,12 @@
           console.error("Status fetch error:", err);
           updateCloudStatus("offline", "Cloud: Offline", true);
           updateDeviceStatus("offline", "Local Server Offline");
+          if (!isSwitching) {
+            updateServiceUI(false);
+            if (serviceStatusLabel) {
+              serviceStatusLabel.textContent = "Service: Offline";
+            }
+          }
           offlineBanner.style.display = "block";
           offlineBanner.innerHTML =
             "<strong>⚠️ Local Server Offline:</strong> Cannot connect to local companion server on port 4100.";
@@ -750,6 +959,18 @@
         footerUninstallBtn.addEventListener("click", handleUninstall);
       }
 
+      if (serviceToggle) {
+        serviceToggle.addEventListener("change", () => {
+          toggleService(serviceToggle.checked);
+        });
+      }
+
+      if (serviceStatusPill) {
+        serviceStatusPill.addEventListener("click", () => {
+          toggleService(!isServiceEnabled);
+        });
+      }
+
       // Load cached from localStorage on fast start
       const cached = getFromLocalStorage();
       if (cached && new Date(cached.expiresat).getTime() > Date.now()) {
@@ -758,7 +979,11 @@
 
       // Initial check & auto-poll every 2.5s
       fetchStatus();
-      const pollInterval = setInterval(fetchStatus, 2500);
+      fetchServiceStatus();
+      const pollInterval = setInterval(() => {
+        fetchStatus();
+        fetchServiceStatus();
+      }, 2500);
     </script>
   </body>
 </html>

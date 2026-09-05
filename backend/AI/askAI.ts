@@ -11,6 +11,17 @@ import { sendToUser } from "../services/websocket.service.js";
 import { behaviourPrompt } from "./instructions/behaviour.instructions.js";
 import { instructions } from "./instructions/main.Instructions.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
+
+type CommandExecution = {
+  steps: number;
+  action: string;
+  cmd: string;
+  msg: string;
+  terminalOutput: string;
+  terminalError: string;
+  isSuccess: boolean;
+  exitCode?: string;
+};
 export const askAI = async (
   userId: string,
   session: string,
@@ -28,7 +39,7 @@ export const askAI = async (
   let success = false;
   let isSuccessState = false;
   let workingOn = "";
-
+  let executions: CommandExecution[] = [];
   const prevChat: ChatMessageType[] =
     (await getChat(userId, session, 10))?.chat || [];
   const summaryChat: ChatMessageType[] =
@@ -43,6 +54,7 @@ export const askAI = async (
   ];
   let commandRunningMsgs: ChatMessageType[] = [];
 
+  //Execution loops
   while (retries <= 15) {
     const ChatMsgs: ChatMessageType[] = [...chatHistory, ...commandRunningMsgs];
     //Broadcasting here...
@@ -124,6 +136,16 @@ export const askAI = async (
         terminalOutput += commandOutput.terminalOutput
           ? commandOutput.terminalOutput + "\n"
           : "";
+        executions.push({
+          steps: executions.length + 1,
+          action: parsedCMD.action,
+          cmd: command,
+          msg: aiResponse?.msg || "",
+          terminalError: commandOutput.terminalError || "",
+          terminalOutput: commandOutput.terminalOutput || "",
+          isSuccess: commandOutput.isSuccess,
+          exitCode: commandOutput.exitCode?.toString() || "",
+        });
 
         let currentError = commandOutput.terminalError || "";
 
@@ -183,6 +205,7 @@ export const askAI = async (
         msg: aiResponse?.msg || "API CALL NO OUTPUT AS A MESSAGE!",
         terminalError: terminalError || "",
         terminalOutput: terminalOutput || "",
+        executions: executions || [],
       }),
     },
   ];
@@ -199,6 +222,7 @@ export const askAI = async (
     terminalOutput: terminalOutput || "",
     terminalError: terminalError || "",
     imageBase64: capturedImage || "",
+    executions: executions || [],
   };
 };
 function cmd_explainer(action: string, param: any) {

@@ -84,7 +84,9 @@ export const sendRevokeRequestToCloud = async (): Promise<boolean> => {
       await new Promise((resolve) => setTimeout(resolve, 600));
       return true;
     } else {
-      console.warn("[WS] Cloud Backend offline; skipping remote revoke notification.");
+      console.warn(
+        "[WS] Cloud Backend offline; skipping remote revoke notification.",
+      );
       return false;
     }
   } catch (err: any) {
@@ -216,6 +218,14 @@ export const forceNewPairingCode = async () => {
 
 // WebSocket Connection to Cloud Backend
 let isOpened = false;
+let isEnable = true;
+export const setService = (val: boolean) => {
+  isEnable = val;
+};
+export const getService = () => {
+  return isEnable;
+};
+
 const ServerWSConnection = async () => {
   console.log("[WS] Connecting to Cloud Backend...");
   const deviceData = await readDeviceTokenFile();
@@ -279,6 +289,22 @@ const ServerWSConnection = async () => {
 
         case "RunCMD": {
           const { requestId, cmd } = parsed;
+          if (!isEnable) {
+            return sendJson(ws, {
+              type: "cmd_response",
+              requestId,
+              cmdResponse: {
+                cmd,
+                msg: "Command execution is disabled on this device.",
+                terminalOutput:
+                  "Execution failed as user stop the service to execute the command.",
+                terminalError: "Command execution disabled",
+                isSuccess: false,
+                exitCode: 1,
+                imageBase64: "",
+              },
+            });
+          }
           const parsedCmd = typeof cmd === "string" ? JSON.parse(cmd) : cmd;
 
           const cmdResponse = await runCommand(

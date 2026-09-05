@@ -54,7 +54,7 @@ export const sendMessage = async (req: any, res: any) => {
       { updatedAt: new Date() },
     ).catch(() => {});
     // const model: ModelType = { provider: "gemini", name: "gemini-3.5-flash" };
-    const { cmd, msg, terminalOutput, terminalError, imageBase64 } =
+    const { cmd, msg, terminalOutput, terminalError, executions, imageBase64 } =
       await askAI(userId, session, content, behaviour, model);
     sendToUser(userId, {
       type: "ai_done",
@@ -74,6 +74,7 @@ export const sendMessage = async (req: any, res: any) => {
         lastCMD: cmd,
         terminal: terminalOutput || "",
         terminalError: terminalError || "",
+        executions: executions,
         imageBase64: imageBase64 || "",
       },
     });
