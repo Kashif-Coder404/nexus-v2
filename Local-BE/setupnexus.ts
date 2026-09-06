@@ -1,10 +1,41 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { exec, execSync, spawn } from "child_process";
+import { exec, execSync, execFileSync, spawn, spawnSync } from "child_process";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
+const TASK_NAME = "NexusBackgroundService";
+const isRunningAsAdmin = () => {
+  try {
+    execSync("net session", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+const eleevateSelf = () => {
+  const args = process.argv
+    .slice(1)
+    .map((arg) => `"${arg}"`)
+    .join(" ");
+  const psCommand = `Start-Process -FilePath "${process.execPath}" -ArgumentList '${args}' -Verb RunAs`;
+  try {
+    spawnSync("powershell.exe", ["-NoProfile", "-Command", psCommand], {
+      stdio: "inherit",
+    });
+  } catch (err: any) {
+    console.log(err.message);
+  }
+  process.exit(0);
+};
+const isTaskRegistered = (): boolean => {
+  try {
+    execSync(`schtasks /query /tn "${TASK_NAME}"`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
 async function countdownAndExit(seconds: number = 5) {
   for (let i = seconds; i > 0; i--) {
     process.stdout.write(
@@ -48,6 +79,11 @@ export const uninstallNexus = async (): Promise<{
       fs.unlinkSync(vbsPath);
       console.log(`[UNINSTALL] Deleted startup script: ${vbsPath}`);
     }
+    // Stop and delete the scheduled task
+    try {
+      execSync(`schtasks /delete /tn "${TASK_NAME}" /f`, { stdio: "ignore" });
+      console.log(`[UNINSTALL] Deleted scheduled task: ${TASK_NAME}`);
+    } catch {}
 
     // 2. Remove configuration and device credentials
     if (fs.existsSync(configDir)) {
@@ -65,16 +101,23 @@ export const uninstallNexus = async (): Promise<{
 
     // 3. Delete installed executable and folder
     const runningExe = process.execPath;
-    const isDev = path.basename(runningExe).toLowerCase() === "node.exe";
+    const isRunningFromTarget = path
+      .resolve(runningExe)
+      .toLowerCase()
+      .startsWith(path.resolve(targetDir).toLowerCase());
 
     if (fs.existsSync(targetDir)) {
-      if (isDev) {
+      if (!isRunningFromTarget) {
+        // CLI / External mode: kill background nexus processes (excluding this process) and delete directly
         try {
-          try {
-            execSync("taskkill /f /im nexus.exe", { stdio: "ignore" });
-          } catch {}
-          await sleep(500);
-          fs.rmSync(targetDir, { recursive: true, force: true });
+          const killCmd = `Get-Process -Name nexus -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne ${process.pid} } | Stop-Process -Force`;
+          spawnSync("powershell.exe", ["-NoProfile", "-Command", killCmd], {
+            stdio: "ignore",
+          });
+        } catch {}
+        await sleep(500);
+        try {
+          execSync(`cmd.exe /c rmdir /s /q "${targetDir}"`, { stdio: "ignore" });
           console.log(`[UNINSTALL] Removed target directory: ${targetDir}`);
         } catch (e: any) {
           console.warn(
@@ -82,28 +125,26 @@ export const uninstallNexus = async (): Promise<{
           );
         }
       } else {
-        // In production Windows binary: schedule detached PowerShell with retry to bypass file locks
-        const escapedPath = targetDir.replace(/'/g, "''");
-        const psCommand = [
-          "Start-Sleep -Seconds 2;",
-          "Stop-Process -Name nexus -Force -ErrorAction SilentlyContinue;",
-          "Start-Sleep -Seconds 1;",
-          "for ($i=0; $i -lt 5; $i++) {",
-          `  if (Test-Path -LiteralPath '${escapedPath}') {`,
-          `    Remove-Item -LiteralPath '${escapedPath}' -Recurse -Force -ErrorAction SilentlyContinue;`,
-          `    if (-not (Test-Path -LiteralPath '${escapedPath}')) { break; }`,
-          "    Start-Sleep -Seconds 1;",
-          "  } else { break; }",
-          "}",
-        ].join(" ");
+        // Web UI / Installed mode: schedule detached PowerShell with cwd: os.tmpdir()
+        const cleanScript = `
+Start-Sleep -Seconds 2
+Stop-Process -Name nexus -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+cmd.exe /c rmdir /s /q '${targetDir}'
+if (Test-Path -LiteralPath '${targetDir}') {
+  Start-Sleep -Seconds 2
+  cmd.exe /c rmdir /s /q '${targetDir}'
+}
+`;
+        const b64 = Buffer.from(cleanScript, "utf16le").toString("base64");
 
         const child = spawn(
           "powershell.exe",
-          ["-NoProfile", "-WindowStyle", "Hidden", "-Command", psCommand],
+          ["-NoProfile", "-WindowStyle", "Hidden", "-EncodedCommand", b64],
           {
+            cwd: os.tmpdir(),
             detached: true,
             stdio: "ignore",
-            windowsHide: true,
           },
         );
         child.unref();
@@ -111,6 +152,15 @@ export const uninstallNexus = async (): Promise<{
           `[UNINSTALL] Scheduled directory removal via PowerShell: ${targetDir}`,
         );
       }
+    }
+
+    if (path.resolve(runningExe).toLowerCase().includes("nexus-uninstall")) {
+      const tempParent = path.dirname(runningExe);
+      spawn("cmd.exe", ["/c", `ping 127.0.0.1 -n 4 >nul & rmdir /s /q "${tempParent}"`], {
+        cwd: os.tmpdir(),
+        detached: true,
+        stdio: "ignore",
+      }).unref();
     }
 
     console.log("[UNINSTALL] Uninstallation completed successfully.");
@@ -130,6 +180,13 @@ export const uninstallNexus = async (): Promise<{
 export const setupFirst = async (): Promise<boolean> => {
   try {
     if (process.argv.includes("--uninstall") || process.argv.includes("-u")) {
+      if (!isRunningAsAdmin()) {
+        console.log(
+          "⚡ Elevation required to uninstall. Prompting for administrator rights...",
+        );
+        eleevateSelf();
+        return false;
+      }
       console.log("\n=======================================================");
       console.log("🗑️  Nexus Uninstaller");
       console.log("=======================================================");
@@ -172,8 +229,7 @@ export const setupFirst = async (): Promise<boolean> => {
 
     // --- FROM THIS POINT ON: Running as the external / downloaded setup .exe ---
 
-    const isAlreadyInstalled =
-      fs.existsSync(targetExe) && fs.existsSync(vbsPath);
+    const isAlreadyInstalled = fs.existsSync(targetExe) && isTaskRegistered();
 
     if (isAlreadyInstalled) {
       console.log("\n=======================================================");
@@ -187,7 +243,13 @@ export const setupFirst = async (): Promise<boolean> => {
       await countdownAndExit(5);
       return false;
     }
-
+    if (!isRunningAsAdmin()) {
+      console.log(
+        "⚡ Elevation required. Prompting for administrator rights...",
+      );
+      eleevateSelf();
+      return false;
+    }
     // First-time setup: Perform installation
     console.log("\n=======================================================");
     console.log("🚀 Setting up Nexus on your PC for the first time...");
@@ -202,22 +264,28 @@ export const setupFirst = async (): Promise<boolean> => {
     fs.copyFileSync(runningExe, targetExe);
     console.log(`[SETUP] Copied nexus.exe to: ${targetExe}`);
 
-    // 3. Create run_nexus.vbs in Startup folder for silent background boot
-    if (!fs.existsSync(startupDir)) {
-      fs.mkdirSync(startupDir, { recursive: true });
-    }
-
+    // 3. Register task in Windows Task Scheduler to run elevated on logon
+    const silentVbsPath = path.join(targetDir, "run_silent.vbs");
     const vbsContent = [
       'Set objShell = CreateObject("WScript.Shell")',
       `objShell.Run """${targetExe}""", 0, False`,
       "Set objShell = Nothing",
     ].join("\r\n");
-
-    fs.writeFileSync(vbsPath, vbsContent, "utf-8");
-    console.log(`[SETUP] Created background startup script at: ${vbsPath}`);
-
-    // 4. Launch the installed app in the background
-    exec(`wscript.exe "${vbsPath}"`);
+    fs.writeFileSync(silentVbsPath, vbsContent, "utf-8");
+    const taskCmd = `wscript.exe \\"${silentVbsPath}\\"`;
+    execSync(
+      `schtasks /create /tn "${TASK_NAME}" /tr "${taskCmd}" /sc onlogon /rl highest /f`,
+      { stdio: "ignore" },
+    );
+    console.log(`[SETUP] Registered elevated task: ${TASK_NAME}`);
+    // Clean up any legacy VBS startup script if present
+    if (fs.existsSync(vbsPath)) {
+      try {
+        fs.unlinkSync(vbsPath);
+      } catch {}
+    }
+    // 4. Launch the installed app in the background immediately
+    execSync(`schtasks /run /tn "${TASK_NAME}"`, { stdio: "ignore" });
     console.log("[SETUP] Started Nexus background service.");
 
     console.log("\n=======================================================");

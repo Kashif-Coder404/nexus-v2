@@ -7,8 +7,9 @@ export const runCommand = async (
   action: any,
   param: string | Object,
   timeout: number | 30000,
+  isDaemon: boolean = false,
 ) => {
-  const results = await commandParser({ action, param, timeout });
+  const results = await commandParser({ action, param, timeout, isDaemon });
   results.terminalOutput =
     results.terminalOutput === "" ? "No Output" : results.terminalOutput;
   return results;

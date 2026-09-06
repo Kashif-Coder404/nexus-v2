@@ -3,6 +3,8 @@ import cors from "cors";
 import router from "./routes/cmd.route";
 import path from "path";
 import fs from "fs";
+import os from "os";
+import { spawn, spawnSync } from "child_process";
 import { isSea, getAsset } from "node:sea";
 import {
   generatePairingCode,
@@ -142,20 +144,48 @@ app.post("/api/uninstall", async (req, res) => {
     // 1. Notify Cloud Backend to remove this device registration
     await sendRevokeRequestToCloud();
 
-    // 2. Perform file & startup script removal
-    const uninstallResult = await uninstallNexus();
-
-    // 3. Respond to browser client
+    // 2. Respond to browser client right away so UI updates
     res.status(200).json({
       success: true,
-      message: uninstallResult.message,
+      message: "Uninstaller launched successfully.",
     });
 
-    // 4. Terminate process shortly after response is flushed
+    // 3. Copy to TEMP and launch new elevated terminal with Admin rights
     setTimeout(() => {
-      console.log("[SERVER] Exiting process after uninstallation.");
-      process.exit(0);
-    }, 1000);
+      const runningExe = process.execPath;
+      const isDev = path.basename(runningExe).toLowerCase() === "node.exe";
+
+      if (isDev) {
+        uninstallNexus().then(() => process.exit(0));
+      } else {
+        // Copy nexus.exe to %TEMP%\nexus-uninstall\nexus.exe
+        const tempDir = path.join(os.tmpdir(), "nexus-uninstall");
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        const tempExe = path.join(tempDir, "nexus.exe");
+        try {
+          fs.copyFileSync(runningExe, tempExe);
+        } catch (e: any) {
+          console.error("Failed to copy uninstaller to temp:", e.message);
+        }
+
+        // Launch temp uninstaller in a new terminal with Admin rights (-Verb RunAs)
+        const psCmd = `Start-Process -FilePath "${tempExe}" -ArgumentList "--uninstall" -WorkingDirectory "${tempDir}" -Verb RunAs`;
+
+        // spawnSync ensures PowerShell hands off the launch before we exit
+        try {
+          spawnSync("powershell.exe", ["-NoProfile", "-Command", psCmd], {
+            cwd: tempDir,
+            stdio: "ignore",
+          });
+        } catch (e: any) {
+          console.error("Failed to launch uninstaller:", e.message);
+        }
+
+        process.exit(0);
+      }
+    }, 500);
   } catch (error: any) {
     console.error("[API UNINSTALL ERROR]", error);
     return res.status(500).json({

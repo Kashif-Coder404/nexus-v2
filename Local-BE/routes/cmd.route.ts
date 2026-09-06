@@ -10,6 +10,7 @@ router.post("/run-command", async (req, res) => {
   const action = actualCommands.action;
   const param = actualCommands.param;
   const timeout = actualCommands.timeout || 5000;
+  const isDaemon = actualCommands.isDaemon;
   if (!action) {
     return res.status(400).json({
       isSuccess: false,
@@ -18,7 +19,7 @@ router.post("/run-command", async (req, res) => {
       data: {},
     });
   }
-  const data = await runCommand(action, param, timeout);
+  const data = await runCommand(action, param, timeout, isDaemon);
   res.status(200).json({
     isSuccess: data.isSuccess,
     msg: "Response from the commands",

@@ -105,10 +105,45 @@ export const commandParser = async (
         cmd.timeout && !isNaN(Number(cmd.timeout))
           ? Number(cmd.timeout)
           : 30000;
+      const READ_COMMANDS = [
+        "git",
+        "dir",
+        "ls",
+        "cat",
+        "type",
+        "npm i",
+        "npm install",
+        "echo",
+        "curl",
+        "netstat",
+        "tasklist",
+      ];
+      const isReadCmd = READ_COMMANDS.some((k) =>
+        (cmd.param as string)?.toLowerCase().trim().startsWith(k),
+      );
+
+      const DAEMON_KEYWORDS = [
+        "npm run dev",
+        "npm start",
+        "next dev",
+        "vite",
+        "nodemon",
+        "tsx watch",
+        ".listen(",
+        "python -m http.server",
+        "while ($true)",
+      ];
+      const looksLikeDaemon = DAEMON_KEYWORDS.some((kw) =>
+        (cmd.param as string)?.toLowerCase().includes(kw),
+      );
+
+      const isDaemon = (Boolean(cmd.isDaemon) || looksLikeDaemon) && !isReadCmd;
       const executionResponse: ExecutionResponse = await executeCmd(
         cmd.param as string,
         timeoutMs,
+        isDaemon,
       );
+
       finalResponse.cmd = returningCmd;
       finalResponse.msg = "";
       finalResponse.terminalOutput = executionResponse.stdout;

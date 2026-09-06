@@ -5,6 +5,7 @@ import os from "os";
 import { runCommand } from "../controllers/cmd.controller.js";
 import dotenv from "dotenv";
 import { exec } from "child_process";
+import { killCurrentProcess } from "./execute.service.js";
 dotenv.config();
 
 const CONFIG_DIR = process.env.APPDATA
@@ -235,7 +236,7 @@ const ServerWSConnection = async () => {
     headers.Authorization = `Bearer ${deviceData.token}`;
   }
   const backend_URL =
-    process.env.CLOUD_BACKEND_WS || "wss://nexus-v2-e38m.onrender.com";
+    process.env.CLOUD_BACKEND_WS_LOCAL || "wss://nexus-v2-e38m.onrender.com";
   console.log("Backend URL: ", backend_URL);
   const ws = new WebSocket(`${backend_URL}`, { headers });
   activeWS = ws;
@@ -288,6 +289,7 @@ const ServerWSConnection = async () => {
         }
 
         case "RunCMD": {
+          await killCurrentProcess();
           const { requestId, cmd } = parsed;
           if (!isEnable) {
             return sendJson(ws, {
@@ -311,6 +313,7 @@ const ServerWSConnection = async () => {
             parsedCmd.action,
             parsedCmd.param,
             parsedCmd.timeout,
+            parsedCmd.isDaemon,
           );
 
           sendJson(ws, {

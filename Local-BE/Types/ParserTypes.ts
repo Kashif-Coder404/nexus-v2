@@ -7,6 +7,7 @@ export type BaseCommandType<
   action: A;
   param?: P;
   timeout?: number;
+  isDaemon?: boolean;
 };
 export type MatchKeyType = keyof ActionTypes;
 export interface ActionTypes {
@@ -41,6 +42,7 @@ export type CommandTypes = {
   action: keyof ActionTypes;
   param?: ParametersType<keyof ActionTypes>;
   timeout?: number;
+  isDaemon?: boolean;
 };
 export type commandParserType = {
   cmd: CommandTypes;
