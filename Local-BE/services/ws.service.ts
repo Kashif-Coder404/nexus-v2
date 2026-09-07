@@ -240,10 +240,15 @@ const ServerWSConnection = async () => {
   console.log("Backend URL: ", backend_URL);
   const ws = new WebSocket(`${backend_URL}`, { headers });
   activeWS = ws;
-
+  let pingInterval: NodeJS.Timeout | null = null;
   ws.on("open", async () => {
     isConnectedToBackend = true;
     console.log("[WS] Connected to Cloud Backend!");
+    pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.ping();
+      }
+    }, 25000); // every 25s
 
     if (!deviceData?.token) {
       const { code } = await generatePairingCode();
@@ -333,6 +338,7 @@ const ServerWSConnection = async () => {
   });
 
   ws.on("close", () => {
+    if (pingInterval) clearInterval(pingInterval); 
     isConnectedToBackend = false;
     activeWS = null;
     const retryIn = 5000;
@@ -343,6 +349,7 @@ const ServerWSConnection = async () => {
   });
 
   ws.on("error", (error) => {
+    if (pingInterval) clearInterval(pingInterval); 
     if (!isOpened) {
       exec("start http://localhost:4100");
     }

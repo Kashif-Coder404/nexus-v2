@@ -7,6 +7,7 @@ import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
 import { Types } from "mongoose";
 
 export interface CustomWebSocket extends WebSocket {
+  isAlive?: boolean;
   userId?: string;
   deviceId?: string;
   isAuthenticated?: boolean;
@@ -77,7 +78,7 @@ const connectDevice = async (
       return;
     }
   }
-
+  ws.isAlive = true;
   ws.isAuthenticated = true;
   ws.userId = decodedUserId;
   ws.deviceId = decodedDeviceId || "web_client";
@@ -179,7 +180,9 @@ const initWebsocket = (server: Server) => {
         console.error("[WS] Message parsing error:", err.message);
       }
     });
-
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
     ws.on("close", () => {
       console.log(
         `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"}, device: ${ws.deviceId || "none"})`,
@@ -190,7 +193,14 @@ const initWebsocket = (server: Server) => {
     });
   });
 };
-
+//Client check pinging...
+setInterval(() => {
+  wss.clients.forEach((client: CustomWebSocket) => {
+    if (client.deviceId === "web_client") return; // skip browser clients
+    client.isAlive = false; // assume dead until pong proves otherwise
+    client.ping(); // triggers Local-BE auto-pong
+  });
+}, 30000);
 const sendToUser = (userId: string, data: any, deviceId?: string) => {
   if (!wss) return;
   const dataStr = typeof data === "string" ? data : JSON.stringify(data);
@@ -227,16 +237,10 @@ const sendCmdRequest = async (
       cmd: parsedCmd,
       requestId,
     });
-
-    console.log("Starting searching for the client localbackend!");
     let clientFound = false;
+    let isAliveFound = false;
     (wss.clients as Set<CustomWebSocket>).forEach((client) => {
       const isSameUser = client.userId?.toString() === userId?.toString();
-      console.log("Userid:", userId);
-      console.log("Client userId:", client.userId);
-      console.log("Device Id: ", client.deviceId);
-      console.log("Is Authenticated:", client.isAuthenticated);
-      console.log("Ready State:", client.readyState);
       if (client.deviceId === "web_client") {
         return;
       }
@@ -245,19 +249,20 @@ const sendCmdRequest = async (
         client.isAuthenticated &&
         client.readyState === WebSocket.OPEN
       ) {
-        client.send(dataStr);
         clientFound = true;
+        if (client.isAlive) {
+          isAliveFound = true;
+          client.send(dataStr);
+        }
       }
     });
-    console.log("Ended search!", clientFound);
-    if (!clientFound) {
+    if (!clientFound || !isAliveFound) {
       return reject(
         new Error(
           "Local backend server is not connected or authenticated. Please ensure your local backend is running and paired.",
         ),
       );
     }
-
     const timer = setTimeout(() => {
       if (pendingRequests.has(requestId)) {
         reject(
