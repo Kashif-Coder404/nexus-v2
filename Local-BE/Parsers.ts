@@ -1,5 +1,9 @@
 import { executeCmd, ExecutionResponse } from "./services/execute.service";
 import {
+  isAppLaunchCommand,
+  launchAppWithVerification,
+} from "./services/launchApp.service";
+import {
   nexusSmartSearch,
   nexusSmartSearchApp,
 } from "./services/search.service";
@@ -101,6 +105,18 @@ export const commandParser = async (
           : undefined;
     },
     in_built: async () => {
+      const rawParam = typeof cmd.param === "string" ? cmd.param : "";
+      if (isAppLaunchCommand(rawParam)) {
+        const launchResult = await launchAppWithVerification(rawParam);
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "";
+        finalResponse.terminalOutput = launchResult.stdout;
+        finalResponse.terminalError = launchResult.stderr;
+        finalResponse.exitCode = launchResult.exitCode;
+        finalResponse.isSuccess = launchResult.isSuccess;
+        return;
+      }
+
       const timeoutMs =
         cmd.timeout && !isNaN(Number(cmd.timeout))
           ? Number(cmd.timeout)

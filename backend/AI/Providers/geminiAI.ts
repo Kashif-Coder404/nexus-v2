@@ -18,11 +18,12 @@ export type GeminiModelsTypes =
   | "gemini-3.5-flash-lite"
   | "gemini-3.5-flash"
   | "gemini-3.1-flash-lite"
-  | "gemini-3.1-flash-live-preview";
+  | "gemini-3.1-flash-live-preview"
+  | "gemini-3-pro-preview";
 type GeminiAICallOptions = {
   chatMessages: Array<{ role: string; content: string }>;
   retryCount: number;
-  model: GeminiModelsTypes | string;
+  model: GeminiModelsTypes;
   instructionString: string;
   isJson: boolean;
   keyIndex?: number;
@@ -30,7 +31,7 @@ type GeminiAICallOptions = {
 export const geminiAICall = async ({
   chatMessages,
   retryCount = 0,
-  model = "gemini-3.5-flash-lite",
+  model,
   instructionString = instructions,
   isJson = true,
   keyIndex = 0,

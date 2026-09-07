@@ -1,3 +1,4 @@
+import { callAI } from "../CallAI.js";
 import { summarizeInstructions } from "../instructions/para.summary.instructions.js";
 import { geminiAICall } from "../Providers/geminiAI.js";
 import { callNvidia } from "../Providers/nvidiaAPICall.js";
@@ -42,12 +43,20 @@ export const summarizerCall = async (
     };
   } catch (error) {
     console.error(`[SUMMARY ERROR] ${error}`);
-    const geminiSummaryResponse: any = await geminiAICall({
+    // const geminiSummaryResponse = await geminiAICall({
+    //   chatMessages: SummaryMessages,
+    //   retryCount: 0,
+    //   model: "gemini-3.1-flash-live-preview",
+    //   instructionString: summarizeInstructions,
+    //   isJson: false,
+    // });
+    const geminiSummaryResponse = await callAI("gemini", {
       chatMessages: SummaryMessages,
-      retryCount: 0,
-      model: "gemini-3.1-flash-lite",
-      instructionString: summarizeInstructions,
+      session: session,
+      instructions: summarizeInstructions,
       isJson: false,
+      isLiveModel: true,
+      model: "gemini-3.1-flash-live-preview",
     });
     if (!geminiSummaryResponse.success) {
       return {
@@ -56,7 +65,7 @@ export const summarizerCall = async (
       };
     }
     return {
-      content: geminiSummaryResponse.content,
+      content: geminiSummaryResponse.msg,
       success: true,
     };
   }

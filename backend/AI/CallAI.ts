@@ -12,11 +12,7 @@ import { instructions as defaultInstructions } from "./instructions/main.Instruc
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
 
 export type AIName = "nvidia" | "gemini" | "tokenrouter";
-export type GeminiModels =
-  | "gemini-3.5-flash-lite"
-  | "gemini-3.5-flash"
-  | "gemini-3-pro-preview"
-  | "gemini-3.1-flash-live-preview";
+export type GeminiModels = GeminiModelsTypes;
 export type TokenRouterModels =
   | "qwen/qwen3.8-max-free"
   | "google/gemini-2.0-flash-exp-image-preview"
@@ -27,7 +23,7 @@ export type TokenRouterModels =
 
 export type ModelType = {
   provider: AIName;
-  name: GeminiModels | TokenRouterModels | string;
+  name: GeminiModels | TokenRouterModels;
   isLiveModel?: boolean;
 };
 export type AIProviderParams = {
@@ -39,7 +35,7 @@ export type AIProviderParams = {
 
   // Specific to Gemini / TokenRouter
   retryCount?: number;
-  model?: GeminiModelsTypes | TokenRouterModelsTypes | string;
+  model?: GeminiModels | TokenRouterModels;
 
   // Specific to Nvidia
   workingOn?: string;
@@ -105,12 +101,15 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    const isLive = isLiveModel || params.model === "gemini-3.1-flash-live-preview";
+    const isLive =
+      isLiveModel || params.model === "gemini-3.1-flash-live-preview";
     const res = isLive
       ? await liveGeminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
-          model: params.model || "gemini-3.1-flash-live-preview",
+          model:
+            (params.model as GeminiModelsTypes) ||
+            "gemini-3.1-flash-live-preview",
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
@@ -118,7 +117,7 @@ export const callAI = async (
       : await geminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
-          model: params.model || "gemini-3.5-flash-lite",
+          model: (params.model as GeminiModelsTypes) || "gemini-3.5-flash-lite",
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
@@ -141,7 +140,8 @@ export const callAI = async (
     const res = await tokenRouterAICall({
       chatMessages,
       retryCount: params.retryCount || 0,
-      model: params.model || "qwen/qwen3.8-max-free",
+      model:
+        (params.model as TokenRouterModelsTypes) || "qwen/qwen3.8-max-free",
       instructionString: instructions,
       isJson: true,
     });
