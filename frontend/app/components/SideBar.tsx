@@ -134,5 +134,5 @@ const style = {
   logoImage: "w-9 h-9 object-contain",
   closeBtn:
     "flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer",
-  divider: "w-full border-1 border-purple-400/40 rounded my-2 mt-20",
+  divider: "w-full border border-purple-400/40 rounded my-2 mt-20",
 };
