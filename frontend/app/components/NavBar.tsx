@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSideBar } from "../store/useSideBar";
 
 interface NavItem {
   label: string;
@@ -16,18 +17,25 @@ const navItems: NavItem[] = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const { toggleSidebar, isSidebarOpen } = useSideBar();
   return (
     <header className={style.navCont}>
       <div className={style.innerCont}>
         <div className={style.leftLinks}>
           <div className={style.imageCont}>
             {pathname !== "/" ? (
-              <p className="text-white w-full text-2xl mr-2">☰</p>
+              <p
+                className="text-white w-full text-2xl mr-2 cursor-pointer"
+                onClick={() => toggleSidebar(isSidebarOpen)}
+              >
+                ☰
+              </p>
             ) : (
               <img
                 src="https://i.ibb.co/NgXjccp7/Neon-Purple-Orbital-N-Emblem.png"
                 alt="Neon-Purple-Orbital-N-Emblem"
                 className={style.logoImageNav}
+                onClick={() => toggleSidebar(isSidebarOpen)}
               />
             )}
           </div>
@@ -66,14 +74,15 @@ export default function NavBar() {
 }
 
 const style = {
-  navCont: "sticky top-0 z-50 w-full border-2 border-b-gray-500",
+  navCont: "sticky top-0 z-30 w-full border-b border-b-purple-500/40",
   innerCont:
     "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8",
   leftLinks: "flex flex-row gap-2 px-2",
   imageCont: "max-w-30 max-h-30",
   logoImageNav: "w-10 h-10",
   brandCont: "flex items-center gap-2",
-  brandText: "text-xl md:text-3xl font-bold tracking-tight text-white",
+  brandText:
+    "text-xl md:text-3xl font-bold tracking-tight text-white underline-offset-2",
   brandDot: "text-shadow-green-700",
   navLinks: "hidden md:flex items-center gap-6",
   navLinkItem:

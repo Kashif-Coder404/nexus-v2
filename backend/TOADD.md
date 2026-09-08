@@ -1,6 +1,7 @@
 # 📋 Backend Roadmap & Features To Add (`TOADD.md`)
 
 ## 🔐 Priority Feature: Device Secret Code / 2FA PIN Verification
+
 - [ ] **Physical Machine PIN Registration**:
   - Allow users to set a custom Secret Code / PIN on their local companion (`http://localhost:4100/`) when pairing.
   - Transmit over WebSocket with `PairingInit` and store as a bcrypt hash (`deviceSecretHash`) in MongoDB.
@@ -9,10 +10,13 @@
   - Implement `POST /api/device/verify-pin` with brute-force rate-limiting (lockout after 5 failed attempts).
 - [ ] **Session Gatekeeper**:
   - Restrict `RunCMD` socket dispatching until the session has verified the device PIN.
+- [ ] **Live terminal Show**:
+  - Live Terminal output shown to the working on component
 
 ---
 
 ## 🛠️ General Backend Milestones
+
 - [ ] REST APIs Refinement
 - [ ] Authentication & Refresh Tokens
 - [ ] Authorization & Role-Based Access
