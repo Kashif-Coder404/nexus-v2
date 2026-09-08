@@ -1,28 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useSideBar } from "../store/useSideBar";
-import {
-  ArrowBigDown,
-  ArrowDown,
-  ArrowDownFromLine,
-  ArrowDownNarrowWide,
-  ArrowDownWideNarrow,
-  ArrowLeft,
-  ChevronDown,
-  Computer,
-  Download,
-  DropletIcon,
-  Icon,
-  Laptop,
-  LoaderIcon,
-  MoveDown,
-  Plus,
-  RefreshCcw,
-  RefreshCcwDot,
-  Rotate3D,
-  RotateCcw,
-} from "lucide-react";
+import { ArrowLeft, Laptop, MessageSquare } from "lucide-react";
+import Dropdown, { DropdownItem } from "./Dropdown";
+
 interface SidebarItem {
   label: string;
   href: string;
@@ -40,21 +22,31 @@ type Device = {
   name: string;
   online: boolean;
 };
+type ChatContent = {
+  id: string; //Chat session id basically.
+  title: string;
+  date: string;
+};
 const devices: Device[] = [
   { id: "device1", name: "Gaming PC", online: true },
   { id: "device2", name: "Work PC", online: false },
   { id: "device3", name: "College PC", online: false },
 ];
+const chats: ChatContent[] = [
+  {
+    id: "chat1", //Chat session id basically.
+    title: "Chat 1 title",
+    date: "20/20/2020",
+  },
+  {
+    id: "chat2", //Chat session id basically.
+    title: "Chat 2 title",
+    date: "20/21/2020",
+  },
+];
 export default function SideBar() {
   const { toggleSidebar, isSidebarOpen } = useSideBar();
-  const [isDeviceRefreshing, setIsDeviceRefreshing] = useState(false);
-  const [isDeviceOpen, setIsDeviceOpen] = useState(false);
-  const handlRefresh = () => {
-    setIsDeviceRefreshing(true);
-    setTimeout(() => {
-      setIsDeviceRefreshing(false);
-    }, 2000);
-  };
+
   return (
     <>
       {/* Mobile backdrop to easily close when tapping outside */}
@@ -81,63 +73,50 @@ export default function SideBar() {
             <ArrowLeft className="w-4 h-4" />
           </button>
         </div>
-        <main className={style.mainCont}>
-          <div className={style.deviceCont}>
-            <div className={style.deviceHeaderCol}>
-              <div className="flex gap-2">
-                <Laptop />
-                <span className={style.deviceText}>Devices</span>{" "}
-                <button
-                  className={style.deviceToggleBtn}
-                  onClick={() => setIsDeviceOpen(!isDeviceOpen)}
-                >
-                  <ChevronDown
-                    strokeWidth={3}
-                    className={`${style.chevronIcon} ${
-                      isDeviceOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
 
-            <div className={style.actionsCont}>
-              <button onClick={handlRefresh} className={style.refreshBtn}>
-                <RotateCcw
-                  strokeWidth={3}
-                  className={`${style.refreshIcon} ${
-                    isDeviceRefreshing
-                      ? style.refreshSpin
-                      : style.refreshSpinStopped
-                  }`}
-                />
-              </button>{" "}
-              <button className={style.addDeviceBtn}>
-                <Plus />
-              </button>
-            </div>
-          </div>
-          {isDeviceOpen && (
-            <div className={style.deviceList}>
-              {devices.map((el) => {
-                return (
-                  <div className={style.deviceItem} key={el.id}>
-                    <span className="font-bold">{el.name}</span>
-                    <span
-                      className={
-                        el.online
-                          ? "text-emerald-400 text-xs"
-                          : "text-zinc-500 text-xs"
-                      }
-                    >
-                      {el.online ? "● Online" : "○ Offline"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <main className="flex flex-col gap-2">
+          {/* Devices Dropdown */}
+          <Dropdown
+            title="Devices"
+            icon={<Laptop className="w-5 h-5" />}
+            onRefresh={() => console.log("Refreshing devices...")}
+            onAdd={() => console.log("Add device...")}
+            viewAllHref="/devices"
+          >
+            {devices.map((el) => (
+              <DropdownItem key={el.id}>
+                <span className="font-bold">{el.name}</span>
+                <span
+                  className={
+                    el.online
+                      ? "text-emerald-400 text-xs"
+                      : "text-zinc-500 text-xs"
+                  }
+                >
+                  {el.online ? "● Online" : "○ Offline"}
+                </span>
+              </DropdownItem>
+            ))}
+          </Dropdown>
+
           <hr className={style.divider} />
+
+          {/* Chats Dropdown */}
+          <Dropdown
+            title="Chats"
+            defaultOpen={true}
+            icon={<MessageSquare className="w-5 h-5" />}
+            onRefresh={() => console.log("Refreshing chats...")}
+            onAdd={() => console.log("New chat...")}
+            viewAllHref="/chat"
+          >
+            {chats.map((el) => (
+              <DropdownItem key={el.id}>
+                <span className="font-bold">{el.title}</span>
+                <span className="text-purple-200/70">{el.date}</span>
+              </DropdownItem>
+            ))}
+          </Dropdown>
         </main>
       </aside>
     </>
@@ -155,23 +134,5 @@ const style = {
   logoImage: "w-9 h-9 object-contain",
   closeBtn:
     "flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition cursor-pointer",
-  mainCont:
-    "border border-purple-900/30 rounded-xl p-3 bg-zinc-900/30 shadow-lg shadow-purple-950/20",
-  deviceCont: "flex justify-between items-center text-center text-white",
-  deviceHeaderCol: "flex flex-col justify-center items-center gap-2",
-  deviceText: "text-lg font-bold",
-  deviceToggleBtn: "text-white cursor-pointer",
-  chevronIcon: "font-bold w-5 h-5 duration-300 scale-110",
-  deviceList: "flex flex-col gap-1 mt-2 w-full",
-  deviceItem:
-    "px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition text-sm cursor-pointer text-white flex justify-between items-center",
-  actionsCont: "flex flex-row gap-3",
-  refreshBtn: "text-white p-2 rounded-full cursor-pointer",
-  refreshIcon: "w-4 h-4",
-  refreshSpin:
-    "animate-[spin_1s_linear_infinite_reverse] transform duration-200 scale-150",
-  refreshSpinStopped: "transform duration-200 scale-100",
-  addDeviceBtn:
-    "font-bold text-lg cursor-pointer border-2 border-purple-500 px-2 hover:bg-purple-800/60 hover:scale-110 transition-all rounded",
-  divider: "w-full",
+  divider: "w-full border-1 border-purple-400/40 rounded my-2 mt-20",
 };
