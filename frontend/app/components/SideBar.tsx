@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown";
+import { useUserCredentials } from "../store/useUserCredentials";
 
 interface SidebarItem {
   label: string;
@@ -54,7 +55,7 @@ const chats: ChatContent[] = [
 ];
 export default function SideBar() {
   const { toggleSidebar, isSidebarOpen } = useSideBar();
-
+  const user = useUserCredentials((state) => state.user);
   return (
     <>
       {/* Mobile backdrop to easily close when tapping outside */}
@@ -161,7 +162,14 @@ export default function SideBar() {
               <div className="rounded-full border-2 p-0.5">
                 <User className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
               </div>
-              <h3 className="text-sm sm:text-base font-semibold">KASHIF</h3>
+              <div>
+                <h3 className="text-xl sm:text-base font-semibold">
+                  {user?.name}
+                </h3>
+                {/* <h2 className="text-sm text-purple-300 font-semibold">
+                  {user?.email}
+                </h2> */}
+              </div>
             </div>
             <div>
               <EllipsisVertical strokeWidth={3} className="w-4 h-4" />

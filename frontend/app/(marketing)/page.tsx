@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 
 export default function Home() {
@@ -6,7 +7,10 @@ export default function Home() {
       <main className={style.mainCont}>
         <div className={style.nonImageCont}>
           <h1 className={style.mainHeading.default}>
-            <div className={style.mainHeading.text1}>Stop Chatting...</div>
+            <div className={style.mainHeading.text1}>
+              Stop Chatting <br />
+              Get Things Done
+            </div>
             {/* PUT THINGS TO WORK! Slogan use if animation are in place (changing text animation) */}
           </h1>
           <p className={style.smallHeading}>Hands-free desktop automation</p>

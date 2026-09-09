@@ -2,17 +2,39 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUserCredentials } from "../store/useUserCredentials";
 
 const Login = (): React.JSX.Element => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const router = useRouter();
+  const setCredentials = useUserCredentials((state) => state.setCredentials);
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     if (!email || !password) return;
-    console.log("LOGIN IN....", email, password);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const res = await fetch(`${backendUrl}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+    const data = await res.json();
+    console.log(data);
+
+    if (data.success) {
+      setCredentials(data.data.token, data.data.user);
+      router.push("/dashboard");
+    } else {
+      setIsLoading(false);
+    }
   };
 
   return (

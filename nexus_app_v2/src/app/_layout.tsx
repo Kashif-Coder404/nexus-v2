@@ -1,9 +1,16 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
+import NavBar from "./components/NavBar";
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: 'Home', headerShown: false }} />
-    </Stack>
+    <>
+      <NavBar />
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{ title: "Home", headerShown: false }}
+        />
+      </Stack>
+    </>
   );
 }

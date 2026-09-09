@@ -1,5 +1,4 @@
-import { Text, View } from "react-native";
-
+import { StyleSheet, Text, View } from "react-native";
 const NavBar = () => {
   return (
     <View>
@@ -14,3 +13,4 @@ const NavBar = () => {
 };
 
 export default NavBar;
+

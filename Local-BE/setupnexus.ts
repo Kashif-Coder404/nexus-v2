@@ -117,7 +117,9 @@ export const uninstallNexus = async (): Promise<{
         } catch {}
         await sleep(500);
         try {
-          execSync(`cmd.exe /c rmdir /s /q "${targetDir}"`, { stdio: "ignore" });
+          execSync(`cmd.exe /c rmdir /s /q "${targetDir}"`, {
+            stdio: "ignore",
+          });
           console.log(`[UNINSTALL] Removed target directory: ${targetDir}`);
         } catch (e: any) {
           console.warn(
@@ -156,11 +158,15 @@ if (Test-Path -LiteralPath '${targetDir}') {
 
     if (path.resolve(runningExe).toLowerCase().includes("nexus-uninstall")) {
       const tempParent = path.dirname(runningExe);
-      spawn("cmd.exe", ["/c", `ping 127.0.0.1 -n 4 >nul & rmdir /s /q "${tempParent}"`], {
-        cwd: os.tmpdir(),
-        detached: true,
-        stdio: "ignore",
-      }).unref();
+      spawn(
+        "cmd.exe",
+        ["/c", `ping 127.0.0.1 -n 4 >nul & rmdir /s /q "${tempParent}"`],
+        {
+          cwd: os.tmpdir(),
+          detached: true,
+          stdio: "ignore",
+        },
+      ).unref();
     }
 
     console.log("[UNINSTALL] Uninstallation completed successfully.");

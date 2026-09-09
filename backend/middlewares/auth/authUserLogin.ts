@@ -92,11 +92,34 @@ const UserLogin = async (email: string, password: string) => {
       data: null,
     };
   }
+  const originaldata = [
+    {
+      createdAt: "2026-09-04T06:12:18.323Z",
+      deviceName: "Nexus Local Device",
+      deviceToken:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTlhNjEwNGUzNDM0MTE0MmNjMGFiZDUiLCJkZXZpY2VJZCI6IjZhOWE2MTQyZTM0MzQxMTQyY2MwYWJmMiIsImlhdCI6MTc4ODUwMjMzOCwiZXhwIjoxNzkxMDk0MzM4fQ.huqbnG6WM0d4FJ-ICKLrbznhiVZyXJy5Ft6viBkgXXU",
+      updatedAt: "2026-09-04T06:12:18.323Z",
+      _id: "6a9a6142e34341142cc0abf2",
+    },
+  ];
+  const safeDevices = user.devices.map(({ _id, deviceName, createdAt }) => ({
+    _id,
+    deviceName,
+    createdAt,
+  }));
+
+  const safeUser = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    devices: safeDevices,
+  };
   return {
     success: true,
     message: "Login Successful",
     data: {
-      user: user,
+      user: safeUser,
       token: jwtToken,
     },
   };
