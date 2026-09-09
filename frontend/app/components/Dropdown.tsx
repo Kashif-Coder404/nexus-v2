@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Plus, RotateCcw } from "lucide-react";
 
 export interface DropdownProps {
   title: string;
+  itemNum?: number;
   icon?: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
@@ -75,6 +76,7 @@ export function DropdownViewAll({
 export default function Dropdown({
   title,
   icon,
+  itemNum,
   children,
   defaultOpen = false,
   onRefresh,
@@ -106,6 +108,9 @@ export default function Dropdown({
         <div className={style.titleWrapper}>
           {icon}
           <span className={style.titleText}>{title}</span>
+          {itemNum !== undefined && (
+            <span className={style.itemNum}>{itemNum}</span>
+          )}
           <button
             type="button"
             className={style.toggleBtn}
@@ -124,6 +129,7 @@ export default function Dropdown({
           {onRefresh && (
             <button
               type="button"
+              disabled={isRefreshing}
               onClick={handleRefresh}
               className={style.refreshBtn}
               aria-label={`Refresh ${title}`}
@@ -174,13 +180,15 @@ export default function Dropdown({
 }
 
 const style = {
+  itemNum:
+    "flex items-center justify-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-purple-900/50 text-purple-100 border border-purple-400/40 shadow-[0_0_8px_rgba(168,85,247,0.25)] tracking-tight",
   container:
-    "border border-purple-900/30 rounded-xl p-3 bg-zinc-900/30 shadow-lg shadow-purple-950/20",
+    "w-full border border-purple-900/30 rounded-xl p-3 bg-zinc-900/30 shadow-lg shadow-purple-950/20",
   headerRow: "flex justify-between items-center text-center text-white",
   titleWrapper: "flex items-center gap-2",
-  titleText: "text-lg font-bold",
-  toggleBtn: "text-white cursor-pointer",
-  chevronIcon: "font-bold w-5 h-5 duration-300 scale-110",
+  titleText: "text-base sm:text-lg font-bold",
+  toggleBtn: "text-zinc-300 hover:text-white transition cursor-pointer p-0.5",
+  chevronIcon: "w-4 h-4 duration-300",
   actionsWrapper: "flex flex-row items-center gap-3",
   refreshBtn:
     "text-white p-2 rounded-full cursor-pointer hover:bg-white/10 transition",
