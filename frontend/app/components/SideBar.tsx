@@ -56,6 +56,7 @@ const chats: ChatContent[] = [
 export default function SideBar() {
   const { toggleSidebar, isSidebarOpen } = useSideBar();
   const user = useUserCredentials((state) => state.user);
+  console.log(user);
   return (
     <>
       {/* Mobile backdrop to easily close when tapping outside */}
@@ -87,26 +88,26 @@ export default function SideBar() {
             {/* Devices Dropdown */}
             <Dropdown
               title="Devices"
-              itemNum={devices.length}
+              itemNum={user?.devices.length}
               icon={<Laptop className="w-5 h-5" />}
               onRefresh={() => console.log("Refreshing devices...")}
               onAdd={() => console.log("Add device...")}
               viewAllHref="/devices"
             >
               <div className="max-h-36 overflow-y-auto flex flex-col gap-1 pr-1 [scrollbar-width:thin] [scrollbar-color:#7e22ce_transparent]">
-                {devices.map((el) => (
-                  <DropdownItem key={el.id}>
+                {user?.devices.map((el) => (
+                  <DropdownItem key={el._id}>
                     <span className="font-semibold text-sm sm:text-base">
-                      {el.name}
+                      {el.deviceName}
                     </span>
                     <span
                       className={
-                        el.online
+                        el.deviceName
                           ? "text-emerald-400 text-xs"
                           : "text-zinc-500 text-xs"
                       }
                     >
-                      {el.online ? "● Online" : "○ Offline"}
+                      {el.deviceName ? "● Online" : "○ Offline"}
                     </span>
                   </DropdownItem>
                 ))}

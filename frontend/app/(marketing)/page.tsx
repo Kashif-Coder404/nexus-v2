@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
+import { useUserCredentials } from "../store/useUserCredentials";
 
 export default function Home() {
+  const user = useUserCredentials((state) => state.user);
   return (
     <div className={style.landingContainer}>
       <main className={style.mainCont}>
@@ -15,7 +17,10 @@ export default function Home() {
           </h1>
           <p className={style.smallHeading}>Hands-free desktop automation</p>
           <div className={style.btnContainer}>
-            <Link href="/auth/signup" className={style.defaultBtn}>
+            <Link
+              href={user ? `/chat` : `/auth/signup`}
+              className={style.defaultBtn}
+            >
               Try Now!
             </Link>
           </div>
