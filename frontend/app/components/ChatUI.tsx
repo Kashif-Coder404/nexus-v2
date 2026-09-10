@@ -5,14 +5,15 @@ import AIMsg from "./AIMsg";
 import UserMsgBox from "./UserMsgBox";
 import SendMsg from "./SendMsg";
 import useChat from "../store/useChat";
+import { Bot } from "lucide-react";
 
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-
+  const workingOn = useChat((state) => state.workingOn);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat]); 
+  }, [workingOn, chat]);
 
   return (
     <div className="flex flex-col h-screen w-full bg-zinc-950 text-white overflow-hidden">
@@ -25,6 +26,14 @@ const ChatUI = () => {
             return <AIMsgBox key={index} data={chMsg.content} />;
           }
         })}
+        {workingOn && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-950/40 border border-purple-500/40 shadow-[0_0_20px_rgba(147,51,234,0.2)] text-purple-200 max-w-fit animate-pulse">
+            <Bot className="h-5 w-5 text-purple-400 animate-spin" />
+            <span className="text-sm font-mono text-purple-100">
+              {workingOn}
+            </span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
