@@ -1,18 +1,24 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSideBar } from "../store/useSideBar";
 import {
   ArrowLeft,
   ChevronRight,
+  Delete,
   EllipsisVertical,
   Laptop,
   MessageSquare,
   Settings,
+  Trash2,
   User,
 } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown";
 import { useUserCredentials } from "../store/useUserCredentials";
+import useChat from "../store/useChat";
+import { useRouter } from "next/navigation";
+import Chats from "./Chats";
+import { Toast } from "@base-ui/react";
 
 interface SidebarItem {
   label: string;
@@ -56,7 +62,131 @@ const chats: ChatContent[] = [
 export default function SideBar() {
   const { toggleSidebar, isSidebarOpen } = useSideBar();
   const user = useUserCredentials((state) => state.user);
-  console.log(user);
+  const token = useUserCredentials((state) => state.token);
+  const session = useChat((state) => state.session);
+  const setSession = useChat((state) => state.setSession);
+  const setChat = useChat((state) => state.setChat);
+  const clearChat = useChat((state) => state.clearChat);
+  const logout = useUserCredentials((state) => state.logout);
+  const router = useRouter();
+
+  const [sessions, setSessions] = useState<ChatContent[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleDeleteChatSession = async (sessionId: string) => {
+    setIsLoading(true);
+    if (!token || !sessionId) return;
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
+      const res = await fetch(`${backendUrl}/api/chat/delete-chat-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-session-id": sessionId,
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (res.status === 401) {
+        logout();
+        router.push("/auth/login");
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        setSessions((prev) => prev.filter((item) => item.id !== sessionId));
+        if (session === sessionId) {
+          clearChat();
+          setSession("");
+        }
+      } else {
+        console.error("[DELETE SESSION FAILED]:", data.message);
+      }
+    } catch (err: any) {
+      console.error("[DELETE SESSION ERROR]:", err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getChats = async () => {
+    if (!token) return;
+    try {
+      setIsLoading(true);
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
+      const res = await fetch(`${backendUrl}/api/chat/sessions`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        logout();
+        router.push("/auth/login");
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        // Map database session fields (_id, title, updatedAt) to ChatContent
+        const formatted: ChatContent[] = data.data.map((item: any) => ({
+          id: item._id,
+          title: item.title || "New Chat",
+          date: new Date(item.updatedAt || item.createdAt).toLocaleDateString(),
+        }));
+        setSessions(formatted);
+      }
+    } catch (err: any) {
+      console.error("[FETCH SESSIONS ERROR]:", err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadSession = async (sessionId: string) => {
+    if (!token) return;
+    try {
+      setIsLoading(true);
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
+      const res = await fetch(`${backendUrl}/api/chat/history`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-session-id": sessionId,
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data?.chat)) {
+        setSession(sessionId);
+        setChat(data.data.chat);
+        router.push("/chat");
+        if (isSidebarOpen) toggleSidebar();
+      }
+    } catch (err: any) {
+      console.error("[LOAD SESSION ERROR]:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startNewChat = () => {
+    clearChat();
+    router.push("/chat");
+    if (isSidebarOpen) toggleSidebar();
+  };
+
+  // Automatically fetch chats when token is available on mount
+  useEffect(() => {
+    getChats();
+  }, [token]);
+
   return (
     <>
       {/* Mobile backdrop to easily close when tapping outside */}
@@ -120,26 +250,53 @@ export default function SideBar() {
             <Dropdown
               title="Chats"
               defaultOpen={true}
-              itemNum={chats.length}
+              itemNum={sessions.length}
+              isLoading={isLoading}
               icon={<MessageSquare className="w-5 h-5" />}
-              onRefresh={() => console.log("Refreshing chats...")}
-              onAdd={() => console.log("New chat...")}
-              viewAllHref="/chat"
+              onRefresh={getChats}
+              onAdd={startNewChat}
+              // viewAllHref="/chat"
             >
-              <div className="max-h-36 overflow-y-auto flex flex-col gap-1 pr-1 [scrollbar-width:thin] [scrollbar-color:#7e22ce_transparent]">
-                {chats.map((el) => (
-                  <DropdownItem key={el.id}>
-                    <span
-                      className="font-semibold text-sm sm:text-base truncate max-w-[120px] sm:max-w-[140px]"
-                      title={el.title}
+              <div className="max-h-full overflow-y-auto flex flex-col gap-1 pr-1 [scrollbar-width:thin] [scrollbar-color:#7e22ce_transparent]">
+                {isLoading ? (
+                  <span className="text-xs text-zinc-500 p-2">
+                    Loading chats...
+                  </span>
+                ) : sessions.length === 0 ? (
+                  <span className="text-xl text-zinc-500 p-2">
+                    No chat sessions yet.
+                  </span>
+                ) : (
+                  sessions.map((el) => (
+                    <Chats
+                      key={el.id}
+                      onClick={() => loadSession(el.id)}
+                      className="group cursor-pointer p-2 hover:bg-white/20 transition-colors rounded-xl flex justify-between items-center"
                     >
-                      {el.title}
-                    </span>
-                    <span className="text-purple-200/70 text-xs">
-                      {el.date}
-                    </span>
-                  </DropdownItem>
-                ))}
+                      <span
+                        className="text-white text-2xl pr-2"
+                        title={el.title}
+                      >
+                        {el.title}
+                      </span>
+                      <div className="flex items-center justify-center">
+                        <span className="text-purple-200/70 text-xs">
+                          {el.date}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChatSession(el.id);
+                          }}
+                          className="text-white p-2 opacity-0 group-hover:opacity-100 hover:text-rose-400 cursor-pointer transition-colors"
+                          title="Delete chat"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </Chats>
+                  ))
+                )}
               </div>
             </Dropdown>
           </div>

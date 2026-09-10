@@ -9,6 +9,7 @@ export interface DropdownProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  isLoading?: boolean;
   onRefresh?: () => void | Promise<void>;
   onAdd?: () => void;
   viewAllHref?: string;
@@ -79,6 +80,7 @@ export default function Dropdown({
   itemNum,
   children,
   defaultOpen = false,
+  isLoading = false,
   onRefresh,
   onAdd,
   viewAllHref,
@@ -89,6 +91,8 @@ export default function Dropdown({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const isSpinning = isLoading || isRefreshing;
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     if (onRefresh) {
@@ -96,7 +100,7 @@ export default function Dropdown({
     }
     setTimeout(() => {
       setIsRefreshing(false);
-    }, 1500);
+    }, 1000);
   };
 
   const hasViewAll = Boolean(viewAllHref || onViewAll || showViewAll);
@@ -129,7 +133,7 @@ export default function Dropdown({
           {onRefresh && (
             <button
               type="button"
-              disabled={isRefreshing}
+              disabled={isSpinning}
               onClick={handleRefresh}
               className={style.refreshBtn}
               aria-label={`Refresh ${title}`}
@@ -137,7 +141,7 @@ export default function Dropdown({
               <RotateCcw
                 strokeWidth={3}
                 className={`${style.refreshIcon} ${
-                  isRefreshing ? style.refreshSpin : style.refreshSpinStopped
+                  isSpinning ? style.refreshSpin : style.refreshSpinStopped
                 }`}
               />
             </button>

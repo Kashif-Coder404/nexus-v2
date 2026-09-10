@@ -1,12 +1,27 @@
-import React from "react";
+"use client";
+// import React from "react";
 import SideBar from "@/app/components/SideBar";
 import NavBar from "@/app/components/NavBar";
+import { useUserCredentials } from "@/app/store/useUserCredentials";
+import WebSocketInit from "@/services/ws.service";
+import { useEffect } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const token = useUserCredentials((state) => state.token);
+  useEffect(() => {
+    if (!token) return;
+    let socket: WebSocket | undefined;
+    WebSocketInit().then((ws) => {
+      socket = ws;
+    });
+    return () => {
+      socket?.close();
+    };
+  }, [token]);
   return (
     <div className="flex w-screen h-screen overflow-hidden">
       <SideBar />
