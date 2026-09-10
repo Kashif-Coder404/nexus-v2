@@ -1,47 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUserCredentials } from "../store/useUserCredentials";
+import { Loader, LoaderIcon } from "lucide-react";
 
 const Login = (): React.JSX.Element => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
   const router = useRouter();
   const setCredentials = useUserCredentials((state) => state.setCredentials);
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFetchError(null);
     setIsLoading(true);
     if (!email || !password) return;
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const res = await fetch(`${backendUrl}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    });
-    const data = await res.json();
-    console.log(data);
+    const cloudbackendUrl = "https://nexus-v2-e38m.onrender.com";
 
-    if (data.success) {
-      setCredentials(data.data.token, data.data.user);
-      router.push("/dashboard");
-    } else {
-      setIsLoading(false);
+    try {
+      const res = await fetch(`${cloudbackendUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      if (res.status === 401) {
+        setFetchError(new Error("Invalid Credentials!"));
+        return;
+      }
+      const data = await res.json();
+      console.log(data);
+      if (data.success) {
+        setCredentials(data.data.token, data.data.user);
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.message || "LOGIN FAILED!");
+      }
+    } catch (error: any) {
+      console.log(error.message);
+      if (error.message.includes("Failed to fetch")) {
+        setFetchError(new Error("Server Is Not Responding!"));
+      } else {
+        setFetchError(error);
+      }
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
     }
   };
-
+  useEffect(() => {
+    if (fetchError) {
+      const fetchErrorTimeout = setTimeout(() => {
+        setFetchError(null);
+      }, 5000);
+      return () => clearTimeout(fetchErrorTimeout);
+    }
+  }, [fetchError]);
   return (
     <div className={style.container}>
       <div className={style.card}>
         <h1 className={style.title}>Log in</h1>
-        <p className={style.subtitle}>Welcome back to Nexus</p>
+        {fetchError ? (
+          <div className={style.error}>
+            <p>{fetchError.message}</p>
+          </div>
+        ) : (
+          <p className={style.subtitle}>Welcome back to Nexus</p>
+        )}
         <div id="form" className={style.formWrapper}>
           <form onSubmit={handleLogin} className={style.form}>
             <div className={style.inputGroup}>
@@ -54,7 +88,10 @@ const Login = (): React.JSX.Element => {
                 id="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setFetchError(null);
+                  setEmail(e.target.value);
+                }}
                 required
                 className={style.input}
               />
@@ -70,7 +107,10 @@ const Login = (): React.JSX.Element => {
                 placeholder="Enter your password"
                 id="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setFetchError(null);
+                  setPassword(e.target.value);
+                }}
                 className={style.input}
               />
             </div>
@@ -80,7 +120,11 @@ const Login = (): React.JSX.Element => {
               disabled={isLoading}
               className={style.submitBtn}
             >
-              {isLoading ? "Logging in..." : "Login"}
+              {isLoading ? (
+                <LoaderIcon className="animate-spin" size={24} />
+              ) : (
+                "Login"
+              )}
             </button>
           </form>
 
@@ -102,6 +146,7 @@ const style = {
   title: "text-center text-3xl font-bold tracking-tight text-[#DCD3FF]",
   subtitle: "text-center mt-2 text-sm text-[#8A859E]",
   formWrapper: "mt-8",
+  error: "text-red-500 text-center m-2 text-xl",
   form: "flex flex-col gap-5",
   inputGroup: "flex flex-col gap-1.5",
   label: "text-xs font-semibold uppercase tracking-wider text-[#DCD3FF]/80",

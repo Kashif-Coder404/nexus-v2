@@ -67,12 +67,12 @@ export const askAI = async (
       },
     });
     try {
-      let currentMainInstructions: string =
-        behaviourPrompt(behaviour) + "\n" + instructions;
+      // let currentMainInstructions: string =
+      //   behaviourPrompt(behaviour) + "\n" + instructions;
       aiResponse = await callAI(model.provider, {
         chatMessages: ChatMsgs,
         session: session,
-        instructions: currentMainInstructions,
+        instructions: instructions,
         isJson: true,
         isLiveModel: model.isLiveModel,
         retryCount: 0,

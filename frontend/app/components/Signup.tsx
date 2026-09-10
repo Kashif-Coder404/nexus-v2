@@ -1,25 +1,80 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUserCredentials } from "../store/useUserCredentials";
 
 const Signup = () => {
+  const setCredentials = useUserCredentials((state) => state.setCredentials);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [fetchError, setFetchError] = useState<Error | null>(null);
+  const router = useRouter();
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFetchError(null);
     setIsLoading(true);
     if (!email || !password || !name) return;
-    console.log("LOGIN IN....", email, password, name);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    try {
+      const res = await fetch(`${backendUrl}/api/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+        }),
+      });
+      if (res.status === 400) {
+        setFetchError(new Error("User Already Exists!"));
+        return;
+      }
+      const data = await res.json();
+      console.log(data);
+      if (data.success) {
+        setCredentials(data.data.token, data.data.user);
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.message || "SIGNUP FAILED!");
+      }
+    } catch (error: any) {
+      console.log(error.message);
+      if (error.message.includes("Failed to fetch")) {
+        setFetchError(new Error("Server Is Not Responding!"));
+      } else {
+        setFetchError(error);
+      }
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+    }
   };
-
+  useEffect(() => {
+    if (fetchError) {
+      const fetchErrorTimeout = setTimeout(() => {
+        setFetchError(null);
+      }, 5000);
+      return () => clearTimeout(fetchErrorTimeout);
+    }
+  }, [fetchError]);
   return (
     <div className={style.container}>
       <div className={style.card}>
         <h1 className={style.title}>Sign Up</h1>
-        <p className={style.subtitle}>Get your Desktop AI Today</p>
+        {fetchError ? (
+          <div className={style.error}>
+            <p>{fetchError.message}</p>
+          </div>
+        ) : (
+          <p className={style.subtitle}>Get your Desktop AI Today</p>
+        )}
         <div id="form" className={style.formWrapper}>
           <form onSubmit={handleSignup} className={style.form}>
             <div className={style.inputGroup}>
@@ -30,6 +85,7 @@ const Signup = () => {
                 type="text"
                 name="name"
                 id="name"
+                maxLength={20}
                 placeholder="Enter your name..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -97,6 +153,7 @@ const style = {
   formWrapper: "mt-8",
   form: "flex flex-col gap-5",
   inputGroup: "flex flex-col gap-1.5",
+  error: "text-red-500 text-center m-2 text-xl",
   label: "text-xs font-semibold uppercase tracking-wider text-[#DCD3FF]/80",
   input:
     "w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 shadow-sm focus:border-[#7357E2] focus:ring-2 focus:ring-[#7357E2]/30 focus:outline-none transition",

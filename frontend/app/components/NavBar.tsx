@@ -18,7 +18,7 @@ export default function NavBar() {
   const navItems: NavItem[] = [
     { label: "Home", href: "/" },
     { label: "Dashboard", href: isDashboard },
-    { label: "About", href: "/about" },
+    { label: "Chat", href: "/chat" },
   ];
   const handleDownloadNexus = () => {
     // window.location.href =

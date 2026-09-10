@@ -12,12 +12,8 @@ export const sendMessage = async (req: any, res: any) => {
     name: "gemini-3.5-flash-lite",
     isLiveModel: false,
   };
-  const {
-    role,
-    content,
-    behaviour = "friendly",
-    model = defaultModel,
-  } = req.body;
+  const { content, behaviour = "friendly", model = defaultModel } = req.body;
+  console.log(content, behaviour, model);
   const userId = req.userId;
   const session = req.sessionId;
   console.log(`[CHAT] User: ${userId} | Session: ${session}`);
