@@ -46,4 +46,4 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - Add Device Unlock Challenge modal when selecting a paired machine.
   - Store temporary session unlock token.
 
-> For the detailed technical task specification, see [backend/tasks.md](file:///d:/Coding/PROJECTS/NExt/Nexus_v2/backend/tasks.md).
+> For the detailed technical task specification, see [backend/tasks.md](../../backend/tasks.md).

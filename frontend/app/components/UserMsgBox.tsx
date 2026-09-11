@@ -20,7 +20,7 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
   return (
     <div
       ref={userMsgRef}
-      className="flex flex-col items-end w-full max-w-120 p-2 ml-auto"
+      className="flex flex-col items-end w-full max-w-120 sm:max-w-xl p-2 ml-auto"
     >
       {/* User Header */}
       <div className="flex items-center gap-2 mb-2 flex-row-reverse">
@@ -36,7 +36,7 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
       </div>
 
       {/* User Message Bubble */}
-      <div className="p-3.5 rounded-xl bg-purple-900/30 border border-purple-500/30 shadow-md w-full text-base font-normal text-zinc-100 leading-relaxed break-words">
+      <div className="p-3.5 rounded-xl bg-purple-900/30 border border-purple-500/30 shadow-md w-full text-base font-normal text-zinc-100 leading-relaxed break-words [overflow-wrap:anywhere]">
         {message}
       </div>
     </div>

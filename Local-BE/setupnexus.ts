@@ -13,6 +13,44 @@ const isRunningAsAdmin = () => {
     return false;
   }
 };
+const addDirToUserPath = (dirPath: string) => {
+  try {
+    const psCmd = `
+      $dir = '${dirPath}';
+      $current = [Environment]::GetEnvironmentVariable('Path', 'User');
+      $parts = ($current -split ';').Where({ $_.Trim() -ne '' });
+      if ($parts -notcontains $dir) {
+        $newPath = ($parts + $dir) -join ';';
+        [Environment]::SetEnvironmentVariable('Path', $newPath, 'User');
+      }
+    `.replace(/\r?\n/g, " ");
+    spawnSync("powershell.exe", ["-NoProfile", "-Command", psCmd], {
+      stdio: "ignore",
+    });
+    console.log(`[SETUP] Added ${dirPath} to User PATH.`);
+  } catch (err: any) {
+    console.warn(`[SETUP] Could not add to PATH: ${err.message}`);
+  }
+};
+
+const removeDirFromUserPath = (dirPath: string) => {
+  try {
+    const psCmd = `
+      $dir = '${dirPath}';
+      $current = [Environment]::GetEnvironmentVariable('Path', 'User');
+      $parts = ($current -split ';').Where({ $_.Trim() -ne '' -and $_ -ne $dir });
+      $newPath = $parts -join ';';
+      [Environment]::SetEnvironmentVariable('Path', $newPath, 'User');
+    `.replace(/\r?\n/g, " ");
+    spawnSync("powershell.exe", ["-NoProfile", "-Command", psCmd], {
+      stdio: "ignore",
+    });
+    console.log(`[UNINSTALL] Removed ${dirPath} from User PATH.`);
+  } catch (err: any) {
+    console.warn(`[UNINSTALL] Could not remove from PATH: ${err.message}`);
+  }
+};
+
 const eleevateSelf = () => {
   const args = process.argv
     .slice(1)
@@ -84,6 +122,9 @@ export const uninstallNexus = async (): Promise<{
       execSync(`schtasks /delete /tn "${TASK_NAME}" /f`, { stdio: "ignore" });
       console.log(`[UNINSTALL] Deleted scheduled task: ${TASK_NAME}`);
     } catch {}
+
+    // Clean up User PATH entry
+    removeDirFromUserPath(targetDir);
 
     // 2. Remove configuration and device credentials
     if (fs.existsSync(configDir)) {
@@ -238,6 +279,7 @@ export const setupFirst = async (): Promise<boolean> => {
     const isAlreadyInstalled = fs.existsSync(targetExe) && isTaskRegistered();
 
     if (isAlreadyInstalled) {
+      addDirToUserPath(targetDir);
       console.log("\n=======================================================");
       console.log("⚡ Nexus is already installed and setup is complete!");
       console.log(`📁 Installed at: ${targetExe}`);
@@ -269,6 +311,9 @@ export const setupFirst = async (): Promise<boolean> => {
     // 2. Copy current executable into target directory
     fs.copyFileSync(runningExe, targetExe);
     console.log(`[SETUP] Copied nexus.exe to: ${targetExe}`);
+
+    // Add Nexus to User PATH so CLI commands work from anywhere
+    addDirToUserPath(targetDir);
 
     // 3. Register task in Windows Task Scheduler to run elevated on logon
     const silentVbsPath = path.join(targetDir, "run_silent.vbs");

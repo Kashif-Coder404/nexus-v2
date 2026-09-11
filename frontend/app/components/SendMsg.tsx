@@ -119,58 +119,15 @@ const SendMsg = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-3">
-      <div className="relative flex items-center rounded-2xl bg-zinc-900/90 border border-purple-500/30 p-1.5 shadow-[0_0_25px_rgba(115,87,226,0.15)] focus-within:border-purple-400 focus-within:shadow-[0_0_30px_rgba(115,87,226,0.3)] backdrop-blur-lg transition-all duration-300">
-        {/* Left Indicator */}
-        {/* <div className="pl-3 pr-2 text-purple-400 select-none">
-          <Sparkles className="h-5 w-5 animate-pulse" />
-        </div> */}
-
-        {/* Input Field */}
-        <input
-          className="flex-1 bg-transparent px-2 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none tracking-wide"
-          type="text"
-          placeholder="Ask Nexus to run commands, inspect files, or launch desktop apps... (Press Enter)"
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMsg();
-            }
-          }}
-          disabled={isSending}
-        />
-
-        {/* Send Button */}
-        <button
-          onClick={handleSendMsg}
-          disabled={isSending || !msg.trim()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-purple-600/30 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
-          title="Send message"
-        >
-          {isSending ? (
-            <Loader2 className="h-5 w-5 animate-spin text-white" />
-          ) : (
-            <SendHorizonal className="h-5 w-5" />
-          )}
-        </button>
-      </div>
-      <div className="flex items-center justify-between px-2 pt-1.5 text-[11px] text-zinc-400">
-        <span>
-          Press{" "}
-          <kbd className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-300">
-            Enter
-          </kbd>{" "}
-          to send
-        </span>
-        <div className="relative group">
+    <>
+      <div className="relative w-full max-w-4xl mx-auto px-4 py-3">
+        <div className="relative w-fit ml-2 mb-1.5 group">
           <button className="flex items-center gap-2 text-purple-300 hover:text-purple-400 transition">
             <span className="font-mono">{model.name}</span>{" "}
             <ChevronDown className="h-3 w-3 transition-transform group-hover:rotate-180" />
           </button>
           {/* Dropdown Menu */}
-          <div className="absolute bottom-full right-0 mb-2 w-56 bg-zinc-900 border border-purple-500/30 rounded-xl overflow-hidden shadow-2xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+          <div className="absolute bottom-full left-0 mb-2 w-56 bg-zinc-900 border border-purple-500/30 rounded-xl overflow-hidden shadow-2xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
             <div className="p-1">
               {Models.map((m) => (
                 <button
@@ -191,8 +148,54 @@ const SendMsg = () => {
             </div>
           </div>
         </div>
+        <div className="flex items-center rounded-2xl bg-zinc-900/90 border border-purple-500/30 p-1.5 shadow-[0_0_25px_rgba(115,87,226,0.15)] focus-within:border-purple-400 focus-within:shadow-[0_0_30px_rgba(115,87,226,0.3)] backdrop-blur-lg transition-all duration-300">
+          {/* Left Indicator */}
+          {/* <div className="pl-3 pr-2 text-purple-400 select-none">
+          <Sparkles className="h-5 w-5 animate-pulse" />
+        </div> */}
+
+          {/* Input Field */}
+          <input
+            className="flex-1 bg-transparent px-2 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none tracking-wide"
+            type="text"
+            placeholder="Ask Nexus to run commands, inspect files, or launch desktop apps... (Press Enter)"
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMsg();
+              }
+            }}
+            disabled={isSending}
+          />
+
+          {/* Send Button */}
+          <button
+            onClick={handleSendMsg}
+            disabled={isSending || !msg.trim()}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-purple-600/30 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
+            title="Send message"
+          >
+            {isSending ? (
+              <Loader2 className="h-5 w-5 animate-spin text-white" />
+            ) : (
+              <SendHorizonal className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between px-2 pt-1.5 text-[11px] text-zinc-400">
+          <span>
+            Press{" "}
+            <kbd className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-300">
+              Enter
+            </kbd>{" "}
+            to send
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

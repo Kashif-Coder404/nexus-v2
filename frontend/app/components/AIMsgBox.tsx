@@ -1,4 +1,7 @@
 "use client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import {
   Bot,
   Check,
@@ -152,7 +155,7 @@ const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
               )}
             </div>
             <pre
-              className={`text-xs font-mono p-2 rounded border whitespace-pre-wrap overflow-auto max-h-100 ${
+              className={`text-xs font-mono p-2 rounded border whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto max-h-100 ${
                 terminalData.terminalError && !terminalData.terminalOutput
                   ? "text-rose-400/90 bg-rose-950/20 border-rose-900/30"
                   : "text-emerald-400/90 bg-black/50 border-zinc-800/60"
@@ -221,7 +224,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
   }, [isOpen]);
 
   return (
-    <div className="flex flex-col justify-center items-start w-full max-w-120 p-2 ">
+    <div className="flex flex-col justify-center items-start w-full max-w-120 sm:max-w-2xl p-2">
       {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}
       <div className="flex items-center gap-2 mb-2">
         <Bot className="h-7 w-7 text-purple-300 p-1.5 bg-purple-950/60 rounded-lg border border-purple-500/30" />
@@ -229,9 +232,9 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
       </div>
       <div
         ref={msgRef}
-        className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 shadow-md w-full text-lg font-normal text-zinc-200 leading-relaxed whitespace-pre-wrap"
+        className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 shadow-md w-full text-base sm:text-lg font-normal text-zinc-200 leading-relaxed break-words [overflow-wrap:anywhere]"
       >
-        {lastAIMsg}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
       </div>
       {executions.length > 0 && (
         <div className="flex flex-col w-full mt-2 rounded-xl bg-purple-950/40 border-2 border-purple-400/20 overflow-hidden transition-all duration-300">
