@@ -15,14 +15,43 @@
 - [x] **Viewport & Background Fixes**:
   - Resolved mobile address bar scroll clipping with `min-h-dvh`.
   - Fixed linear gradient cutoff on scroll with `bg-fixed bg-no-repeat`.
+- [x] **Interactive Desktop/Mobile Sidebar (`SideBar.tsx`)**:
+  - Collapsible sidebar drawer with responsive backdrop on mobile.
+  - Collapsible Dropdown component with item counter badges.
+  - Dynamic chat session history, delete session integration, and new chat reset.
+  - Real-time companion status badges (`● Online`, `● Paused`, `○ Offline`) with WebSocket sync.
+  - Manual device list reload trigger.
+- [x] **Standalone Windows Companion & Release v2.3.0 (`nexus.exe`)**:
+  - Node.js SEA standalone compilation with zero external dependencies.
+  - Silent administrative Task Scheduler installation on logon.
+  - Automated Windows User `PATH` registration on install & scrubbing on `--uninstall`.
+  - Local companion dashboard (`localhost:4100`) with debounced remote execution toggle.
+  - Released on GitHub Releases with checksum integrity.
+- [x] **Chat UI & Markdown Rendering**:
+  - Replaced plain text rendering with `ReactMarkdown` and `remarkGfm`.
+  - Word wrapping and boundary protection (`[overflow-wrap:anywhere] break-words`).
 
-### 🎯 Next Goal: Sidebar Component
-- [ ] **Interactive Desktop/Mobile Sidebar (`SideBar.tsx`)**:
-  - Collapsible sidebar on desktop with smooth transition.
-  - Drawer / off-canvas overlay on mobile with hamburger toggle from `NavBar`.
-  - Navigation items: Active Chat/Session, Devices List, Automations, History, Settings.
-  - Route detection (`usePathname`) for active nav item highlighting.
-  - Paired companion status indicator (online / offline).
+---
+
+### 🎯 Next Up: Active Target Device Selector (Sidebar Radio Buttons)
+When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desktop"):
+- [ ] **Frontend UI (`SideBar.tsx`)**:
+  - Add purple radio indicator button next to each device in the sidebar list.
+  - Clicking any device sets it as the currently active target machine.
+  - Highlight the active device with glowing purple border and active indicator.
+- [ ] **State Management (`useDevices.ts`)**:
+  - Add `activeDeviceId: string | null` and `setActiveDevice(id: string)` to Zustand store.
+  - Auto-select the first online device if no active device is currently chosen.
+  - Persist active device selection across page reloads.
+- [ ] **Targeted Backend Dispatch (`backend/services/websocket.service.ts`)**:
+  - Pass `activeDeviceId` with chat/command execution requests.
+  - Filter `sendCmdRequest` socket dispatch to execute only on the selected `activeDeviceId` rather than broadcasting to all devices.
+
+---
+
+### 📦 Maintenance & Build Tasks
+- [x] **Rebuild Companion Binary & Release v2.4.0 (`nexus.exe`)**:
+  - Compiled and bundled the latest debounced remote execution toggle and real-time status sync into standalone executable `nexus.exe` (Node.js SEA).
 
 ---
 
