@@ -18,6 +18,9 @@ export default function DashboardLayout({
     let socket: WebSocket | undefined;
     WebSocketInit().then((ws) => {
       socket = ws;
+      setTimeout(() => {
+        ws?.send(JSON.stringify({ type: "get_devices" }));
+      }, 2000);
     });
     return () => {
       socket?.close();

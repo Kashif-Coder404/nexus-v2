@@ -99,25 +99,7 @@ const connectDevice = async (
       online: true,
     });
   } else {
-    const userDoc = await UserModel.findById(decodedUserId);
-    const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
-      .filter((c) => {
-        return (
-          c.userId === decodedUserId &&
-          c.deviceId &&
-          c.deviceId !== "web_client" &&
-          c.readyState === WebSocket.OPEN
-        );
-      })
-      .map((c) => c.deviceId);
-    sendJson(ws, {
-      type: "device_list",
-      devices: (userDoc?.devices || []).map((d) => ({
-        id: d._id.toString(),
-        deviceName: d.deviceName,
-        online: onlineDevicesIds.includes(d._id.toString()),
-      })),
-    });
+    await sendDeviceStatus(ws, decodedUserId);
   }
 };
 
@@ -148,6 +130,23 @@ const initWebsocket = (server: Server) => {
           ws.pairingCode = parsedData.code;
         } else if (parsedData.type === "auth" && parsedData.token) {
           await connectDevice(ws, parsedData.token);
+        } else if (
+          parsedData.type === "get_devices" &&
+          ws.isAuthenticated &&
+          ws.userId
+        ) {
+          await sendDeviceStatus(ws, ws.userId);
+        } else if (
+          parsedData.type === "device_status" &&
+          ws.isAuthenticated &&
+          ws.deviceId
+        ) {
+          // Broadcast to the user's frontend web client
+          sendToUser(ws.userId!, {
+            type: "device_status",
+            device: { deviceName: ws.deviceName, id: ws.deviceId },
+            service: parsedData.service,
+          });
         } else if (parsedData.type === "cmd_response") {
           if (ws.isAuthenticated) {
             const { requestId, cmdResponse } = parsedData;
@@ -253,6 +252,29 @@ setInterval(() => {
     client.ping(); // triggers Local-BE auto-pong
   });
 }, 30000);
+
+const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
+  const userDoc = await UserModel.findById(userId);
+  const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
+    .filter((c) => {
+      return (
+        c.userId === userId &&
+        c.deviceId &&
+        c.deviceId !== "web_client" &&
+        c.readyState === WebSocket.OPEN
+      );
+    })
+    .map((c) => c.deviceId);
+  sendJson(ws, {
+    type: "device_list",
+    devices: (userDoc?.devices || []).map((d) => ({
+      id: d._id.toString(),
+      deviceName: d.deviceName,
+      online: onlineDevicesIds.includes(d._id.toString()),
+    })),
+  });
+};
+
 const sendToUser = (userId: string, data: any, deviceId?: string) => {
   if (!wss) return;
   const dataStr = typeof data === "string" ? data : JSON.stringify(data);

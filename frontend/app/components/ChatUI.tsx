@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
 import AIMsgBox from "./AIMsgBox";
-import AIMsg from "./AIMsg";
 import UserMsgBox from "./UserMsgBox";
 import SendMsg from "./SendMsg";
 import useChat from "../store/useChat";

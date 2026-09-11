@@ -9,6 +9,7 @@ import {
   startParingHandler,
   revokeDeviceHandler,
 } from "./services/websocket.service.js";
+import { UserModel } from "./db/schema/user-schema.js";
 connectDB();
 dotenv.config();
 const app = express();
@@ -54,8 +55,43 @@ app.get("/api/health", async (req, res) => {
     },
   });
 });
+const getDevicesHandler = async (req: any, res: any) => {
+  try {
+    const userId = req.userId;
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: null,
+      });
+      return;
+    }
+    const devices = user?.devices;
+    const safeDevices = devices.map((d) => {
+      return {
+        id: d._id,
+        name: d.deviceName,
+        online: (d as any).online || false,
+      };
+    });
+    res.status(200).json({
+      success: true,
+      message: "Devices fetched successfully",
+      data: safeDevices,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      data: null,
+    });
+  }
+};
 app.post("/api/pairrequest", userAuthentication, startParingHandler);
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
+app.get("/api/devices", userAuthentication, getDevicesHandler);
 app.delete("/api/device/:deviceId", userAuthentication, revokeDeviceHandler);
 export default app;

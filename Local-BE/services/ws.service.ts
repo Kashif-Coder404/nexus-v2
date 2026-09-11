@@ -220,9 +220,7 @@ export const forceNewPairingCode = async () => {
 // WebSocket Connection to Cloud Backend
 let isOpened = false;
 let isEnable = true;
-export const setService = (val: boolean) => {
-  isEnable = val;
-};
+
 export const getService = () => {
   return isEnable;
 };
@@ -338,7 +336,7 @@ const ServerWSConnection = async () => {
   });
 
   ws.on("close", () => {
-    if (pingInterval) clearInterval(pingInterval); 
+    if (pingInterval) clearInterval(pingInterval);
     isConnectedToBackend = false;
     activeWS = null;
     const retryIn = 5000;
@@ -349,7 +347,7 @@ const ServerWSConnection = async () => {
   });
 
   ws.on("error", (error) => {
-    if (pingInterval) clearInterval(pingInterval); 
+    if (pingInterval) clearInterval(pingInterval);
     if (!isOpened) {
       exec("start http://localhost:4100");
     }
@@ -357,5 +355,12 @@ const ServerWSConnection = async () => {
     console.error("[WS] Connection error:", error.message);
   });
 };
+export const setService = async (val: boolean) => {
+  isEnable = val;
 
+  sendJson(activeWS, {
+    type: "device_status",
+    service: isEnable,
+  });
+};
 export default ServerWSConnection;

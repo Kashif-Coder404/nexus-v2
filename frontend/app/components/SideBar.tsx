@@ -19,6 +19,7 @@ import useChat from "../store/useChat";
 import { useRouter } from "next/navigation";
 import Chats from "./Chats";
 import { useDevices } from "../store/useDevices";
+import { requestDevices } from "@/services/ws.service";
 
 interface SidebarItem {
   label: string;
@@ -57,7 +58,12 @@ export default function SideBar() {
   const openPairModal = useDevices((state) => state.openPairModal);
   const [sessions, setSessions] = useState<ChatContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
+  const [isDevicesLoading, setIsDevicesLoading] = useState<boolean>(false);
+  const handleDevicesRefresh = async () => {
+    console.log("Requesting devices...", devices);
+    setIsDevicesLoading(true);
+    requestDevices();
+  };
   const handleDeviceRevoke = async (deviceId: string) => {
     if (!token || !deviceId) return;
     try {
@@ -193,6 +199,9 @@ export default function SideBar() {
     if (isSidebarOpen) toggleSidebar();
   };
   useEffect(() => {
+    setIsDevicesLoading(false);
+  }, [devices]);
+  useEffect(() => {
     if (user?.devices && devices.length === 0) {
       useDevices.getState().setDevices(
         user.devices.map((d) => ({
@@ -243,7 +252,8 @@ export default function SideBar() {
               title="Devices"
               itemNum={devices.length}
               icon={<Laptop className="w-5 h-5" />}
-              onRefresh={() => console.log("Refreshing devices...")}
+              isLoading={isDevicesLoading}
+              onRefresh={() => handleDevicesRefresh()}
               onAdd={openPairModal}
               viewAllHref="/devices"
             >
@@ -264,10 +274,18 @@ export default function SideBar() {
                       <div className="flex items-center shrink-0">
                         <span
                           className={`text-xs shrink-0 transition-colors ${
-                            el.online ? "text-emerald-400" : "text-zinc-500"
+                            !el.online
+                              ? "text-zinc-500"
+                              : el.service === false
+                                ? "text-amber-400"
+                                : "text-emerald-400"
                           }`}
                         >
-                          {el.online ? "● Online" : "○ Offline"}
+                          {!el.online
+                            ? "○ Offline"
+                            : el.service === false
+                              ? "● Paused"
+                              : "● Online"}
                         </span>
                         <div className="w-0 opacity-0 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
                           <button
