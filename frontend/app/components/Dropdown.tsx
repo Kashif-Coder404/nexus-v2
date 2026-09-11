@@ -187,7 +187,7 @@ const style = {
   itemNum:
     "flex items-center justify-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-purple-900/50 text-purple-100 border border-purple-400/40 shadow-[0_0_8px_rgba(168,85,247,0.25)] tracking-tight",
   container:
-    "w-full border border-purple-900/30 rounded-xl p-3 bg-zinc-900/30 shadow-lg shadow-purple-950/20",
+    "w-full border p-2 border-purple-900/30 rounded-xl bg-zinc-900/30 shadow-lg shadow-purple-950/20",
   headerRow: "flex justify-between items-center text-center text-white",
   titleWrapper: "flex items-center gap-2",
   titleText: "text-base sm:text-lg font-bold",

@@ -1,5 +1,6 @@
 import { useUserCredentials } from "@/app/store/useUserCredentials";
 import useChat from "@/app/store/useChat";
+import { useDevices } from "@/app/store/useDevices";
 
 const WebSocketInit = async () => {
   if (typeof window === "undefined") return;
@@ -19,17 +20,31 @@ const WebSocketInit = async () => {
   ws.onmessage = (event) => {
     try {
       const payload = JSON.parse(event.data);
-      if (payload.type === "ai_data" && payload.data?.workingon) {
+      if (payload.type === "device_list") {
+        useDevices.getState().setDevices(payload.devices);
+      } else if (payload.type === "device_status") {
+        const deviceId = payload.device?.id || payload.deviceId;
+        if (deviceId) {
+          useDevices.getState().setOnlineDevices(deviceId, payload.online);
+        }
+      } else if (payload.type === "device_removed") {
+        useDevices
+          .getState()
+          .setDevices(
+            useDevices
+              .getState()
+              .devices.filter((d) => d.id !== payload.deviceId),
+          );
+      } else if (payload.type === "ai_data" && payload.data?.workingon) {
         useChat.getState().setWorkingOn(payload.data.workingon);
       } else if (payload.type === "ai_done") {
         useChat.getState().setWorkingOn(null);
       }
-    } catch {
-      console.log("WebSocket message:", event.data);
+    } catch (err) {
+      console.log(err);
     }
   };
   ws.onclose = () => {
-    console.log("WebSocket disconnected");
     useChat.getState().setWorkingOn(null);
   };
   ws.onerror = (error) => {

@@ -5,6 +5,7 @@ import { askAI } from "../AI/askAI.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
 import { SessionModel } from "../db/schema/session-schema.js";
 import { ModelType } from "../AI/CallAI.js";
+import chatSummarize from "../AI/Helper/chatname.summarizer.js";
 
 export const sendMessage = async (req: any, res: any) => {
   const defaultModel: ModelType = {
@@ -40,15 +41,26 @@ export const sendMessage = async (req: any, res: any) => {
     });
 
     // Auto-update session title if default "New Chat" and bump updatedAt
-    const titleSnippet = content.toString().trim().slice(0, 30);
-    SessionModel.findOneAndUpdate(
-      { _id: session, userId, title: "New Chat" },
-      { title: titleSnippet, updatedAt: new Date() },
-    ).catch(() => {});
     SessionModel.updateOne(
       { _id: session, userId },
       { updatedAt: new Date() },
     ).catch(() => {});
+    // Background title generation (only if session title is still "New Chat")
+    SessionModel.findOne({ _id: session, userId, title: "New Chat" })
+      .then(async (existingSession) => {
+        if (existingSession) {
+          const titleSnippet =
+            (await chatSummarize([
+              { role: "user", content: content.toString() },
+            ])) || content.split(" ").slice(0, 4).join(" ");
+
+          await SessionModel.updateOne(
+            { _id: session, userId, title: "New Chat" },
+            { title: titleSnippet },
+          );
+        }
+      })
+      .catch((err) => console.error("[TITLE GENERATION ERROR]:", err));
     // const model: ModelType = { provider: "gemini", name: "gemini-3.5-flash" };
     const { cmd, msg, terminalOutput, terminalError, executions, imageBase64 } =
       await askAI(userId, session, content, behaviour, model);

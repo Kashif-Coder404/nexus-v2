@@ -1,5 +1,6 @@
 import { NextFunction } from "express";
 import { SessionModel } from "../../db/schema/session-schema.js";
+import chatSummarize from "../../AI/Helper/chatname.summarizer.js";
 
 const sessionAuthentication = async (
   req: any,
@@ -56,7 +57,7 @@ const sessionAuthentication = async (
 };
 const newSession = async (userId: string) => {
   const session: any = await SessionModel.create({
-    userId,
+    userId
   });
   if (!session) {
     return {

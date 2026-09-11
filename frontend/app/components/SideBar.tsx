@@ -18,7 +18,7 @@ import { useUserCredentials } from "../store/useUserCredentials";
 import useChat from "../store/useChat";
 import { useRouter } from "next/navigation";
 import Chats from "./Chats";
-import { Toast } from "@base-ui/react";
+import { useDevices } from "../store/useDevices";
 
 interface SidebarItem {
   label: string;
@@ -42,23 +42,7 @@ type ChatContent = {
   title: string;
   date: string;
 };
-const devices: Device[] = [
-  { id: "device1", name: "Gaming PC", online: true },
-  { id: "device2", name: "Work PC", online: false },
-  { id: "device3", name: "College PC", online: false },
-];
-const chats: ChatContent[] = [
-  {
-    id: "chat1", //Chat session id basically.
-    title: "Chat 1 title",
-    date: "20/20/2020",
-  },
-  {
-    id: "chat2", //Chat session id basically.
-    title: "Chat 2 title",
-    date: "20/21/2020",
-  },
-];
+
 export default function SideBar() {
   const { toggleSidebar, isSidebarOpen } = useSideBar();
   const user = useUserCredentials((state) => state.user);
@@ -69,10 +53,37 @@ export default function SideBar() {
   const clearChat = useChat((state) => state.clearChat);
   const logout = useUserCredentials((state) => state.logout);
   const router = useRouter();
-
+  const devices = useDevices((state) => state.devices);
+  const openPairModal = useDevices((state) => state.openPairModal);
   const [sessions, setSessions] = useState<ChatContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const handleDeviceRevoke = async (deviceId: string) => {
+    if (!token || !deviceId) return;
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
+      const res = await fetch(`${backendUrl}/api/device/${deviceId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        useDevices
+          .getState()
+          .setDevices(
+            useDevices.getState().devices.filter((d) => d.id !== deviceId),
+          );
+      } else {
+        console.error("[REVOKE DEVICE FAILED]:", data.message);
+      }
+    } catch (err: any) {
+      console.error("[REVOKE DEVICE ERROR]:", err.message);
+    }
+  };
   const handleDeleteChatSession = async (sessionId: string) => {
     setIsLoading(true);
     if (!token || !sessionId) return;
@@ -181,10 +192,22 @@ export default function SideBar() {
     router.push("/chat");
     if (isSidebarOpen) toggleSidebar();
   };
-
+  useEffect(() => {
+    if (user?.devices && devices.length === 0) {
+      useDevices.getState().setDevices(
+        user.devices.map((d) => ({
+          id: d._id,
+          deviceName: d.deviceName,
+          online: false,
+        })),
+      );
+    }
+  }, [user?.devices]);
   // Automatically fetch chats when token is available on mount
   useEffect(() => {
-    getChats();
+    if (token) {
+      getChats();
+    }
   }, [token]);
 
   return (
@@ -218,29 +241,50 @@ export default function SideBar() {
             {/* Devices Dropdown */}
             <Dropdown
               title="Devices"
-              itemNum={user?.devices.length}
+              itemNum={devices.length}
               icon={<Laptop className="w-5 h-5" />}
               onRefresh={() => console.log("Refreshing devices...")}
-              onAdd={() => console.log("Add device...")}
+              onAdd={openPairModal}
               viewAllHref="/devices"
             >
               <div className="max-h-36 overflow-y-auto flex flex-col gap-1 pr-1 [scrollbar-width:thin] [scrollbar-color:#7e22ce_transparent]">
-                {user?.devices.map((el) => (
-                  <DropdownItem key={el._id}>
-                    <span className="font-semibold text-sm sm:text-base">
-                      {el.deviceName}
-                    </span>
-                    <span
-                      className={
-                        el.deviceName
-                          ? "text-emerald-400 text-xs"
-                          : "text-zinc-500 text-xs"
-                      }
-                    >
-                      {el.deviceName ? "● Online" : "○ Offline"}
-                    </span>
-                  </DropdownItem>
-                ))}
+                {devices.length === 0 ? (
+                  <span className="text-xs text-zinc-500 p-2">
+                    No companion devices linked.
+                  </span>
+                ) : (
+                  devices.map((el) => (
+                    <DropdownItem className="group" key={el.id}>
+                      <span
+                        className="font-semibold text-sm sm:text-base truncate max-w-[130px]"
+                        title={el.deviceName}
+                      >
+                        {el.deviceName}
+                      </span>
+                      <div className="flex items-center shrink-0">
+                        <span
+                          className={`text-xs shrink-0 transition-colors ${
+                            el.online ? "text-emerald-400" : "text-zinc-500"
+                          }`}
+                        >
+                          {el.online ? "● Online" : "○ Offline"}
+                        </span>
+                        <div className="w-0 opacity-0 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeviceRevoke(el.id);
+                            }}
+                            className="shrink-0 p-1 text-zinc-400 hover:text-rose-400 cursor-pointer transition-colors"
+                            title="Revoke / Delete device"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </DropdownItem>
+                  ))
+                )}
               </div>
             </Dropdown>
 
@@ -271,28 +315,32 @@ export default function SideBar() {
                     <Chats
                       key={el.id}
                       onClick={() => loadSession(el.id)}
-                      className="group cursor-pointer p-2 hover:bg-white/20 transition-colors rounded-xl flex justify-between items-center"
+                      className={`flex justify-between items-center group cursor-pointer p-2 mb-2 hover:bg-white/20 transition-colors rounded-xl ${
+                        session === el.id ? "bg-white/15" : ""
+                      }`}
                     >
                       <span
-                        className="text-white text-2xl pr-2"
+                        className="text-white text-start text-base md:text-lg truncate max-w-[140px] sm:max-w-[160px]"
                         title={el.title}
                       >
                         {el.title}
                       </span>
-                      <div className="flex items-center justify-center">
-                        <span className="text-purple-200/70 text-xs">
+                      <div className="flex items-center shrink-0">
+                        <span className="text-purple-200/70 text-xs shrink-0 transition-colors">
                           {el.date}
                         </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteChatSession(el.id);
-                          }}
-                          className="text-white p-2 opacity-0 group-hover:opacity-100 hover:text-rose-400 cursor-pointer transition-colors"
-                          title="Delete chat"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="w-0 opacity-0 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteChatSession(el.id);
+                            }}
+                            className="shrink-0 p-1.5 text-zinc-400 hover:text-rose-400 cursor-pointer transition-colors"
+                            title="Delete chat"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </Chats>
                   ))

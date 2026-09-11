@@ -1,13 +1,16 @@
 "use client";
 import {
   Bot,
+  Check,
   CheckCircle2,
   ChevronDown,
   Copy,
+  LucideFolderOutput,
   RobotArm,
   Shell,
   Terminal,
   TerminalIcon,
+  TerminalSquare,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 export interface ExecutionStep {
@@ -41,6 +44,9 @@ const commandDisplay = (param: object | string) => {
   return String(param ?? "");
 };
 const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
+  const [isCopiedCmd, setCopiedCmd] = useState<boolean>(false);
+  const [isCopiedTerminal, setCopiedTerminal] = useState<boolean>(false);
+
   let paramContent: any = terminalData?.cmd;
   try {
     const parsed =
@@ -51,9 +57,26 @@ const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
   } catch {
     paramContent = terminalData?.cmd;
   }
-
+  useEffect(() => {
+    let timer1: NodeJS.Timeout;
+    let timer2: NodeJS.Timeout;
+    if (isCopiedCmd) {
+      timer1 = setTimeout(() => {
+        setCopiedCmd(false);
+      }, 2000);
+    }
+    if (isCopiedTerminal) {
+      timer2 = setTimeout(() => {
+        setCopiedTerminal(false);
+      }, 2000);
+    }
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [isCopiedCmd, isCopiedTerminal]);
   return (
-    <div className="flex flex-col w-full bg-black/70 border border-purple-500/30 rounded-xl p-3 gap-2.5 shadow-md">
+    <div className="flex flex-col w-full pr-3 bg-black/70 border border-purple-500/30 rounded-xl p-3 gap-2.5 shadow-md">
       {/* TOP */}
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center gap-2">
@@ -79,7 +102,21 @@ const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
               {terminalData.msg}
             </span>
           </div>
-          <Copy className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition" />
+          {isCopiedCmd ? (
+            <Check className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition" />
+          ) : (
+            <Copy
+              onClick={() => {
+                setCopiedCmd(true);
+                navigator.clipboard.writeText(
+                  typeof paramContent === "string"
+                    ? paramContent
+                    : JSON.stringify(paramContent, null, 2),
+                );
+              }}
+              className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition"
+            />
+          )}
         </div>
 
         {/* Boxy Command Line */}
@@ -87,14 +124,42 @@ const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
           <span className="text-purple-400 font-bold select-none mr-2">$</span>
           {commandDisplay(paramContent)}
         </div>
+
         {/* Output Box */}
-        {terminalData.terminalOutput && (
+        {(terminalData.terminalOutput || terminalData.terminalError) && (
           <div className="flex flex-col gap-1 w-full border-t border-zinc-800/80 pt-2">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">
-              output
-            </span>
-            <pre className="text-xs font-mono text-emerald-400/90 bg-black/50 p-2 rounded border border-zinc-800/60 whitespace-pre-wrap overflow-x-auto">
-              {terminalData.terminalOutput.trim()}
+            <div className="flex items-center justify-between w-full">
+              <span className="text-xs font-mono text-zinc-400 uppercase flex items-center gap-1.5">
+                <Terminal className="h-3.5 w-3.5 text-zinc-500" />
+                {terminalData.terminalError && !terminalData.terminalOutput
+                  ? "Error Output"
+                  : "Output"}
+              </span>
+              {isCopiedTerminal ? (
+                <CheckCircle2 className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition" />
+              ) : (
+                <Copy
+                  onClick={() => {
+                    setCopiedTerminal(true);
+                    const textToCopy =
+                      terminalData.terminalOutput?.trim() ||
+                      terminalData.terminalError?.trim() ||
+                      "";
+                    navigator.clipboard.writeText(textToCopy);
+                  }}
+                  className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition"
+                />
+              )}
+            </div>
+            <pre
+              className={`text-xs font-mono p-2 rounded border whitespace-pre-wrap overflow-auto max-h-100 ${
+                terminalData.terminalError && !terminalData.terminalOutput
+                  ? "text-rose-400/90 bg-rose-950/20 border-rose-900/30"
+                  : "text-emerald-400/90 bg-black/50 border-zinc-800/60"
+              }`}
+            >
+              {terminalData.terminalOutput?.trim() ||
+                terminalData.terminalError?.trim()}
             </pre>
           </div>
         )}
@@ -202,7 +267,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
             </button>
           </div>
           <div
-            className={`flex flex-col gap-2 w-full transition-all duration-500 ease-in-out overflow-hidden ${
+            className={`flex flex-col gap-2 w-full transition-all duration-500 ease-in-out overflow-auto  ${
               isOpen
                 ? "opacity-100 max-h-screen p-2 pt-0"
                 : "opacity-0 max-h-0 p-0"

@@ -10,6 +10,7 @@ export interface CustomWebSocket extends WebSocket {
   isAlive?: boolean;
   userId?: string;
   deviceId?: string;
+  deviceName?: string;
   isAuthenticated?: boolean;
   pairingCode?: string;
 }
@@ -39,9 +40,12 @@ const connectDevice = async (
   const decodedUserId =
     (decodedToken.token?.userId as string) ||
     ((decodedToken.token as any)?.id as string);
+
   const decodedDeviceId =
     (decodedToken.token?.deviceId as string) ||
     ((decodedToken.token as any)?.deviceId as string);
+
+  let deviceName = "";
 
   if (!decodedToken.success || !decodedUserId) {
     sendJson(ws, {
@@ -58,7 +62,9 @@ const connectDevice = async (
       "devices._id": decodedDeviceId,
       "devices.deviceToken": actualToken,
     });
-
+    deviceName =
+      user?.devices?.find((d) => d._id.toString() === decodedDeviceId)
+        ?.deviceName || "";
     if (!user) {
       sendJson(ws, {
         type: "PairingFailed",
@@ -82,9 +88,37 @@ const connectDevice = async (
   ws.isAuthenticated = true;
   ws.userId = decodedUserId;
   ws.deviceId = decodedDeviceId || "web_client";
+  ws.deviceName = deviceName;
   console.log(
     `[WS] Authenticated ${decodedDeviceId ? `device ${decodedDeviceId}` : "web client"} for user ${decodedUserId}`,
   );
+  if (decodedDeviceId) {
+    sendToUser(decodedUserId, {
+      type: "device_status",
+      device: { deviceName: deviceName, id: decodedDeviceId },
+      online: true,
+    });
+  } else {
+    const userDoc = await UserModel.findById(decodedUserId);
+    const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
+      .filter((c) => {
+        return (
+          c.userId === decodedUserId &&
+          c.deviceId &&
+          c.deviceId !== "web_client" &&
+          c.readyState === WebSocket.OPEN
+        );
+      })
+      .map((c) => c.deviceId);
+    sendJson(ws, {
+      type: "device_list",
+      devices: (userDoc?.devices || []).map((d) => ({
+        id: d._id.toString(),
+        deviceName: d.deviceName,
+        online: onlineDevicesIds.includes(d._id.toString()),
+      })),
+    });
+  }
 };
 
 const initWebsocket = (server: Server) => {
@@ -100,6 +134,7 @@ const initWebsocket = (server: Server) => {
       req.headers["authorization"] ||
       req.headers["Authorization"] ||
       queryToken;
+
     if (authHeader) {
       await connectDevice(ws, authHeader);
     }
@@ -187,6 +222,19 @@ const initWebsocket = (server: Server) => {
       console.log(
         `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"}, device: ${ws.deviceId || "none"})`,
       );
+      if (
+        ws.isAuthenticated &&
+        ws.userId &&
+        ws.deviceId &&
+        ws.deviceId !== "web_client"
+      ) {
+        sendToUser(ws.userId, {
+          type: "device_status",
+          device: { deviceName: ws.deviceName, id: ws.deviceId },
+          online: false,
+        });
+      }
+
       ws.userId = "";
       ws.isAuthenticated = false;
       ws.deviceId = "";
@@ -195,8 +243,12 @@ const initWebsocket = (server: Server) => {
 };
 //Client check pinging...
 setInterval(() => {
+  if (!wss) return;
   wss.clients.forEach((client: CustomWebSocket) => {
     if (client.deviceId === "web_client") return; // skip browser clients
+    if (client.isAlive === false) {
+      return client.terminate();
+    }
     client.isAlive = false; // assume dead until pong proves otherwise
     client.ping(); // triggers Local-BE auto-pong
   });
@@ -282,12 +334,18 @@ const sendCmdRequest = async (
   });
 };
 export const revokeDevice = async (userId: string, deviceId: string) => {
+  const deviceObjectId = Types.ObjectId.isValid(deviceId)
+    ? new Types.ObjectId(deviceId)
+    : null;
   const result = await UserModel.updateOne(
     { _id: userId },
     {
       $pull: {
         devices: {
-          _id: deviceId,
+          $or: [
+            ...(deviceObjectId ? [{ _id: deviceObjectId }] : []),
+            { _id: deviceId },
+          ],
         },
       },
     },
@@ -301,7 +359,10 @@ export const revokeDevice = async (userId: string, deviceId: string) => {
   }
   if (wss) {
     for (const client of wss.clients as Set<CustomWebSocket>) {
-      if (client.deviceId === deviceId && client.userId === userId) {
+      if (
+        client.deviceId === deviceId &&
+        client.userId?.toString() === userId?.toString()
+      ) {
         sendJson(client, {
           type: "PairingFailed",
           message: "Device has been revoked",
@@ -310,6 +371,10 @@ export const revokeDevice = async (userId: string, deviceId: string) => {
       }
     }
   }
+  sendToUser(userId, {
+    type: "device_removed",
+    deviceId: deviceId,
+  });
   return {
     success: true,
     message: "Device revoked successfully",

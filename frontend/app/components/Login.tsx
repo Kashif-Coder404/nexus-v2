@@ -18,11 +18,11 @@ const Login = (): React.JSX.Element => {
     setFetchError(null);
     setIsLoading(true);
     if (!email || !password) return;
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const cloudbackendUrl = "https://nexus-v2-e38m.onrender.com";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || cloudbackendUrl;
 
     try {
-      const res = await fetch(`${cloudbackendUrl}/api/auth/login`, {
+      const res = await fetch(`${backendUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
