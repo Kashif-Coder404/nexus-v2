@@ -52,6 +52,10 @@ When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desk
 ### 📦 Maintenance & Build Tasks
 - [x] **Rebuild Companion Binary & Release v2.4.0 (`nexus.exe`)**:
   - Compiled and bundled the latest debounced remote execution toggle and real-time status sync into standalone executable `nexus.exe` (Node.js SEA).
+- [x] **Native PowerShell Shell Execution & Release v2.5.0 (`nexus.exe`)**:
+  - Switched `executeCmd` shell to `powershell.exe` on Windows for complex pipe and cmdlet execution without `cmd.exe` single-quote parsing failures.
+  - Resolved `terminalOutput` masking in `cmd.controller.ts` and isolated errors into dedicated rose-colored `Error Output` console in `AIMsgBox.tsx`.
+  - Added screen capture streaming with URI normalization and MongoDB chat persistence.
 
 ---
 

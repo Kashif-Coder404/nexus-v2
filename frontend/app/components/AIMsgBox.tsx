@@ -16,6 +16,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import useChat from "../store/useChat";
 export interface ExecutionStep {
   steps: number;
   action: string;
@@ -103,15 +104,21 @@ const TerminalBox = ({
   isCopiedTerminal: boolean;
   setCopiedTerminal: (value: boolean) => void;
 }) => {
+  const errorText = terminalData.terminalError?.trim();
+  const outputText = terminalData.terminalOutput?.trim();
+  const hasError = Boolean(errorText);
+  const hasOutput = Boolean(outputText);
+  const isFailed = terminalData.isSuccess === false;
+  const isErrorState = isFailed || (hasError && !hasOutput);
+  const displayText =
+    isFailed && hasError ? errorText : outputText || errorText || "No output";
   return (
     <>
       <div className="flex flex-col gap-1 w-full border-t border-zinc-800/80 pt-2">
         <div className="flex items-center justify-between w-full">
           <span className="text-xs font-mono text-zinc-400 uppercase flex items-center gap-1.5">
             <Terminal className="h-3.5 w-3.5 text-zinc-500" />
-            {terminalData.terminalError && !terminalData.terminalOutput
-              ? "Error Output"
-              : "Output"}
+            {isErrorState ? "Error Output" : "Output"}
           </span>
           {isCopiedTerminal ? (
             <CheckCircle2 className="h-3.5 w-3.5 cursor-pointer text-zinc-400 hover:text-white transition" />
@@ -131,7 +138,7 @@ const TerminalBox = ({
         </div>
         <pre
           className={`text-xs sm:text-sm font-mono p-2 rounded border whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto max-h-100 leading-relaxed ${
-            terminalData.terminalError && !terminalData.terminalOutput
+            isErrorState
               ? "text-rose-400/90 bg-rose-950/20 border-rose-900/30"
               : "text-emerald-400/90 bg-black/50 border-zinc-800/60"
           }`}
@@ -219,6 +226,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
 
   // Safely parse and normalize data whether it's a string, JSON string, or object
   let parsedData: any = data;
+  const chat = useChat((state) => state.chat);
   if (typeof data === "string") {
     try {
       parsedData = JSON.parse(data);
@@ -235,7 +243,13 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
     typeof parsedData.data === "object"
       ? parsedData.data
       : parsedData || {};
-
+  console.log(typeof normalized);
+  const rawImage: string | undefined = normalized.imageBase64;
+  const imageSrc = rawImage
+    ? rawImage.startsWith("data:")
+      ? rawImage
+      : `data:image/png;base64,${rawImage}`
+    : null;
   const lastAIMsg: string =
     normalized.lastAIMsg ||
     normalized.msg ||
@@ -263,10 +277,19 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
       block: "nearest",
     });
   }, [isOpen]);
-
+  console.log(chat);
   return (
     <div className="flex flex-col justify-center items-start w-full max-w-120 sm:max-w-2xl p-2">
       {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}
+      {imageSrc && (
+        <div className="flex justify-center items-center rounded-2xl overflow-hidden">
+          <img
+            className="rounded-2xl w-full h-full object-contain"
+            src={imageSrc}
+            alt=""
+          />
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-2">
         <Bot className="h-7 w-7 text-purple-300 p-1.5 bg-purple-950/60 rounded-lg border border-purple-500/30" />
         <span className="text-sm font-semibold text-white">Nexus AI</span>

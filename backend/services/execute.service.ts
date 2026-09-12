@@ -36,16 +36,7 @@ export async function executeCmd(
     ) {
       executionCwd = path.resolve(executionCwd, "..");
     }
-
-    // if (cmd.trim().startsWith("start ")) {
-    //   execCallback(cmd, { cwd: executionCwd });
-    //   return {
-    //     stdout: "Process started in background successfully.",
-    //     stderr: "",
-    //     exitCode: 0,
-    //   };
-    // }
-
+    
     const commandResponse: any = await exec(cmd, {
       timeout: timeoutMs,
       cwd: executionCwd,

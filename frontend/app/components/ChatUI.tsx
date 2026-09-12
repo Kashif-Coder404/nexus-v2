@@ -5,7 +5,7 @@ import UserMsgBox from "./UserMsgBox";
 import SendMsg from "./SendMsg";
 import useChat from "../store/useChat";
 import { Bot } from "lucide-react";
-
+import { useDevices } from "../store/useDevices";
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);

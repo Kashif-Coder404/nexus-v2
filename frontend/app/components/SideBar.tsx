@@ -347,7 +347,7 @@ export default function SideBar() {
                         <span className="text-purple-200/70 text-xs shrink-0 transition-colors">
                           {el.date}
                         </span>
-                        <div className="w-0 opacity-0 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
+                        <div className="md:w-0 md:opacity-0 w-7 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

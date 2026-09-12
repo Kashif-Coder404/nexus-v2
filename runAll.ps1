@@ -1,1 +1,2 @@
-npx concurrently -t "HH:mm:ss" -n "SERVER,FRONTEND,PROXY,LOGS" -c "blue.bold,cyan.bold,magenta.bold,yellow.bold" "npm --prefix backend run dev:server" "npm --prefix frontend run dev -- --host" "npm --prefix backend run proxy" "npm --prefix backend run logs"
+Set-Location backend
+npx concurrently -t "HH:mm:ss" -n "BE,FE,LBE" -c "blue.bold,cyan.bold,magenta.bold,yellow.bold" "npm run dev:server" "npm run frontend" "npm run local-be"

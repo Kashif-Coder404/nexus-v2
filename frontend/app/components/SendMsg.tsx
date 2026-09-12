@@ -84,8 +84,7 @@ const SendMsg = () => {
       });
 
       const data = await res.json();
-      console.log("[SERVER RESPONSE]:", data);
-
+      console.log(data);
       if (data.success) {
         addChat({
           role: "assistant",

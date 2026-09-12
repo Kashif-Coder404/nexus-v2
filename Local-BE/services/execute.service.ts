@@ -46,7 +46,10 @@ export async function executeCmd(
   return new Promise((resolve) => {
     const child = execCallback(
       cmd,
-      { timeout: timeoutMs },
+      {
+        timeout: timeoutMs,
+        shell: process.platform === "win32" ? "powershell.exe" : "/bin/bash",
+      },
       (error: any, stdout, stderr) => {
         currentRunningProcess = null;
         if (error) {

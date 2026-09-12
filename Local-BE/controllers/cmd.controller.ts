@@ -1,7 +1,4 @@
 import { commandParser } from "../Parsers.js";
-import { executeCmd, ExecutionResponse } from "../services/execute.service.js";
-import { ChatMessageType } from "../Types.js";
-import { ActionTypes } from "../Types/ParserTypes.js";
 
 export const runCommand = async (
   action: any,
@@ -10,7 +7,8 @@ export const runCommand = async (
   isDaemon: boolean = false,
 ) => {
   const results = await commandParser({ action, param, timeout, isDaemon });
-  results.terminalOutput =
-    results.terminalOutput === "" ? "No Output" : results.terminalOutput;
+  if (!results.terminalOutput && !results.terminalError) {
+    results.terminalOutput = "No Output";
+  }
   return results;
 };

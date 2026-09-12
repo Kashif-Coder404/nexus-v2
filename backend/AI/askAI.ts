@@ -206,6 +206,7 @@ export const askAI = async (
         terminalError: terminalError || "",
         terminalOutput: terminalOutput || "",
         executions: executions || [],
+        imageBase64: capturedImage || "",
       }),
     },
   ];
