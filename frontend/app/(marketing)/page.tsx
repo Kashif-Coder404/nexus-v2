@@ -27,7 +27,7 @@ export default function Home() {
         </div>
         <div id="frontendImg" className={style.imageCont}>
           <img
-            src="https://reactbits.dev/assets/pro/components/aurora-beam-poster.webp"
+            src="https://i.ibb.co/LXdJ74yJ/Screenshot-2026-09-12-202908.png"
             alt="Nexus Dashboard Preview"
             className={style.image}
           />

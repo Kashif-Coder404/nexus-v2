@@ -5,17 +5,24 @@ import UserMsgBox from "./UserMsgBox";
 import SendMsg from "./SendMsg";
 import useChat from "../store/useChat";
 import { Bot } from "lucide-react";
-import { useDevices } from "../store/useDevices";
+import { useUserCredentials } from "../store/useUserCredentials";
+import { useRouter } from "next/navigation";
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const workingOn = useChat((state) => state.workingOn);
+  const user = useUserCredentials.getState().user;
+  const router = useRouter();
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [workingOn, chat]);
-
+  useEffect(() => {
+    if (!user) {
+      router.push("/auth/login");
+    }
+  }, [user]);
   return (
-    <div className="flex flex-col h-screen w-full bg-zinc-950 text-white overflow-hidden">
+    <div className="flex flex-col h-screen w-full  text-white overflow-hidden">
       {/* 1. Scrollable Message Feed */}
       <div className="flex-1 overflow-y-auto scroll-smooth px-4 sm:px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
         {chat.length === 0 ? (
@@ -23,10 +30,13 @@ const ChatUI = () => {
             <img
               src="https://i.ibb.co/NgXjccp7/Neon-Purple-Orbital-N-Emblem.png"
               alt="NexusIcon"
-              className={`${style.logoImage}`}
+              className={`z-10`}
             />
             <div className="text-center">
-              <h1 className="text-3xl font-bold mb-2">What is Today Task? </h1>
+              <h1 className="text-3xl font-bold mb-2">
+                What is Today Task{" "}
+                <span className="text-purple-500">?</span>{" "}
+              </h1>
             </div>
           </div>
         ) : (

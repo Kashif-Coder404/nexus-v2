@@ -79,7 +79,7 @@ export default function NavBar() {
                 className="flex justify-center items-center gap-2 transition-all duration-300 hover:text-purple-500 cursor-pointer"
               >
                 <Download />
-                <h1>Get Nexus</h1>
+                <h1>Latest v2.5.0</h1>
               </button>
               <h1 className="rounded-full bg-purple-800 w-4 h-4 text-center text-white flex justify-center items-center p-4">
                 {user?.name.slice(0, 1).toUpperCase()}

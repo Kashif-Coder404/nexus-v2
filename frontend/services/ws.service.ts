@@ -54,7 +54,18 @@ const WebSocketInit = async () => {
   ws.onclose = () => {
     useChat.getState().setWorkingOn(null);
   };
+  let retryInterval: NodeJS.Timeout;
   ws.onerror = (error) => {
+    retryInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        clearInterval(retryInterval);
+        console.log("WebSocket connected after retry");
+        return;
+      }
+      ws.close();
+      WebSocketInit();
+      clearInterval(retryInterval);
+    }, 5000);
     console.error("WebSocket error:", error);
   };
   return ws;

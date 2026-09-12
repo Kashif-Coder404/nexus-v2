@@ -7,16 +7,19 @@ import {
   ChevronRight,
   Delete,
   EllipsisVertical,
+  ExternalLink,
   Laptop,
+  LogOut,
   MessageSquare,
   Settings,
+  Sliders,
   Trash2,
   User,
 } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useChat from "../store/useChat";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Chats from "./Chats";
 import { useDevices } from "../store/useDevices";
 import { requestDevices } from "@/services/ws.service";
@@ -33,11 +36,7 @@ const menuItems: SidebarItem[] = [
   { label: "Chats", href: "/chat" },
   { label: "Settings", href: "/settings" },
 ];
-type Device = {
-  id: string;
-  name: string;
-  online: boolean;
-};
+
 type ChatContent = {
   id: string; //Chat session id basically.
   title: string;
@@ -59,10 +58,15 @@ export default function SideBar() {
   const [sessions, setSessions] = useState<ChatContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isDevicesLoading, setIsDevicesLoading] = useState<boolean>(false);
+  const [isLogoutShown, setLogoutShown] = useState<boolean>(false);
   const handleDevicesRefresh = async () => {
     console.log("Requesting devices...", devices);
     setIsDevicesLoading(true);
     requestDevices();
+  };
+  const handleOpenPairModel = () => {
+    openPairModal();
+    if (isSidebarOpen) toggleSidebar(false);
   };
   const handleDeviceRevoke = async (deviceId: string) => {
     if (!token || !deviceId) return;
@@ -90,6 +94,7 @@ export default function SideBar() {
       console.error("[REVOKE DEVICE ERROR]:", err.message);
     }
   };
+  const pathname = usePathname();
   const handleDeleteChatSession = async (sessionId: string) => {
     setIsLoading(true);
     if (!token || !sessionId) return;
@@ -242,10 +247,38 @@ export default function SideBar() {
               alt="Nexus Logo"
               className={style.logoImage}
             />
+            <div className="flex items-center gap-2 px-1 mb-3">
+              <Link
+                href="/dashboard"
+                onClick={() => isSidebarOpen && toggleSidebar(false)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
+                  pathname === "/dashboard"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </Link>
+              <Link
+                href="/chat"
+                onClick={() => isSidebarOpen && toggleSidebar(false)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
+                  pathname === "/chat"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Chat</span>
+              </Link>
+            </div>
             <button onClick={() => toggleSidebar()} className={style.closeBtn}>
               <ArrowLeft className="w-4 h-4" />
             </button>
           </div>
+          {/* Quick Navigation for Mobile & Desktop */}
+
           <div className="flex flex-col items-stretch w-full">
             {/* Devices Dropdown */}
             <Dropdown
@@ -254,7 +287,7 @@ export default function SideBar() {
               icon={<Laptop className="w-5 h-5" />}
               isLoading={isDevicesLoading}
               onRefresh={() => handleDevicesRefresh()}
-              onAdd={openPairModal}
+              onAdd={handleOpenPairModel}
               viewAllHref="/devices"
             >
               <div className="max-h-36 overflow-y-auto flex flex-col gap-1 pr-1 [scrollbar-width:thin] [scrollbar-color:#7e22ce_transparent]">
@@ -287,7 +320,7 @@ export default function SideBar() {
                               ? "● Paused"
                               : "● Online"}
                         </span>
-                        <div className="w-0 opacity-0 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
+                        <div className="md:w-0 md:opacity-0 w-7 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -381,7 +414,7 @@ export default function SideBar() {
 
           <hr className={`my-1 ${style.divider}`} />
 
-          <div className="flex justify-between items-center p-3 my-1 rounded-xl hover:bg-white/10 transition cursor-pointer text-white">
+          <div className="group relative flex justify-between items-center p-3 my-2 rounded-xl hover:bg-white/10 transition cursor-pointer text-white">
             <div className="flex justify-center items-center gap-2 max-w-fit">
               <div className="rounded-full border-2 p-0.5">
                 <User className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
@@ -395,8 +428,67 @@ export default function SideBar() {
                 </h2> */}
               </div>
             </div>
-            <div>
-              <EllipsisVertical strokeWidth={3} className="w-4 h-4" />
+            <div className="text-purple-400">
+              {isLogoutShown && (
+                <div className="absolute bottom-full right-0 mb-2 w-60 bg-zinc-950/95 border border-purple-500/30 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] rounded-2xl p-2 z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+                  {/* 1. User Header */}
+                  <div className="px-3 py-2 border-b border-zinc-800/80 mb-1">
+                    <p className="text-xs font-semibold text-white truncate">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-[11px] text-zinc-400 truncate">
+                      {user?.email || "Signed in"}
+                    </p>
+                  </div>
+
+                  {/* 2. Quick Actions List */}
+                  <button
+                    onClick={() => {
+                      handleOpenPairModel();
+                      setLogoutShown(false);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-purple-900/40 transition-colors cursor-pointer w-full text-left"
+                  >
+                    <Laptop className="w-4 h-4 text-purple-400 shrink-0" />
+                    <span>Pair New Companion</span>
+                  </button>
+
+                  <a
+                    href="https://github.com/Kashif-Coder404/nexus-v2"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-purple-900/40 transition-colors cursor-pointer w-full text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ExternalLink className="w-4 h-4 text-purple-400 shrink-0" />
+                      <span>GitHub Repository</span>
+                    </div>
+                    <span className="text-[10px] text-purple-400 font-mono bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-500/30">
+                      v2.5.0
+                    </span>
+                  </a>
+
+                  <hr className="my-1 border-zinc-800/80" />
+
+                  {/* 3. Logout Button */}
+                  <button
+                    onClick={() => {
+                      logout();
+                      router.push("/auth/login");
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition-colors cursor-pointer w-full text-left"
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+
+              <EllipsisVertical
+                onClick={() => setLogoutShown(!isLogoutShown)}
+                strokeWidth={3}
+                className="w-6 h-6  "
+              />
             </div>
           </div>
         </div>

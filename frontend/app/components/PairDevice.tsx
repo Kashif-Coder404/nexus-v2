@@ -3,12 +3,60 @@
 import React, { useState, useEffect } from "react";
 import { useDevices } from "../store/useDevices";
 import { useUserCredentials } from "../store/useUserCredentials";
-import { Laptop, X, CheckCircle2, AlertCircle, Loader2, ExternalLink } from "lucide-react";
-
-const PairDevice = () => {
+import {
+  Laptop,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ExternalLink,
+  Download,
+} from "lucide-react";
+const WindowAlert = ({
+  setWindowAlert,
+}: {
+  setWindowAlert: (val: boolean) => void;
+}) => {
+  const realNexusDownloadHandler = () => {
+    setWindowAlert(false);
+    window.location.href =
+      "https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe";
+  };
+  return (
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 z-999">
+      <div className=" relative w-full flex flex-col p-2 justify-center items-center gap-2">
+        <button
+          onClick={() => setWindowAlert(false)}
+          className="absolute top-3 right-3 text-zinc-400 hover:text-white p-1 rounded-lg transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <div className="flex flex-col justify-center items-center gap-2 md:flex-row">
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          <span className="text-lg sm:text-base text-red-300">
+            <span className=" text-red-500 text-xl font-medium">Note:</span>{" "}
+            Since it was free . Window defender can mark it as a trojan . It's
+            safe . No worries . Don't believe window defender click more info
+            and run anyway.
+          </span>
+        </div>
+        <button
+          onClick={realNexusDownloadHandler}
+          className="px-3 py-1.5 bg-blue-950/50 hover:bg-blue-900/70 transition-colors border border-blue-500/40 text-blue-300 text-md rounded-lg font-medium flex items-center gap-1.5 shrink-0"
+        >
+          <Download className="w-3.5 h-3.5" /> Download Nexus
+        </button>
+      </div>
+    </div>
+  );
+};
+const PairDevice = ({
+  setWindowAlert,
+}: {
+  setWindowAlert: (val: boolean) => void;
+}) => {
   const { isPairModalOpen, closePairModal } = useDevices();
   const token = useUserCredentials((state) => state.token);
-
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +103,8 @@ const PairDevice = () => {
 
     try {
       const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "https://nexus-v2-e38m.onrender.com";
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
 
       const res = await fetch(`${backendUrl}/api/pairrequest`, {
         method: "POST",
@@ -75,20 +124,25 @@ const PairDevice = () => {
         }, 1200);
       } else {
         setError(
-          data.message || "Pairing failed. Please check the code and ensure your local device is running.",
+          data.message ||
+            "Pairing failed. Please check the code and ensure your local device is running.",
         );
       }
     } catch (err: any) {
       console.error("[PAIRING ERROR]:", err);
-      setError("Could not reach the server. Please check your network connection.");
+      setError(
+        "Could not reach the server. Please check your network connection.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
-
+  const handleDownloadNexus = () => {
+    setWindowAlert(true);
+  };
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={handleClose}
     >
       <div
@@ -117,7 +171,7 @@ const PairDevice = () => {
             Link Companion Device
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xs">
-            Enter the pairing code shown on your local Nexus companion or at{" "}
+            Make sure your local Nexus is running and open the page{" "}
             <a
               href="http://localhost:4100"
               target="_blank"
@@ -166,6 +220,7 @@ const PairDevice = () => {
               }}
               placeholder="e.g. NX-AB12"
               maxLength={12}
+              autoComplete="off"
               className="w-full bg-zinc-900/90 border border-purple-500/40 rounded-xl px-4 py-3 text-center text-lg sm:text-xl font-mono font-bold tracking-widest text-white placeholder-zinc-600 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-500/30 transition-all disabled:opacity-50"
             />
           </div>
@@ -191,10 +246,33 @@ const PairDevice = () => {
           </button>
         </form>
 
-        {/* Footer Hint */}
-        <div className="mt-5 pt-4 border-t border-zinc-800/80 text-center">
-          <p className="text-[11px] text-zinc-500">
-            Make sure your Local-BE service is running on your machine to generate a valid pairing code.
+        {/* Footer Hint & Companion Download */}
+        <div className="mt-5 pt-4 border-t border-zinc-800/80 flex flex-col gap-3">
+          <div className="flex items-center justify-between bg-zinc-900/60 border border-purple-500/20 rounded-xl p-3">
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-semibold text-zinc-200">
+                Need the companion app?
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                Run it on your PC to get your pairing code.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDownloadNexus}
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 hover:text-white rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>nexus.exe (v2.5.0)</span>
+            </button>
+          </div>
+
+          <p className="text-[11px] text-zinc-500 leading-relaxed text-center">
+            Once installed, open{" "}
+            <span className="font-mono text-purple-300">
+              http://localhost:4100
+            </span>{" "}
+            to retrieve your code.
           </p>
         </div>
       </div>
@@ -202,4 +280,4 @@ const PairDevice = () => {
   );
 };
 
-export default PairDevice;
+export { PairDevice, WindowAlert };

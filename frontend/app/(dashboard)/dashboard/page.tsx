@@ -22,8 +22,8 @@ const Dashboard = () => {
   if (!user) {
     return null;
   }
-  return <h1 className="text-white">Dashboard must be here!</h1>;
-  // return <DashboardUI />;
+  // return <h1 className="text-white">Dashboard must be here!</h1>;
+  return <DashboardUI />;
 };
 
 export default Dashboard;
