@@ -318,6 +318,39 @@
       .footer-uninstall-btn:hover:not(:disabled) {
         color: #ef4444;
       }
+      .stop-server-btn {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 10px;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s ease;
+      }
+      .stop-server-btn:hover:not(:disabled) {
+        background: rgba(245, 158, 11, 0.25);
+        border-color: #f59e0b;
+        color: #ffffff;
+      }
+      .stop-server-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .footer-stop-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 0.78rem;
+        cursor: pointer;
+        text-decoration: underline;
+        transition: color 0.2s ease;
+      }
+      .footer-stop-btn:hover:not(:disabled) {
+        color: #fbbf24;
+      }
 
       /* Service Control Card & Toggle Switch */
       #serviceStatusPill {
@@ -559,11 +592,83 @@
             margin-top: 1.5rem;
             padding-top: 1.25rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
           "
         >
+          <button id="pairedStopBtn" class="stop-server-btn">
+            ⏹️ Turn Off Nexus Service
+          </button>
           <button id="pairedUninstallBtn" class="uninstall-btn">
             🗑️ Unlink &amp; Uninstall Nexus
           </button>
+        </div>
+      </div>
+
+      <!-- Service Stopped View -->
+      <div id="stoppedBox" style="display: none; padding: 1.5rem 0">
+        <div
+          class="success-icon"
+          style="
+            background: rgba(245, 158, 11, 0.15);
+            border-color: #f59e0b;
+            color: #fbbf24;
+            font-size: 1.8rem;
+          "
+        >
+          ⏹
+        </div>
+        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff">
+          Nexus Service Stopped
+        </h2>
+        <p
+          style="
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+          "
+        >
+          The background Nexus companion service has been completely terminated. Local server on port 4100 is now offline.
+        </p>
+
+        <!-- Notice & Restart Instructions -->
+        <div
+          style="
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.1rem;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+          "
+        >
+          <p style="font-weight: 600; color: #38bdf8; margin-bottom: 0.35rem;">
+            🚀 To start the service again:
+          </p>
+          <p style="color: #94a3b8; margin-bottom: 0.5rem;">
+            Open your terminal (PowerShell or Command Prompt) and run:
+          </p>
+          <code
+            style="
+              display: block;
+              background: #0f172a;
+              padding: 0.5rem 0.75rem;
+              border-radius: 6px;
+              color: #4ade80;
+              font-family: monospace;
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              user-select: all;
+            "
+          >
+            nexus --start-server
+          </code>
+          <p style="color: #64748b; font-size: 0.78rem; margin-top: 0.5rem;">
+            (Or restart your PC, and Nexus will start automatically on logon.)
+          </p>
         </div>
       </div>
 
@@ -597,15 +702,23 @@
         </p>
       </div>
 
-      <!-- Card Footer / Discreet Uninstall Option -->
+      <!-- Card Footer / Discreet Options -->
       <div
         id="unpairedUninstallContainer"
         style="
           margin-top: 1.75rem;
           padding-top: 1rem;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          align-items: center;
         "
       >
+        <button id="footerStopBtn" class="footer-stop-btn">
+          Turn Off Service
+        </button>
+        <span style="color: #475569; font-size: 0.75rem;">•</span>
         <button id="footerUninstallBtn" class="footer-uninstall-btn">
           Uninstall Nexus from this PC
         </button>
@@ -990,6 +1103,63 @@
       }
       if (footerUninstallBtn) {
         footerUninstallBtn.addEventListener("click", handleUninstall);
+      }
+
+      // Stop Server Handling
+      const pairedStopBtn = document.getElementById("pairedStopBtn");
+      const footerStopBtn = document.getElementById("footerStopBtn");
+      const stoppedBox = document.getElementById("stoppedBox");
+      let isStopping = false;
+
+      async function handleStopServer() {
+        if (isStopping || isUninstalling) return;
+        const confirmed = confirm(
+          "Are you sure you want to completely turn off the Nexus service?\\n\\nThis will terminate the background companion process on port 4100.\\n\\nTo run it again, restart your PC or run 'nexus --start-server' in your terminal."
+        );
+        if (!confirmed) return;
+
+        isStopping = true;
+        if (pairedStopBtn) {
+          pairedStopBtn.disabled = true;
+          pairedStopBtn.textContent = "Stopping Service...";
+        }
+        if (footerStopBtn) {
+          footerStopBtn.disabled = true;
+          footerStopBtn.textContent = "Stopping...";
+        }
+
+        if (pollInterval) clearInterval(pollInterval);
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        try {
+          await fetch("http://localhost:4100/api/stop-server", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (e) {
+          // Expected when server shuts down immediately
+        }
+
+        // Display stopped state
+        pairingBox.style.display = "none";
+        pairedBox.style.display = "none";
+        offlineBanner.style.display = "none";
+        errorBanner.style.display = "none";
+        if (unpairedUninstallContainer) {
+          unpairedUninstallContainer.style.display = "none";
+        }
+        stoppedBox.style.display = "block";
+
+        updateCloudStatus("offline", "Cloud: Disconnected", false);
+        updateDeviceStatus("offline", "Service: Stopped");
+        updateServiceUI(false);
+      }
+
+      if (pairedStopBtn) {
+        pairedStopBtn.addEventListener("click", handleStopServer);
+      }
+      if (footerStopBtn) {
+        footerStopBtn.addEventListener("click", handleStopServer);
       }
       let ServiceToggleTimeout = null;
       if (serviceToggle) {

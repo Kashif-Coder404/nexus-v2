@@ -16,7 +16,7 @@ import {
   setService,
   getService,
 } from "./services/ws.service";
-import { uninstallNexus } from "./setupnexus";
+import { uninstallNexus, stopServer } from "./setupnexus";
 
 const app = express();
 app.use(express.json());
@@ -191,6 +191,30 @@ app.post("/api/uninstall", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to uninstall: " + error.message,
+    });
+  }
+});
+
+// API to completely stop the Nexus background service
+app.post("/api/stop-server", async (req, res) => {
+  try {
+    console.log("[API] /api/stop-server requested.");
+    res.status(200).json({
+      success: true,
+      message: "Nexus service is stopping...",
+    });
+
+    setTimeout(async () => {
+      try {
+        await stopServer();
+      } catch {}
+      process.exit(0);
+    }, 500);
+  } catch (error: any) {
+    console.error("[API STOP SERVER ERROR]", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to stop server: " + error.message,
     });
   }
 });
