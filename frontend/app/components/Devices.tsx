@@ -12,6 +12,7 @@ import {
   Laptop,
   Radio,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 interface SystemInfo {
@@ -83,51 +84,71 @@ const Devices = ({ device }: { device: Device }) => {
   const ramPercentNumber = parseFloat(sysInfo?.memory?.usagePercentage || "0");
 
   return (
-    <div className="w-full max-w-2xl p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-5 transition-all">
+    <div className="relative w-full max-w-2xl p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-5 transition-all">
       {/* 1. Header: Device Name, IP, Live Pulse */}
       <div className="flex flex-col gap-3 border-b border-brand-border/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: icon + info */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover shadow-sm">
-            <Laptop className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold tracking-tight text-white truncate">
-                {device.deviceName}
-              </h2>
+        {/* 1. Header: Top row (Title + Actions), Bottom row (Hostname + IP) */}
+        <div className="border-b border-brand-border/30 pb-4 space-y-2.5">
+          {/* Top Row: Device Name & Action Buttons */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Icon & Name */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover shadow-sm">
+                <Laptop className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
+                  {device.deviceName}
+                </h2>
+                <button
+                  type="button"
+                  className="text-zinc-400 hover:text-brand-hover transition-colors p-0.5 rounded shrink-0"
+                  title="Rename device"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Live Badge & Revoke Button */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs font-semibold shrink-0 transition-all ${
+                  isDeviceOnline
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                }`}
+              >
+                <Radio
+                  className={`w-3.5 h-3.5 ${isDeviceOnline ? "animate-pulse text-emerald-400" : "text-rose-400"}`}
+                />
+                <span className="font-mono text-[11px] sm:text-xs">
+                  {isDeviceOnline ? "LIVE STREAM" : "OFFLINE"}
+                </span>
+              </div>
+
               <button
                 type="button"
-                className="text-zinc-400 hover:text-brand-hover transition-colors p-0.5 rounded"
-                title="Rename device"
+                onClick={() => {}}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 text-rose-400 text-xs font-semibold hover:bg-rose-500/20 hover:border-rose-500/60 hover:text-rose-300 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                title="Revoke device"
               >
-                <Pencil className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] sm:text-xs">Revoke</span>
               </button>
             </div>
-            <span className="text-xs font-normal text-zinc-400 font-mono block truncate">
-              ({sysInfo?.os?.hostname || device.id.slice(0, 8)})
-            </span>
-            <p className="text-xs text-brand-glow/80 font-mono flex items-center gap-1.5 mt-0.5 truncate">
+          </div>
+
+          {/* Subtitle Row: Hostname and IP (Full width, no squishing) */}
+          <div className="pl-[52px] flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-zinc-400">
+            <span>({sysInfo?.os?.hostname || device.id.slice(0, 8)})</span>
+            <span className="text-zinc-600 hidden sm:inline">•</span>
+            <p className="text-brand-glow/80 flex items-center gap-1.5">
               <Wifi className="w-3.5 h-3.5 text-brand shrink-0" />
-              <span className="truncate">
-                Direct LAN • {device.ipAddress}:4100
-              </span>
+              <span>Direct LAN • {device.ipAddress}:4100</span>
             </p>
           </div>
-        </div>
-
-        {/* Live / Offline Indicator Badge */}
-        <div
-          className={`self-start sm:self-center flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold shrink-0 transition-all ${
-            isDeviceOnline
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              : "bg-rose-500/10 border-rose-500/30 text-rose-400"
-          }`}
-        >
-          <Radio
-            className={`w-3.5 h-3.5 ${isConnected ? "animate-pulse text-emerald-400" : "text-rose-400"}`}
-          />
-          <span>{isConnected ? "LIVE STREAM" : "OFFLINE"}</span>
         </div>
       </div>
 
