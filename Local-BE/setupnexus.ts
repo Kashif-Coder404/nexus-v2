@@ -36,9 +36,9 @@ const addDirToUserPath = (dirPath: string) => {
 const removeDirFromUserPath = (dirPath: string) => {
   try {
     const psCmd = `
-      $dir = '${dirPath}';
+      $dir = '${dirPath}'.TrimEnd('\\');
       $current = [Environment]::GetEnvironmentVariable('Path', 'User');
-      $parts = ($current -split ';').Where({ $_.Trim() -ne '' -and $_ -ne $dir });
+      $parts = ($current -split ';').Where({ $_.Trim() -ne '' -and $_.TrimEnd('\\') -ne $dir });
       $newPath = $parts -join ';';
       [Environment]::SetEnvironmentVariable('Path', $newPath, 'User');
     `.replace(/\r?\n/g, " ");
@@ -119,6 +119,9 @@ export const uninstallNexus = async (): Promise<{
     }
     // Stop and delete the scheduled task
     try {
+      execSync(`schtasks /end /tn "${TASK_NAME}"`, { stdio: "ignore" });
+    } catch {}
+    try {
       execSync(`schtasks /delete /tn "${TASK_NAME}" /f`, { stdio: "ignore" });
       console.log(`[UNINSTALL] Deleted scheduled task: ${TASK_NAME}`);
     } catch {}
@@ -168,46 +171,28 @@ export const uninstallNexus = async (): Promise<{
           );
         }
       } else {
-        // Web UI / Installed mode: schedule detached PowerShell with cwd: os.tmpdir()
-        const cleanScript = `
-Start-Sleep -Seconds 2
-Stop-Process -Name nexus -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 1
-cmd.exe /c rmdir /s /q '${targetDir}'
-if (Test-Path -LiteralPath '${targetDir}') {
-  Start-Sleep -Seconds 2
-  cmd.exe /c rmdir /s /q '${targetDir}'
-}
-`;
-        const b64 = Buffer.from(cleanScript, "utf16le").toString("base64");
+        // Installed mode: Write self-deleting helper batch file in temp directory
+        const batPath = path.join(os.tmpdir(), "nexus_uninstall.bat");
+        const batContent = [
+          "@echo off",
+          "ping 127.0.0.1 -n 3 >nul",
+          "taskkill /f /im nexus.exe >nul 2>&1",
+          `rmdir /s /q "${targetDir}"`,
+          'del "%~f0"',
+        ].join("\r\n");
 
-        const child = spawn(
-          "powershell.exe",
-          ["-NoProfile", "-WindowStyle", "Hidden", "-EncodedCommand", b64],
-          {
-            cwd: os.tmpdir(),
-            detached: true,
-            stdio: "ignore",
-          },
-        );
-        child.unref();
-        console.log(
-          `[UNINSTALL] Scheduled directory removal via PowerShell: ${targetDir}`,
-        );
-      }
-    }
+        fs.writeFileSync(batPath, batContent, "utf-8");
 
-    if (path.resolve(runningExe).toLowerCase().includes("nexus-uninstall")) {
-      const tempParent = path.dirname(runningExe);
-      spawn(
-        "cmd.exe",
-        ["/c", `ping 127.0.0.1 -n 4 >nul & rmdir /s /q "${tempParent}"`],
-        {
+        const child = spawn("cmd.exe", ["/c", batPath], {
           cwd: os.tmpdir(),
           detached: true,
           stdio: "ignore",
-        },
-      ).unref();
+          windowsHide: true,
+        });
+        child.unref();
+
+        console.log(`[UNINSTALL] Scheduled directory removal: ${targetDir}`);
+      }
     }
 
     console.log("[UNINSTALL] Uninstallation completed successfully.");
@@ -312,7 +297,7 @@ export const setupFirst = async (): Promise<boolean> => {
       console.log("🗑️  Nexus Uninstaller ");
       console.log("=======================================================");
       await uninstallNexus();
-      await countdownAndExit(3);
+      await countdownAndExit(1);
       return false;
     }
     // STOP SERVER
@@ -330,9 +315,6 @@ export const setupFirst = async (): Promise<boolean> => {
     // Background Run
 
     if (process.argv.includes("--background")) {
-      if (await isAlreadyRunning()) {
-        return false;
-      }
       return true;
     }
 
@@ -393,7 +375,15 @@ export const setupFirst = async (): Promise<boolean> => {
 
     // If running directly as the installed application, continue running the server
     if (isRunningAsInstalled) {
-      return true;
+      console.log("\n=======================================================");
+      console.log("⚡ Nexus CLI");
+      console.log("=======================================================");
+      console.log("Usage:");
+      console.log("  nexus --start-server   Start the background server");
+      console.log("  nexus --stop-server    Stop the running server");
+      console.log("  nexus --uninstall      Uninstall Nexus from this PC");
+      console.log("=======================================================\n");
+      return false; // Free the terminal immediately
     }
 
     // --- FROM THIS POINT ON: Running as the external / downloaded setup .exe ---
