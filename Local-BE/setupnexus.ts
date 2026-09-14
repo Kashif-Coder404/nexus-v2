@@ -171,13 +171,24 @@ export const uninstallNexus = async (): Promise<{
           );
         }
       } else {
-        // Installed mode: Write self-deleting helper batch file in temp directory
+        // Installed mode: Write self-deleting helper batch file in temp directory with retry loop
         const batPath = path.join(os.tmpdir(), "nexus_uninstall.bat");
         const batContent = [
           "@echo off",
-          "ping 127.0.0.1 -n 3 >nul",
+          ":: Wait for nexus.exe to exit completely",
+          "ping 127.0.0.1 -n 4 >nul",
           "taskkill /f /im nexus.exe >nul 2>&1",
-          `rmdir /s /q "${targetDir}"`,
+          "set /a attempts=0",
+          ":retry",
+          `rmdir /s /q "${targetDir}" >nul 2>&1`,
+          `if exist "${targetDir}" (`,
+          "    set /a attempts+=1",
+          "    if %attempts% lss 10 (",
+          "        ping 127.0.0.1 -n 2 >nul",
+          "        taskkill /f /im nexus.exe >nul 2>&1",
+          "        goto retry",
+          "    )",
+          ")",
           'del "%~f0"',
         ].join("\r\n");
 
@@ -297,8 +308,8 @@ export const setupFirst = async (): Promise<boolean> => {
       console.log("🗑️  Nexus Uninstaller ");
       console.log("=======================================================");
       await uninstallNexus();
-      await countdownAndExit(1);
-      return false;
+      console.log("\nDone.");
+      process.exit(0);
     }
     // STOP SERVER
     if (process.argv.includes("--stop-server")) {
