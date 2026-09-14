@@ -223,25 +223,59 @@ if (Test-Path -LiteralPath '${targetDir}') {
     };
   }
 };
-
-export const setupFirst = async (): Promise<boolean> => {
+export const isAlreadyRunning = async () => {
   try {
-    if (process.argv.includes("--uninstall") || process.argv.includes("-u")) {
-      if (!isRunningAsAdmin()) {
-        console.log(
-          "⚡ Elevation required to uninstall. Prompting for administrator rights...",
-        );
-        eleevateSelf();
-        return false;
-      }
-      console.log("\n=======================================================");
-      console.log("🗑️  Nexus Uninstaller");
-      console.log("=======================================================");
-      await uninstallNexus();
-      await countdownAndExit(3);
+    const alreadyRunningCheckCommand = `tasklist /fi "ImageName eq nexus.exe" /fo csv /nh `;
+    const output = execSync(alreadyRunningCheckCommand, {
+      encoding: "utf-8",
+    });
+    if (output.includes("INFO: No tasks")) {
       return false;
     }
+    const lines = output.trim().split(/\r?\n/).filter(Boolean);
+    const otherInstances = lines.filter((line) => {
+      const parts = line.split(",");
+      if (parts.length >= 2) {
+        const pid = parseInt(parts[1].replace(/"/g, "").trim(), 10);
+        return pid !== process.pid;
+      }
+      return false;
+    });
+    return otherInstances.length > 0;
+  } catch (error) {
+    console.log("Error while checking running process: ", error);
+    return false;
+  }
+};
+export const stopServer = async () => {
+  try {
+    if (!(await isAlreadyRunning())) {
+      return { success: false, msg: "Server is Already Stopped!" };
+    }
+    try {
+      execSync(`schtasks /end /tn "${TASK_NAME}"`, { stdio: "ignore" });
+    } catch {}
 
+    const killCmd = `Get-Process -Name nexus -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne ${process.pid} } | Stop-Process -Force`;
+    spawnSync("powershell.exe", ["-NoProfile", "-Command", killCmd], {
+      stdio: "ignore",
+    });
+    return { success: true, msg: "Stopped the server" };
+  } catch (error: any) {
+    return { success: false, msg: error.message };
+  }
+};
+export const disableServiceAndStopServer = async () => {
+  execSync(
+    `powershell -Command "Start-Process wt -ArgumentList '-p \\"Command Prompt\\" cmd /c taskkill /f /im nexus.exe' -Verb runAs"`,
+  );
+};
+
+export const setupFirst = async (): Promise<boolean> => {
+  const checkIsInstalled = async (targetExe: string): Promise<boolean> => {
+    return fs.existsSync(targetExe) && isTaskRegistered();
+  };
+  try {
     const localAppData =
       process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
     const targetDir = path.join(localAppData, "Programs", "Nexus");
@@ -258,7 +292,95 @@ export const setupFirst = async (): Promise<boolean> => {
     const vbsPath = path.join(startupDir, "run_nexus.vbs");
 
     const runningExe = process.execPath;
+    const silentVbsPath = path.join(targetDir, "run_silent.vbs");
+    const vbsContent = [
+      'Set objShell = CreateObject("WScript.Shell")',
+      `objShell.Run """${targetExe}"" --background", 0, False`,
+      "Set objShell = Nothing",
+    ].join("\r\n");
     const isDev = path.basename(runningExe).toLowerCase() === "node.exe";
+
+    if (process.argv.includes("--uninstall") || process.argv.includes("-u")) {
+      if (!isRunningAsAdmin()) {
+        console.log(
+          "⚡ Elevation required to uninstall. Prompting for administrator rights...",
+        );
+        eleevateSelf();
+        return false;
+      }
+      console.log("\n=======================================================");
+      console.log("🗑️  Nexus Uninstaller ");
+      console.log("=======================================================");
+      await uninstallNexus();
+      await countdownAndExit(3);
+      return false;
+    }
+    // STOP SERVER
+    if (process.argv.includes("--stop-server")) {
+      console.log("\x1b[33m\x1b[1mStopping Nexus...\x1b[0m");
+      const res = await stopServer();
+      if (!res.success) {
+        console.log(`\x1b[31m\x1b[1m${res.msg}\x1b[0m`);
+      } else {
+        console.log(`\x1b[32m\x1b[1m${res.msg}\x1b[0m`);
+      }
+      await countdownAndExit(3);
+      return false;
+    }
+    // Background Run
+
+    if (process.argv.includes("--background")) {
+      if (await isAlreadyRunning()) {
+        return false;
+      }
+      return true;
+    }
+
+    // START SERVER
+    if (process.argv.includes("--start-server")) {
+      if (isDev) {
+        if (await isAlreadyRunning()) {
+          console.log("\x1b[34m\x1b[1mNexus is already running!\x1b[0m");
+          return false;
+        }
+        console.log("\x1b[32m\x1b[1mStarting Nexus in dev mode...\x1b[0m");
+        return true;
+      }
+      if (!(await checkIsInstalled(targetExe))) {
+        console.log("\x1b[31m\x1b[1mNexus is not installed yet!\x1b[0m");
+        console.log("Please run the installer to set up Nexus first.");
+        await countdownAndExit(3);
+        return false;
+      }
+      if (await isAlreadyRunning()) {
+        console.log("\x1b[34m\x1b[1mNexus is already running!\x1b[0m");
+        await countdownAndExit(2);
+        return false;
+      }
+
+      console.log("\x1b[32m\x1b[1mStarting Nexus service...\x1b[0m");
+
+      try {
+        if (fs.existsSync(silentVbsPath)) {
+          spawn("wscript.exe", [silentVbsPath], {
+            detached: true,
+            stdio: "ignore",
+          }).unref();
+        } else {
+          execSync(`schtasks /run /tn "${TASK_NAME}"`, { stdio: "ignore" });
+        }
+        console.log(
+          "\x1b[32m\x1b[1mNexus service started successfully!\x1b[0m",
+        );
+      } catch (err: any) {
+        console.error(
+          "\x1b[31m\x1b[1mFailed to start Nexus service! Try to Reboot PC\x1b[0m",
+          err.message,
+        );
+      }
+      await countdownAndExit(2);
+      return false;
+    }
 
     // In development mode (tsx watch / node), skip installer lifecycle and run server
     if (isDev) {
@@ -276,7 +398,7 @@ export const setupFirst = async (): Promise<boolean> => {
 
     // --- FROM THIS POINT ON: Running as the external / downloaded setup .exe ---
 
-    const isAlreadyInstalled = fs.existsSync(targetExe) && isTaskRegistered();
+    const isAlreadyInstalled = await checkIsInstalled(targetExe);
 
     if (isAlreadyInstalled) {
       addDirToUserPath(targetDir);
@@ -316,12 +438,7 @@ export const setupFirst = async (): Promise<boolean> => {
     addDirToUserPath(targetDir);
 
     // 3. Register task in Windows Task Scheduler to run elevated on logon
-    const silentVbsPath = path.join(targetDir, "run_silent.vbs");
-    const vbsContent = [
-      'Set objShell = CreateObject("WScript.Shell")',
-      `objShell.Run """${targetExe}""", 0, False`,
-      "Set objShell = Nothing",
-    ].join("\r\n");
+
     fs.writeFileSync(silentVbsPath, vbsContent, "utf-8");
     const taskCmd = `wscript.exe \\"${silentVbsPath}\\"`;
     execSync(
@@ -353,3 +470,6 @@ export const setupFirst = async (): Promise<boolean> => {
     return true; // Fallback: allow server to continue if error
   }
 };
+// (async () => {
+//   await disableServiceAndStopServer();
+// })();

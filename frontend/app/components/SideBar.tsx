@@ -23,6 +23,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Chats from "./Chats";
 import { useDevices } from "../store/useDevices";
 import { requestDevices } from "@/services/ws.service";
+import DeviceItem from "./sidebar components/DeviceItem";
 
 interface SidebarItem {
   label: string;
@@ -297,43 +298,11 @@ export default function SideBar() {
                   </span>
                 ) : (
                   devices.map((el) => (
-                    <DropdownItem className="group" key={el.id}>
-                      <span
-                        className="font-semibold text-sm sm:text-base truncate max-w-[130px]"
-                        title={el.deviceName}
-                      >
-                        {el.deviceName}
-                      </span>
-                      <div className="flex items-center shrink-0">
-                        <span
-                          className={`text-xs shrink-0 transition-colors ${
-                            !el.online
-                              ? "text-zinc-500"
-                              : el.service === false
-                                ? "text-amber-400"
-                                : "text-emerald-400"
-                          }`}
-                        >
-                          {!el.online
-                            ? "○ Offline"
-                            : el.service === false
-                              ? "● Paused"
-                              : "● Online"}
-                        </span>
-                        <div className="md:w-0 md:opacity-0 w-7 group-hover:w-7 group-hover:opacity-100 group-hover:ml-1.5 overflow-hidden transition-all duration-200 ease-out flex items-center justify-end">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeviceRevoke(el.id);
-                            }}
-                            className="shrink-0 p-1 text-zinc-400 hover:text-rose-400 cursor-pointer transition-colors"
-                            title="Revoke / Delete device"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </DropdownItem>
+                    <DeviceItem
+                      key={el.id}
+                      data={el}
+                      onRevoke={handleDeviceRevoke}
+                    />
                   ))
                 )}
               </div>

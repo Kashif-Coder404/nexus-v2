@@ -24,6 +24,9 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
     >
       {/* User Header */}
       <div className="flex items-center gap-2 mb-2 flex-row-reverse">
+        <div className="text-xs text-zinc-500 font-mono mr-1">
+          {new Date().toLocaleString()}
+        </div>
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow border border-purple-400/30">
           <User className="h-4 w-4 text-purple-100" />
         </div>

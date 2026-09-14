@@ -61,7 +61,7 @@ export default function DashboardUI() {
             title: item.title || "Untitled Session",
             date: new Date(item.updatedAt || item.createdAt).toLocaleDateString(
               undefined,
-              { month: "short", day: "numeric" }
+              { month: "short", day: "numeric" },
             ),
           }));
           setSessions(formatted);
@@ -188,7 +188,9 @@ export default function DashboardUI() {
               Engine Version
             </p>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-2xl font-bold text-white">Nexus v2.5.0</span>
+              <span className="text-2xl font-bold text-white">
+                Nexus v2.5.0
+              </span>
             </div>
             <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
               <span>●</span> Release Ready & Tagged
@@ -309,23 +311,39 @@ export default function DashboardUI() {
             </div>
           )}
 
-          {/* Quick System Demo Prompts for Stage/Auditorium */}
           <div className="p-5 rounded-2xl bg-linear-to-br from-purple-950/20 to-zinc-900/40 border border-purple-500/20 space-y-3 mt-6">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
               <h3 className="text-sm font-semibold text-white">
-                Auditorium Quick Commands
+                Quick Commands
               </h3>
             </div>
             <p className="text-xs text-zinc-400">
-              Click any command to test companion control live in the Chat Terminal:
+              Click any command to test companion control live in the Chat
+              Terminal:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               {[
-                { label: "📸 Screenshot", icon: Camera, prompt: "Take a screenshot of my screen" },
-                { label: "💻 System Specs", icon: Cpu, prompt: "Show my system hardware and battery info" },
-                { label: "📁 List Desktop", icon: Folder, prompt: "List files on my Desktop" },
-                { label: "⚡ Terminal Check", icon: Terminal, prompt: "Run PowerShell command to check uptime" },
+                {
+                  label: "📸 Screenshot",
+                  icon: Camera,
+                  prompt: "Take a screenshot of my screen",
+                },
+                {
+                  label: "💻 System Specs",
+                  icon: Cpu,
+                  prompt: "Show my system hardware and battery info",
+                },
+                {
+                  label: "📁 List Desktop",
+                  icon: Folder,
+                  prompt: "List files on my Desktop",
+                },
+                {
+                  label: "⚡ Terminal Check",
+                  icon: Terminal,
+                  prompt: "Run PowerShell command to check uptime",
+                },
               ].map((item, idx) => (
                 <Link
                   key={idx}

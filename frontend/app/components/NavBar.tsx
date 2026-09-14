@@ -15,10 +15,11 @@ export default function NavBar() {
   const user = useUserCredentials((state) => state.user);
   const { toggleSidebar, isSidebarOpen } = useSideBar();
   const isDashboard = user ? "/dashboard" : "/auth/login";
+  const isChat = user ? "/chat" : "/auth/login";
   const navItems: NavItem[] = [
     { label: "Home", href: "/" },
     { label: "Dashboard", href: isDashboard },
-    { label: "Chat", href: "/chat" },
+    { label: "Chat", href: isChat },
   ];
   const handleDownloadNexus = () => {
     // window.location.href =
@@ -61,7 +62,7 @@ export default function NavBar() {
         <nav className={style.navLinks}>
           {navItems.map((item) => (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={style.navLinkItem}
             >
