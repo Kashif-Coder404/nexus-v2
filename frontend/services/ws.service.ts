@@ -28,6 +28,11 @@ const WebSocketInit = async () => {
           if (payload.online !== undefined) {
             useDevices.getState().setOnlineDevices(deviceId, payload.online);
           }
+          // Save the ipAddress sent by Local-BE on first connect (note: backend uses lowercase 'ipaddress')
+          const ip = payload.device?.ipaddress || payload.device?.ipAddress || payload.ipAddress;
+          if (ip) {
+            useDevices.getState().setIpAddress(deviceId, ip);
+          }
           if (payload.service !== undefined) {
             useDevices.getState().setService(deviceId, payload.service);
           }
