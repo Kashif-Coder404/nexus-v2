@@ -8,14 +8,12 @@ const WebSocketInit = async () => {
   const token = useUserCredentials.getState().token;
   if (!token) return;
 
-  console.log("Initialising websocket");
   const wsUrl =
     process.env.NEXT_PUBLIC_WS_URL || "wss://nexus-v2-e38m.onrender.com/";
   const ws = new WebSocket(`${wsUrl}`);
 
   ws.onopen = () => {
     activeSocket = ws;
-    console.log("WebSocket connected");
     ws.send(JSON.stringify({ type: "auth", token }));
   };
   ws.onmessage = (event) => {
@@ -47,8 +45,8 @@ const WebSocketInit = async () => {
       } else if (payload.type === "ai_done") {
         useChat.getState().setWorkingOn(null);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // ignore parse error
     }
   };
   ws.onclose = () => {
@@ -59,7 +57,6 @@ const WebSocketInit = async () => {
     retryInterval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         clearInterval(retryInterval);
-        console.log("WebSocket connected after retry");
         return;
       }
       ws.close();

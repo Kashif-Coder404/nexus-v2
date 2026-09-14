@@ -243,7 +243,6 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
     typeof parsedData.data === "object"
       ? parsedData.data
       : parsedData || {};
-  console.log(typeof normalized);
   const rawImage: string | undefined = normalized.imageBase64;
   const imageSrc = rawImage
     ? rawImage.startsWith("data:")
@@ -277,7 +276,6 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
       block: "nearest",
     });
   }, [isOpen]);
-  console.log(chat);
   return (
     <div className="flex flex-col justify-center items-start w-full max-w-2xl sm:max-w-2xl p-2">
       {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}

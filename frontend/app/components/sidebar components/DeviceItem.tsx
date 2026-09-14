@@ -1,6 +1,7 @@
 import React from "react";
 import { DropdownItem } from "../Dropdown";
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 interface DeviceItemProps {
   data: {
     id: string;
@@ -16,9 +17,12 @@ const DeviceItem = ({ data, onRevoke }: DeviceItemProps) => {
   const name = data.deviceName;
   const online = data.online;
   const service = data.service;
-  console.log(online, service);
+  const router = useRouter();
+  const handleSelectDevice = () => {
+    router.push("/devices");
+  };
   return (
-    <DropdownItem className="group" key={id}>
+    <DropdownItem className="group" key={id} onClick={handleSelectDevice}>
       <span
         className="font-semibold text-sm sm:text-base truncate max-w-[130px]"
         title={name}

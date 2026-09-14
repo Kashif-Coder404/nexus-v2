@@ -14,6 +14,7 @@ export interface CustomWebSocket extends WebSocket {
   isAuthenticated?: boolean;
   pairingCode?: string;
   service?: boolean;
+  ipAddress?: string;
 }
 // Practice Promise for ws await function!
 const pendingRequests = new Map();
@@ -32,9 +33,11 @@ type JwtPayload = {
   };
   success: boolean;
 };
+
 const connectDevice = async (
   ws: CustomWebSocket,
   token: string,
+  ipaddress: string,
 ): Promise<void> => {
   const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
   const decodedToken = verifyToken(actualToken) as JwtPayload;
@@ -90,13 +93,18 @@ const connectDevice = async (
   ws.userId = decodedUserId;
   ws.deviceId = decodedDeviceId || "web_client";
   ws.deviceName = deviceName;
+  ws.ipAddress = ipaddress;
   console.log(
     `[WS] Authenticated ${decodedDeviceId ? `device ${decodedDeviceId}` : "web client"} for user ${decodedUserId}`,
   );
   if (decodedDeviceId) {
     sendToUser(decodedUserId, {
       type: "device_status",
-      device: { deviceName: deviceName, id: decodedDeviceId },
+      device: {
+        deviceName: deviceName,
+        id: decodedDeviceId,
+        ipaddress: ws.ipAddress,
+      },
       online: true,
     });
   } else {
@@ -117,9 +125,9 @@ const initWebsocket = (server: Server) => {
       req.headers["authorization"] ||
       req.headers["Authorization"] ||
       queryToken;
-
+    const ipHeader = req.headers["ipaddress"] || req.headers["ipAddress"];
     if (authHeader) {
-      await connectDevice(ws, authHeader);
+      await connectDevice(ws, authHeader, ipHeader as string);
     }
 
     ws.on("message", async (event: any) => {
@@ -130,7 +138,7 @@ const initWebsocket = (server: Server) => {
         if (parsedData.type === "PairingInit") {
           ws.pairingCode = parsedData.code;
         } else if (parsedData.type === "auth" && parsedData.token) {
-          await connectDevice(ws, parsedData.token);
+          await connectDevice(ws, parsedData.token, ipHeader);
         } else if (
           parsedData.type === "get_devices" &&
           ws.isAuthenticated &&
@@ -278,6 +286,7 @@ const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
         deviceName: d.deviceName,
         online: !!client,
         service: client ? (client.service ?? true) : false,
+        ipAddress: client?.ipAddress,
       };
     }),
   });

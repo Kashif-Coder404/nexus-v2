@@ -1,5 +1,6 @@
+import { WebSocketServer } from "ws";
 import app from "./app";
-import ServerWSConnection from "./services/ws.service";
+import ServerWSConnection, { sendSystemdata } from "./services/ws.service";
 import { setupFirst } from "./setupnexus";
 
 const PORT = 4100;
@@ -13,6 +14,24 @@ async function bootstrap() {
   const server = app.listen(PORT, async () => {
     console.log(`[SERVER] Running on http://localhost:${PORT}`);
     ServerWSConnection();
+  });
+
+  const localwss = new WebSocketServer({ server });
+
+  localwss.on("connection", (ws) => {
+    console.log("[Local-BE] New local connection");
+    console.log("[LOCAL WS] Phone/Browser connected directly!");
+    ws.send(JSON.stringify({ message: "Connected to Local-BE!" }));
+    let sysInterVal: NodeJS.Timeout;
+    sysInterVal = setInterval(async () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        sendSystemdata(ws);
+      }
+    }, 1000); // every 10s
+
+    ws.on("close", () => {
+      clearInterval(sysInterVal);
+    });
   });
 
   server.on("error", (error) => {

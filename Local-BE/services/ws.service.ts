@@ -6,6 +6,7 @@ import { runCommand } from "../controllers/cmd.controller.js";
 import dotenv from "dotenv";
 import { exec } from "child_process";
 import { killCurrentProcess } from "./execute.service.js";
+import getSystemInfo from "../Tools/getSystemInfo.js";
 dotenv.config();
 
 const CONFIG_DIR = process.env.APPDATA
@@ -35,6 +36,21 @@ function sendJson(ws: WebSocket | null, payload: Record<string, any>) {
     ws.send(JSON.stringify(payload));
   }
 }
+export const getIP = () => {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === "IPv4" && !iface.internal) {
+          return iface.address; // e.g. 192.168.1.15
+        }
+      }
+    }
+    return "127.0.0.1";
+  } catch (error: any) {
+    return "127.0.0.1";
+  }
+};
 
 // Generate random 6-character code (e.g. NX-7824)
 export const generateRandomCode = (): string => {
@@ -232,6 +248,7 @@ const ServerWSConnection = async () => {
 
   if (deviceData?.token) {
     headers.Authorization = `Bearer ${deviceData.token}`;
+    headers.ipAddress = getIP();
   }
   const backend_URL =
     process.env.CLOUD_BACKEND_WS_LOCAL || "wss://nexus-v2-e38m.onrender.com";
@@ -241,13 +258,11 @@ const ServerWSConnection = async () => {
   let pingInterval: NodeJS.Timeout | null = null;
   ws.on("open", async () => {
     isConnectedToBackend = true;
-    console.log("[WS] Connected to Cloud Backend!");
-    pingInterval = setInterval(() => {
+    pingInterval = setInterval(async () => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.ping();
       }
     }, 25000); // every 25s
-
     if (!deviceData?.token) {
       const { code } = await generatePairingCode();
       if (code) {
@@ -363,5 +378,8 @@ export const setService = async (val: boolean) => {
     type: "device_status",
     service: isEnable,
   });
+};
+export const sendSystemdata = async (ws: WebSocket) => {
+  sendJson(ws, await getSystemInfo());
 };
 export default ServerWSConnection;

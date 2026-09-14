@@ -1,11 +1,12 @@
 import { create } from "zustand";
 
-type Device = {
+export interface Device {
   deviceName: string;
   id: string;
   online: boolean;
   service?: boolean;
-};
+  ipAddress?: string;
+}
 
 type DeviceStore = {
   devices: Device[];

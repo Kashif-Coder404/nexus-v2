@@ -37,7 +37,6 @@ const Login = (): React.JSX.Element => {
         return;
       }
       const data = await res.json();
-      console.log(data);
       if (data.success) {
         setCredentials(data.data.token, data.data.user);
         router.push("/dashboard");
@@ -45,7 +44,6 @@ const Login = (): React.JSX.Element => {
         throw new Error(data.message || "LOGIN FAILED!");
       }
     } catch (error: any) {
-      console.log(error.message);
       if (error.message.includes("Failed to fetch")) {
         setFetchError(new Error("Server Is Not Responding!"));
       } else {

@@ -36,7 +36,6 @@ const Signup = () => {
         return;
       }
       const data = await res.json();
-      console.log(data);
       if (data.success) {
         setCredentials(data.data.token, data.data.user);
         router.push("/dashboard");
@@ -44,7 +43,6 @@ const Signup = () => {
         throw new Error(data.message || "SIGNUP FAILED!");
       }
     } catch (error: any) {
-      console.log(error.message);
       if (error.message.includes("Failed to fetch")) {
         setFetchError(new Error("Server Is Not Responding!"));
       } else {
