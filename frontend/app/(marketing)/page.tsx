@@ -38,7 +38,7 @@ export default function Home() {
           {/* Release Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/50 border border-purple-500/30 text-xs font-medium text-purple-300 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Nexus v2.5 • Windows Companion</span>
+            <span>Nexus v2.5.3 • Windows Companion</span>
           </div>
 
           {/* Heading */}

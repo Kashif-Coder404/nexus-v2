@@ -122,7 +122,7 @@ export default function DashboardUI() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/50 hover:text-white transition-all"
           >
             <Download className="w-4 h-4 text-purple-400" />
-            Download v2.5.0
+            Download v2.5.3
           </a>
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function DashboardUI() {
             </p>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-2xl font-bold text-white">
-                Nexus v2.5.0
+                Nexus v2.5.3
               </span>
             </div>
             <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
@@ -297,7 +297,7 @@ export default function DashboardUI() {
 
                   <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
-                      Companion v2.5.0
+                      Companion v2.5.3
                     </span>
                     <Link
                       href="/chat"

@@ -433,7 +433,7 @@ export default function SideBar() {
                       <span>GitHub Repository</span>
                     </div>
                     <span className="text-[10px] text-purple-400 font-mono bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-500/30">
-                      v2.5.0
+                      v2.5.3
                     </span>
                   </a>
 

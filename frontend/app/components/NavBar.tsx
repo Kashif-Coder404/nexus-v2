@@ -87,7 +87,7 @@ export default function NavBar() {
               title="Download latest Windows Companion"
             >
               <Download className="w-3.5 h-3.5 text-purple-400 group-hover:translate-y-0.5 transition-transform" />
-              <span>v2.5.0</span>
+              <span>v2.5.3</span>
             </button>
             <div
               className="rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-600 border border-purple-400/40 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-purple-900/50 cursor-default"
