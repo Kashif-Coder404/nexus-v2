@@ -3,10 +3,12 @@ import { persist } from "zustand/middleware";
 type UserMsg = {
   role: "user";
   content: string;
+  timestamp?: string | Date;
 };
 type AiMsg = {
   role: "assistant";
   content: any;
+  timestamp?: string | Date;
 };
 type Chat = UserMsg | AiMsg;
 type ChatStore = {

@@ -22,8 +22,6 @@ export default function NavBar() {
     { label: "Chat", href: isChat },
   ];
   const handleDownloadNexus = () => {
-    // window.location.href =
-    //   "https://github.com/Kashif-Coder404/nexus-v2/releases/download/v2.2.0/nexus.exe";
     window.open(
       "https://github.com/Kashif-Coder404/nexus-v2/releases/latest",
       "_blank",
@@ -61,14 +59,15 @@ export default function NavBar() {
         {/* Center Nav Links */}
         <nav className={style.navLinks}>
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href && pathname !== "/auth/login";
             return (
               <Link
                 key={item.label}
                 href={item.href}
                 className={`${style.navLinkItem} ${
                   isActive
-                    ? "bg-brand/20 text-white border border-brand-border/60 shadow-sm shadow-brand/20"
+                    ? `bg-brand/20 text-white border-brand-border/60 shadow-sm shadow-brand/20`
                     : ""
                 }`}
               >
@@ -112,17 +111,20 @@ export default function NavBar() {
 }
 
 const style = {
-  navCont: "sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6 lg:px-8 pointer-events-none transition-all duration-300",
+  navCont:
+    "sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6 lg:px-8 pointer-events-none transition-all duration-300",
   innerCont:
     "mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 rounded-full bg-brand-base/85 backdrop-blur-2xl border border-brand-border/40 ring-1 ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8),0_0_24px_rgba(168,85,247,0.18)] pointer-events-auto transition-all duration-300 hover:border-brand-border/60",
   leftLinks: "flex items-center gap-2.5",
   imageCont: "flex items-center justify-center cursor-pointer",
-  logoImageNav: "w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]",
+  logoImageNav:
+    "w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]",
   brandCont: "flex items-center",
   brandText:
     "text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent",
   brandDot: "text-brand-hover drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]",
-  navLinks: "hidden md:flex items-center gap-1 bg-brand-surface/50 p-1 rounded-full border border-white/5",
+  navLinks:
+    "hidden md:flex items-center gap-1 bg-brand-surface/50 p-1 rounded-full border border-white/5",
   navLinkItem:
     "text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all duration-200 text-zinc-400 hover:text-white hover:bg-brand/15",
   actionsCont: "flex items-center gap-2 sm:gap-3",

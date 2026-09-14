@@ -16,7 +16,7 @@ export interface DropdownProps {
   onViewAll?: () => void;
   viewAllLabel?: string;
   classname: {
-    mainCont: string;
+    mainCont?: string;
     addButton?: string;
   };
 }
@@ -159,7 +159,7 @@ export default function Dropdown({
             <button
               type="button"
               onClick={onAdd}
-              className={classname.addButton}
+              className={classname?.addButton || style.addBtn}
               aria-label={`Add ${title}`}
             >
               <Plus />
@@ -207,6 +207,8 @@ const style = {
   refreshSpin:
     "animate-[spin_1s_linear_infinite_reverse] transform duration-200 scale-150",
   refreshSpinStopped: "transform duration-200 scale-100",
-
+  addBtn:
+    "p-1.5 rounded-lg cursor-pointer text-brand-hover hover:text-white bg-brand-surface/40 hover:bg-brand/20 border border-brand-border/40 hover:border-brand-border/80 transition-all flex items-center justify-center shadow-xs shadow-brand/20",
+  addIcon: "w-4 h-4",
   listContainer: "flex flex-col gap-1 mt-2 w-full",
 };

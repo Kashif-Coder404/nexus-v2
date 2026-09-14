@@ -11,6 +11,8 @@ import {
   Cpu,
   Search,
   Zap,
+  Folder,
+  Code,
 } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
 
@@ -31,10 +33,8 @@ export default function Home() {
 
       {/* Main Two-Column or Centered Hero */}
       <main className="flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto gap-12 lg:gap-16">
-        
         {/* Left Side: Text & Actions */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left flex-1 max-w-xl">
-          
           {/* Release Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/80 border border-brand-border/40 text-xs font-medium text-brand-glow mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -51,20 +51,29 @@ export default function Home() {
 
           {/* Description */}
           <p className="mt-5 text-base sm:text-lg text-zinc-400 leading-relaxed">
-            Control your Windows PC from anywhere using natural language. Run local
-            commands, search files in milliseconds, and monitor system vitals from a clean web console.
+            Control your Windows PC from anywhere using natural language. Run
+            local commands, search files in milliseconds, and monitor system
+            vitals from a clean web console.
           </p>
 
-          {/* Example prompt pills */}
           <div className="mt-5 flex flex-wrap gap-2 justify-center lg:justify-start">
-            <span className="text-xs px-2.5 py-1 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
-              ⚡ "Check CPU & GPU temps"
+            <span className="text-xs p-2 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
+              <span className="flex justify-center items-center gap-2">
+                <Zap className="text-brand-hover" />
+                "Check CPU & GPU temps"
+              </span>
             </span>
-            <span className="text-xs px-2.5 py-1 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
-              📁 "Find PDFs on Desktop"
+            <span className="text-xs p-2 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
+              <span className="flex justify-center items-center gap-2">
+                <Folder className="text-brand-hover" />
+                Find PDFs Desktop
+              </span>
             </span>
-            <span className="text-xs px-2.5 py-1 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
-              🎵 "Open Spotify"
+            <span className="text-xs p-2 rounded-md bg-brand-surface/50 border border-brand-border/30 text-zinc-300">
+              <span className="flex justify-center items-center gap-2">
+                <Code className="text-brand-hover" />
+                Open the Working Directory in VScode
+              </span>
             </span>
           </div>
 
@@ -97,7 +106,11 @@ export default function Home() {
               className="p-1 hover:text-white transition-colors cursor-pointer ml-1"
               title="Copy"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
         </div>
@@ -111,7 +124,9 @@ export default function Home() {
               <div className="w-3 h-3 rounded-full bg-amber-500/80" />
               <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
             </div>
-            <span className="text-xs font-mono text-zinc-500">Nexus Web Console</span>
+            <span className="text-xs font-mono text-zinc-500">
+              Nexus Web Console
+            </span>
             <div className="w-10" />
           </div>
 
@@ -124,32 +139,40 @@ export default function Home() {
             />
           </div>
         </div>
-
       </main>
 
       {/* 3 Real Feature Highlights (Not fake stats) */}
       <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-5xl">
         <div className="p-4 rounded-xl bg-brand-surface/30 border border-brand-border/30 text-left">
           <Terminal className="w-5 h-5 text-brand-hover mb-2" />
-          <h2 className="text-sm font-semibold text-zinc-200">Local Execution Engine</h2>
+          <h2 className="text-sm font-semibold text-zinc-200">
+            Local Execution Engine
+          </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Runs commands safely on your local machine with instant process control and zero cloud latency.
+            Runs commands safely on your local machine with instant process
+            control and zero cloud latency.
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-brand-surface/30 border border-brand-border/30 text-left">
           <Search className="w-5 h-5 text-brand-hover mb-2" />
-          <h2 className="text-sm font-semibold text-zinc-200">Everything File Search</h2>
+          <h2 className="text-sm font-semibold text-zinc-200">
+            Everything File Search
+          </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Sub-second desktop file indexing to locate and interact with your files right from chat.
+            Sub-second desktop file indexing to locate and interact with your
+            files right from chat.
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-brand-surface/30 border border-brand-border/30 text-left">
           <Cpu className="w-5 h-5 text-brand-hover mb-2" />
-          <h2 className="text-sm font-semibold text-zinc-200">Hardware Telemetry</h2>
+          <h2 className="text-sm font-semibold text-zinc-200">
+            Hardware Telemetry
+          </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Real-time CPU, GPU, temperature, and memory vitals powered by native sensors.
+            Real-time CPU, GPU, temperature, and memory vitals powered by native
+            sensors.
           </p>
         </div>
       </div>

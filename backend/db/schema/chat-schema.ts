@@ -24,6 +24,10 @@ const chatSchema: Schema = new Schema({
         type: String,
         required: true,
       },
+      timestamp: {
+        type: Date,
+        default: Date.now,
+      },
     },
   ],
   createdAt: {

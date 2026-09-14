@@ -279,7 +279,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
   }, [isOpen]);
   console.log(chat);
   return (
-    <div className="flex flex-col justify-center items-start w-full max-w-120 sm:max-w-2xl p-2">
+    <div className="flex flex-col justify-center items-start w-full max-w-2xl sm:max-w-2xl p-2">
       {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}
       {imageSrc && (
         <div className="flex justify-center items-center rounded-2xl overflow-hidden">
@@ -290,13 +290,13 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
           />
         </div>
       )}
-      <div className="flex items-center gap-2 mb-2">
-        <Bot className="h-7 w-7 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
-        <span className="text-sm font-semibold text-white">Nexus AI</span>
+      <div className="flex items-center gap-2 m-2">
+        <Bot className="h-10 w-10 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
+        {/* <span className="text-sm font-semibold text-white">Nexus AI</span> */}
       </div>
       <div
         ref={msgRef}
-        className="p-3.5 rounded-xl bg-brand-surface/40 border border-brand-border/40 shadow-md w-full text-base sm:text-lg font-normal text-zinc-200 leading-relaxed break-words [overflow-wrap:anywhere]"
+        className="p-3.5 rounded-xl rounded-tl-none text-xl  text-start  font-normal leading-relaxed break-words [overflow-wrap:anywhere]"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
       </div>

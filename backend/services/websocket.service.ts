@@ -446,6 +446,7 @@ const startParingHandler = async (req: any, res: any) => {
       client.pairingCode === pairingcode &&
       client.readyState === WebSocket.OPEN
     ) {
+      client.pairingCode = "";
       const deviceId = new Types.ObjectId().toString();
 
       const deviceToken = generateToken(

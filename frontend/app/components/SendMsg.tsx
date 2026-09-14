@@ -116,22 +116,31 @@ const SendMsg = () => {
       setIsSending(false);
     }
   };
-
+  const [isModelSelectOpen, setIsModelSelectOpen] = useState<boolean>(false);
   return (
     <>
       <div className="relative w-full max-w-4xl mx-auto px-4 py-3">
         <div className="relative w-fit ml-2 mb-1.5 group">
-          <button className="flex items-center gap-2 text-brand-glow hover:text-brand-hover transition">
-            <span className="font-mono">{model.name}</span>{" "}
+          <button
+            onClick={() => setIsModelSelectOpen(!isModelSelectOpen)}
+            className="flex items-center gap-2 text-brand-glow hover:text-brand-hover transition"
+          >
+            <span className="font-mono">{model.name}</span>
             <ChevronDown className="h-3 w-3 transition-transform group-hover:rotate-180" />
           </button>
+
           {/* Dropdown Menu */}
-          <div className="absolute bottom-full left-0 mb-2 w-56 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+          <div
+            className={`absolute bottom-full left-0 mb-2 w-56 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 ${isModelSelectOpen ? "opacity-100 visible" : "opacity-0 invisible transition-all duration-200"}`}
+          >
             <div className="p-1">
               {Models.map((m) => (
                 <button
                   key={m.name}
-                  onClick={() => setModel(m)}
+                  onClick={() => {
+                    setModel(m);
+                    setIsModelSelectOpen(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-left transition-all ${
                     model.name === m.name
                       ? "bg-brand/20 text-brand-glow"

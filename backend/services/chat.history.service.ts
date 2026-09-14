@@ -2,6 +2,7 @@ import { responseEncoding } from "axios";
 import { ChatMessageType } from "../AI/Types.js";
 import { ChatModel } from "../db/schema/chat-schema.js";
 import { SessionModel } from "../db/schema/session-schema.js";
+import { timeStamp } from "node:console";
 const getChat = async (
   userId: string,
   session: string,
@@ -19,6 +20,8 @@ const getChat = async (
       return {
         role: msg.role,
         content: msg.content,
+        timestamp:
+          msg.timestamp || chatHistory.updatedAt || chatHistory.createdAt,
       };
     });
     return {

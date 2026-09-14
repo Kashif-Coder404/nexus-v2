@@ -34,15 +34,27 @@ const ChatUI = () => {
             />
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-2">
-                What is Today Task{" "}
-                <span className="text-brand">?</span>{" "}
+                What is Today Task <span className="text-brand">?</span>{" "}
               </h1>
             </div>
           </div>
         ) : (
           chat.map((chMsg, index) => {
             if (chMsg.role === "user") {
-              return <UserMsgBox key={index} message={chMsg.content} />;
+              return (
+                <UserMsgBox
+                  key={index}
+                  message={chMsg.content}
+                  timestamp={
+                    chMsg.timestamp
+                      ? new Date(chMsg.timestamp).toLocaleString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : ""
+                  }
+                />
+              );
             } else {
               return <AIMsgBox key={index} data={chMsg.content} />;
             }

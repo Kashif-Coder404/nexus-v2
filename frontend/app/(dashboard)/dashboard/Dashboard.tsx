@@ -2,6 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  IconDeviceCctv,
+  IconDeviceDesktopPlus,
+  IconDeviceLaptop,
+  IconPlus,
+} from "@tabler/icons-react";
+
 import { useRouter } from "next/navigation";
 import {
   Laptop,
@@ -94,15 +101,15 @@ export default function DashboardUI() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* 1. Header & Welcome */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-brand-border/30 pb-6">
+      <div className="flex flex-row md:flex-row md:items-center md:justify-between gap-4 border-b border-brand-border/30 pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            Welcome back,{" "}
-            <span className="bg-linear-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white text-start tracking-tight flex flex-col md:flex-row items-center gap-3">
+            <span className="text-4xl text-start w-full">Welcome,</span>
+            <span className="bg-linear-to-r w-full from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent">
               {user?.name || "Operator"}
             </span>
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-zinc-400 mt-1 w-full">
             Nexus v2 Fleet Hub • {user?.email}
           </p>
         </div>
@@ -110,10 +117,11 @@ export default function DashboardUI() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={openPairModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-brand to-brand-hover hover:brightness-110 shadow-md shadow-brand/25 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-linear-to-r from-brand to-brand-hover hover:brightness-110 shadow-md shadow-brand/25 transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            Pair Device
+            {/* <Plus className="w-4 h-4" /> */}
+            <IconDeviceDesktopPlus className="w-5 h-5 text-brand-base" />
+            <span className="hidden md:block">Pair Device</span>
           </button>
           <a
             href="https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe"
@@ -122,7 +130,7 @@ export default function DashboardUI() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:border-brand-border/70 hover:text-white transition-all"
           >
             <Download className="w-4 h-4 text-brand-hover" />
-            Download v2.5.3
+            <span className="hidden md:block"> Download v2.5.3</span>
           </a>
         </div>
       </div>

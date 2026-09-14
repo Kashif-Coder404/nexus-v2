@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Download,
 } from "lucide-react";
+import { requestDevices } from "@/services/ws.service";
 const WindowAlert = ({
   setWindowAlert,
 }: {
@@ -119,6 +120,7 @@ const PairDevice = ({
 
       if (res.ok && data.success) {
         setSuccess(data.message || "Device paired successfully!");
+        requestDevices();
         setTimeout(() => {
           handleClose();
         }, 1200);
