@@ -94,11 +94,11 @@ export default function DashboardUI() {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* 1. Header & Welcome */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-purple-500/20 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-brand-border/30 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
             Welcome back,{" "}
-            <span className="bg-linear-to-r from-purple-400 to-indigo-300 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent">
               {user?.name || "Operator"}
             </span>
           </h1>
@@ -110,7 +110,7 @@ export default function DashboardUI() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={openPairModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-md shadow-purple-900/30 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-brand to-brand-hover hover:brightness-110 shadow-md shadow-brand/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Pair Device
@@ -119,9 +119,9 @@ export default function DashboardUI() {
             href="https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/50 hover:text-white transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:border-brand-border/70 hover:text-white transition-all"
           >
-            <Download className="w-4 h-4 text-purple-400" />
+            <Download className="w-4 h-4 text-brand-hover" />
             Download v2.5.3
           </a>
         </div>
@@ -130,7 +130,7 @@ export default function DashboardUI() {
       {/* 2. Real Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Fleet Status */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-purple-500/20 backdrop-blur-md flex items-center justify-between">
+        <div className="p-5 rounded-2xl bg-brand-surface/40 border border-brand-border/30 backdrop-blur-md flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
               Active Companions
@@ -156,13 +156,13 @@ export default function DashboardUI() {
                 : "No companion currently online"}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <div className="p-3 rounded-xl bg-brand/10 text-brand-hover border border-brand-border/30">
             <Laptop className="w-6 h-6" />
           </div>
         </div>
 
         {/* Chat Sessions */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-purple-500/20 backdrop-blur-md flex items-center justify-between">
+        <div className="p-5 rounded-2xl bg-brand-surface/40 border border-brand-border/30 backdrop-blur-md flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
               Terminal Sessions
@@ -176,13 +176,13 @@ export default function DashboardUI() {
               Synchronized with cloud database
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="p-3 rounded-xl bg-brand/10 text-brand-hover border border-brand-border/30">
             <MessageSquare className="w-6 h-6" />
           </div>
         </div>
 
         {/* System Core */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-purple-500/20 backdrop-blur-md flex items-center justify-between">
+        <div className="p-5 rounded-2xl bg-brand-surface/40 border border-brand-border/30 backdrop-blur-md flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
               Engine Version
@@ -196,7 +196,7 @@ export default function DashboardUI() {
               <span>●</span> Release Ready & Tagged
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <div className="p-3 rounded-xl bg-brand/10 text-brand-hover border border-brand-border/30">
             <Sparkles className="w-6 h-6" />
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function DashboardUI() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Laptop className="w-5 h-5 text-purple-400" />
+              <Laptop className="w-5 h-5 text-brand-hover" />
               Paired Companions
             </h2>
             <div className="flex items-center gap-2">
@@ -219,13 +219,13 @@ export default function DashboardUI() {
               >
                 <RefreshCw
                   className={`w-4 h-4 ${
-                    isRefreshingDevices ? "animate-spin text-purple-400" : ""
+                    isRefreshingDevices ? "animate-spin text-brand-hover" : ""
                   }`}
                 />
               </button>
               <button
                 onClick={openPairModal}
-                className="text-xs text-purple-400 hover:text-purple-300 font-medium px-2 py-1 rounded-md hover:bg-purple-950/40 transition cursor-pointer"
+                className="text-xs text-brand-hover hover:text-brand-glow font-medium px-2 py-1 rounded-md hover:bg-brand/20 transition cursor-pointer"
               >
                 + Pair New
               </button>
@@ -233,8 +233,8 @@ export default function DashboardUI() {
           </div>
 
           {devices.length === 0 ? (
-            <div className="p-8 rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/40 flex flex-col items-center justify-center text-center space-y-3">
-              <div className="p-4 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <div className="p-8 rounded-2xl border border-dashed border-brand-border/40 bg-brand-surface/20 flex flex-col items-center justify-center text-center space-y-3">
+              <div className="p-4 rounded-2xl bg-brand/10 text-brand-hover border border-brand-border/30">
                 <Laptop className="w-8 h-8" />
               </div>
               <h3 className="text-base font-semibold text-white">
@@ -247,13 +247,13 @@ export default function DashboardUI() {
               <div className="flex items-center gap-3 pt-2">
                 <button
                   onClick={openPairModal}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-brand hover:bg-brand-hover transition cursor-pointer shadow-sm shadow-brand/20"
                 >
                   Pair Device Now
                 </button>
                 <a
                   href="https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe"
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-zinc-900 border border-zinc-800 hover:text-white transition"
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:text-white transition"
                 >
                   Download .exe
                 </a>
@@ -264,7 +264,7 @@ export default function DashboardUI() {
               {devices.map((device) => (
                 <div
                   key={device.id}
-                  className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 hover:border-purple-500/30 transition-all flex flex-col justify-between space-y-4"
+                  className="p-5 rounded-2xl bg-brand-surface/30 border border-brand-border/30 hover:border-brand-border/60 transition-all flex flex-col justify-between space-y-4"
                 >
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
@@ -295,13 +295,13 @@ export default function DashboardUI() {
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                  <div className="pt-2 border-t border-brand-border/20 flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
                       Companion v2.5.3
                     </span>
                     <Link
                       href="/chat"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-purple-400 hover:text-purple-300 transition"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-brand-hover hover:text-brand-glow transition"
                     >
                       Launch Terminal <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
@@ -311,9 +311,9 @@ export default function DashboardUI() {
             </div>
           )}
 
-          <div className="p-5 rounded-2xl bg-linear-to-br from-purple-950/20 to-zinc-900/40 border border-purple-500/20 space-y-3 mt-6">
+          <div className="p-5 rounded-2xl bg-linear-to-br from-brand-surface/60 to-brand-base/40 border border-brand-border/30 space-y-3 mt-6">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <Sparkles className="w-4 h-4 text-brand-hover" />
               <h3 className="text-sm font-semibold text-white">
                 Quick Commands
               </h3>
@@ -348,9 +348,9 @@ export default function DashboardUI() {
                 <Link
                   key={idx}
                   href="/chat"
-                  className="p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/50 text-xs font-medium text-zinc-300 hover:text-white flex items-center gap-2 transition"
+                  className="p-2.5 rounded-xl bg-brand-surface/60 border border-brand-border/30 hover:border-brand-border/60 hover:bg-brand-surface/90 text-xs font-medium text-zinc-300 hover:text-white flex items-center gap-2 transition"
                 >
-                  <item.icon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <item.icon className="w-3.5 h-3.5 text-brand-hover shrink-0" />
                   <span className="truncate">{item.label}</span>
                 </Link>
               ))}
@@ -362,18 +362,18 @@ export default function DashboardUI() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-indigo-400" />
+              <MessageSquare className="w-5 h-5 text-brand-hover" />
               Recent Sessions
             </h2>
             <Link
               href="/chat"
-              className="text-xs text-purple-400 hover:text-purple-300 font-medium px-2 py-1 rounded-md hover:bg-purple-950/40 transition"
+              className="text-xs text-brand-hover hover:text-brand-glow font-medium px-2 py-1 rounded-md hover:bg-brand/20 transition"
             >
               Open Terminal
             </Link>
           </div>
 
-          <div className="rounded-2xl bg-zinc-900/40 border border-zinc-800/80 divide-y divide-zinc-800/60 overflow-hidden">
+          <div className="rounded-2xl bg-brand-surface/30 border border-brand-border/30 divide-y divide-brand-border/20 overflow-hidden">
             {loadingSessions ? (
               <div className="p-6 text-center text-xs text-zinc-500">
                 Loading history...
@@ -383,7 +383,7 @@ export default function DashboardUI() {
                 <p className="text-xs text-zinc-400">No chat history yet.</p>
                 <Link
                   href="/chat"
-                  className="inline-block text-xs font-medium text-purple-400 hover:underline"
+                  className="inline-block text-xs font-medium text-brand-hover hover:text-brand-glow hover:underline"
                 >
                   Start your first session →
                 </Link>
@@ -393,15 +393,15 @@ export default function DashboardUI() {
                 <button
                   key={s.id}
                   onClick={() => handleSelectSession(s.id)}
-                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-purple-500/5 transition group cursor-pointer"
+                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-brand/10 transition group cursor-pointer"
                 >
                   <div className="min-w-0 pr-3">
-                    <p className="text-sm font-medium text-zinc-200 group-hover:text-purple-300 truncate transition">
+                    <p className="text-sm font-medium text-zinc-200 group-hover:text-brand-glow truncate transition">
                       {s.title}
                     </p>
                     <p className="text-[11px] text-zinc-500 mt-0.5">{s.date}</p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-purple-400 shrink-0 transition" />
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-brand-hover shrink-0 transition" />
                 </button>
               ))
             )}

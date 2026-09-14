@@ -142,21 +142,21 @@ const Login = (): React.JSX.Element => {
 
 const style = {
   container: "flex flex-1 items-start justify-center p-4 sm:p-6 my-20",
-  card: "w-full max-w-md rounded-2xl border border-purple-900/30 bg-zinc-950/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl",
-  title: "text-center text-3xl font-bold tracking-tight text-[#DCD3FF]",
-  subtitle: "text-center mt-2 text-sm text-[#8A859E]",
+  card: "w-full max-w-md rounded-2xl border border-brand-border/40 bg-brand-surface/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl",
+  title: "text-center text-3xl font-bold tracking-tight text-white",
+  subtitle: "text-center mt-2 text-sm text-zinc-400",
   formWrapper: "mt-8",
   error: "text-red-500 text-center m-2 text-xl",
   form: "flex flex-col gap-5",
   inputGroup: "flex flex-col gap-1.5",
-  label: "text-xs font-semibold uppercase tracking-wider text-[#DCD3FF]/80",
+  label: "text-xs font-semibold uppercase tracking-wider text-brand-glow/80",
   input:
-    "w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 shadow-sm focus:border-[#7357E2] focus:ring-2 focus:ring-[#7357E2]/30 focus:outline-none transition",
+    "w-full rounded-xl border border-brand-border/40 bg-brand-base/60 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 shadow-sm focus:border-brand focus:ring-2 focus:ring-brand/30 focus:outline-none transition",
   submitBtn:
-    "mt-2 w-full flex items-center justify-center rounded-xl py-3 px-4 text-white text-base font-bold bg-linear-to-r from-[#7357E2] to-[#9129b6] shadow-lg shadow-purple-950/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-  footerText: "text-center text-sm text-[#8A859E] mt-6",
+    "mt-2 w-full flex items-center justify-center rounded-xl py-3 px-4 text-white text-base font-bold bg-linear-to-r from-brand to-brand-hover shadow-lg shadow-brand/25 hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+  footerText: "text-center text-sm text-zinc-400 mt-6",
   footerLink:
-    "font-semibold text-[#DCD3FF] hover:text-white hover:underline transition-colors ml-1",
+    "font-semibold text-brand-hover hover:text-white hover:underline transition-colors ml-1",
 };
 
 export default Login;

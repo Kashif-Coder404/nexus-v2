@@ -21,7 +21,7 @@ export default function RootLayout({
       lang="en"
       className={cn("min-h-dvh antialiased", "font-sans", geist.variable)}
     >
-      <body className="min-h-screen flex flex-col bg-linear-to-b from-[#000000] to-[#20193F] bg-fixed bg-no-repeat">
+      <body className="min-h-screen flex flex-col bg-gradient-to-b from-black via-[#0d091a] to-brand-surface bg-fixed bg-no-repeat text-white">
         {children}
       </body>
     </html>

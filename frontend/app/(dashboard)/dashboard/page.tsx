@@ -16,7 +16,7 @@ const Dashboard = () => {
   if (!hasHydrated)
     return (
       <div className="flex-1 h-full w-full flex justify-center items-center text-white">
-        <Loader2 size={96} className="animate-spin text-purple-500" />
+        <Loader2 size={96} className="animate-spin text-brand" />
       </div>
     );
   if (!user) {

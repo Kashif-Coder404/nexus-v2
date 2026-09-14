@@ -68,7 +68,7 @@ export default function NavBar() {
                 href={item.href}
                 className={`${style.navLinkItem} ${
                   isActive
-                    ? "bg-purple-600/25 text-white border border-purple-400/30 shadow-sm shadow-purple-950/50"
+                    ? "bg-brand/20 text-white border border-brand-border/60 shadow-sm shadow-brand/20"
                     : ""
                 }`}
               >
@@ -83,14 +83,14 @@ export default function NavBar() {
           <div className={style.leftCont}>
             <button
               onClick={handleDownloadNexus}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/25 hover:border-purple-400/50 px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer shadow-sm shadow-purple-950/40 group"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-brand-surface/80 hover:bg-brand-surface border border-brand-border/40 hover:border-brand-border/70 px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer shadow-sm shadow-brand/20 group"
               title="Download latest Windows Companion"
             >
-              <Download className="w-3.5 h-3.5 text-purple-400 group-hover:translate-y-0.5 transition-transform" />
+              <Download className="w-3.5 h-3.5 text-brand-hover group-hover:translate-y-0.5 transition-transform" />
               <span>v2.5.3</span>
             </button>
             <div
-              className="rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-600 border border-purple-400/40 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-purple-900/50 cursor-default"
+              className="rounded-full bg-gradient-to-tr from-brand-surface via-brand to-brand-hover border border-brand-border/50 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-brand/30 cursor-default"
               title={user?.name || "User"}
             >
               {user?.name ? user.name.slice(0, 1).toUpperCase() : "U"}
@@ -114,21 +114,21 @@ export default function NavBar() {
 const style = {
   navCont: "sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6 lg:px-8 pointer-events-none transition-all duration-300",
   innerCont:
-    "mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 rounded-full bg-[#0b0f19]/75 backdrop-blur-2xl border border-purple-500/30 ring-1 ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8),0_0_24px_rgba(168,85,247,0.18)] pointer-events-auto transition-all duration-300 hover:border-purple-500/40",
+    "mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 rounded-full bg-brand-base/85 backdrop-blur-2xl border border-brand-border/40 ring-1 ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8),0_0_24px_rgba(168,85,247,0.18)] pointer-events-auto transition-all duration-300 hover:border-brand-border/60",
   leftLinks: "flex items-center gap-2.5",
   imageCont: "flex items-center justify-center cursor-pointer",
   logoImageNav: "w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]",
   brandCont: "flex items-center",
   brandText:
-    "text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-purple-300 bg-clip-text text-transparent",
-  brandDot: "text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]",
-  navLinks: "hidden md:flex items-center gap-1 bg-zinc-900/50 p-1 rounded-full border border-white/5",
+    "text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent",
+  brandDot: "text-brand-hover drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]",
+  navLinks: "hidden md:flex items-center gap-1 bg-brand-surface/50 p-1 rounded-full border border-white/5",
   navLinkItem:
-    "text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all duration-200 text-zinc-400 hover:text-white hover:bg-purple-900/30",
+    "text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all duration-200 text-zinc-400 hover:text-white hover:bg-brand/15",
   actionsCont: "flex items-center gap-2 sm:gap-3",
   leftCont: "flex items-center gap-3",
   loginBtn:
     "text-xs font-semibold px-3 py-1.5 text-zinc-300 hover:text-white transition-colors",
   defaultBtn:
-    "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 shadow-md shadow-purple-600/30 hover:brightness-110 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200",
+    "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-brand to-brand-hover shadow-md shadow-brand/30 hover:brightness-110 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200",
 };

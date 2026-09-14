@@ -121,12 +121,12 @@ const SendMsg = () => {
     <>
       <div className="relative w-full max-w-4xl mx-auto px-4 py-3">
         <div className="relative w-fit ml-2 mb-1.5 group">
-          <button className="flex items-center gap-2 text-purple-300 hover:text-purple-400 transition">
+          <button className="flex items-center gap-2 text-brand-glow hover:text-brand-hover transition">
             <span className="font-mono">{model.name}</span>{" "}
             <ChevronDown className="h-3 w-3 transition-transform group-hover:rotate-180" />
           </button>
           {/* Dropdown Menu */}
-          <div className="absolute bottom-full left-0 mb-2 w-56 bg-zinc-900 border border-purple-500/30 rounded-xl overflow-hidden shadow-2xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+          <div className="absolute bottom-full left-0 mb-2 w-56 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
             <div className="p-1">
               {Models.map((m) => (
                 <button
@@ -134,22 +134,22 @@ const SendMsg = () => {
                   onClick={() => setModel(m)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-left transition-all ${
                     model.name === m.name
-                      ? "bg-purple-500/20 text-purple-300"
-                      : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                      ? "bg-brand/20 text-brand-glow"
+                      : "text-zinc-300 hover:bg-brand/10 hover:text-white"
                   }`}
                 >
                   {m.name}
                   {model.name === m.name && (
-                    <CheckCircle2 className="h-4 w-4 ml-auto" />
+                    <CheckCircle2 className="h-4 w-4 ml-auto text-brand-hover" />
                   )}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="flex items-center rounded-2xl bg-zinc-900/90 border border-purple-500/30 p-1.5 shadow-[0_0_25px_rgba(115,87,226,0.15)] focus-within:border-purple-400 focus-within:shadow-[0_0_30px_rgba(115,87,226,0.3)] backdrop-blur-lg transition-all duration-300">
+        <div className="flex items-center rounded-2xl bg-brand-surface/80 border border-brand-border/40 p-1.5 shadow-[0_0_25px_rgba(168,85,247,0.15)] focus-within:border-brand-hover focus-within:shadow-[0_0_30px_rgba(168,85,247,0.3)] backdrop-blur-lg transition-all duration-300">
           {/* Left Indicator */}
-          {/* <div className="pl-3 pr-2 text-purple-400 select-none">
+          {/* <div className="pl-3 pr-2 text-brand select-none">
           <Sparkles className="h-5 w-5 animate-pulse" />
         </div> */}
 
@@ -173,7 +173,7 @@ const SendMsg = () => {
           <button
             onClick={handleSendMsg}
             disabled={isSending || !msg.trim()}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-purple-600/30 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand to-brand-hover text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand/40 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
             title="Send message"
           >
             {isSending ? (

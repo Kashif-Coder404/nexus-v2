@@ -62,16 +62,16 @@ const CommandBox = ({
     <>
       <div className="flex justify-between items-center w-full text-[11px] font-mono text-zinc-400">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-sm bg-purple-500" />
+          <span className="h-2 w-2 rounded-sm bg-brand" />
           {/* <Terminal /> */}
           <span className="font-semibold uppercase tracking-wider text-zinc-300">
             {terminalData.msg}
           </span>
         </div>
       </div>
-      <div className="relative rounded-md border border-purple-900/30 bg-black/70 overflow-hidden">
-        <div className="overflow-x-auto text-xs sm:text-sm font-mono text-purple-200 px-2.5 py-2 pr-12">
-          <span className="text-purple-400 font-bold select-none mr-2">$</span>
+      <div className="relative rounded-md border border-brand-border/40 bg-black/70 overflow-hidden">
+        <div className="overflow-x-auto text-xs sm:text-sm font-mono text-brand-glow px-2.5 py-2 pr-12">
+          <span className="text-brand-hover font-bold select-none mr-2">$</span>
           {commandDisplay(paramContent)}
         </div>
         <div className="absolute right-0 top-0 bottom-0 flex items-center pl-8 pr-2.5 bg-gradient-to-l from-black via-black/80 to-transparent backdrop-blur-[1px] pointer-events-none rounded-r-md z-10">
@@ -183,14 +183,14 @@ const Executions = ({ terminalData }: { terminalData: ExecutionStep }) => {
     };
   }, [isCopiedCmd, isCopiedTerminal]);
   return (
-    <div className="flex flex-col w-full pr-3 bg-black/70 border border-purple-500/30 rounded-xl p-3 gap-2.5 shadow-md">
+    <div className="flex flex-col w-full pr-3 bg-brand-surface/60 border border-brand-border/40 rounded-xl p-3 gap-2.5 shadow-md">
       {/* TOP */}
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center gap-2">
-          <span className="bg-purple-900/80 border border-purple-500/40 text-purple-200 font-bold rounded-lg px-2.5 py-0.5 text-xs">
+          <span className="bg-brand-surface border border-brand-border/60 text-brand-glow font-bold rounded-lg px-2.5 py-0.5 text-xs">
             Step {terminalData.steps ?? 1}
           </span>
-          <span className="text-sm font-semibold text-purple-300 font-mono">
+          <span className="text-sm font-semibold text-brand-hover font-mono">
             {terminalData.action}
           </span>
         </div>
@@ -291,17 +291,17 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
         </div>
       )}
       <div className="flex items-center gap-2 mb-2">
-        <Bot className="h-7 w-7 text-purple-300 p-1.5 bg-purple-950/60 rounded-lg border border-purple-500/30" />
+        <Bot className="h-7 w-7 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
         <span className="text-sm font-semibold text-white">Nexus AI</span>
       </div>
       <div
         ref={msgRef}
-        className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 shadow-md w-full text-base sm:text-lg font-normal text-zinc-200 leading-relaxed break-words [overflow-wrap:anywhere]"
+        className="p-3.5 rounded-xl bg-brand-surface/40 border border-brand-border/40 shadow-md w-full text-base sm:text-lg font-normal text-zinc-200 leading-relaxed break-words [overflow-wrap:anywhere]"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
       </div>
       {executions.length > 0 && (
-        <div className="flex flex-col w-full mt-2 rounded-xl bg-purple-950/40 border-2 border-purple-400/20 overflow-hidden transition-all duration-300">
+        <div className="flex flex-col w-full mt-2 rounded-xl bg-brand-surface/50 border border-brand-border/40 overflow-hidden transition-all duration-300">
           {/* Executions of the ai */}
           <div
             className="flex items-center gap-2 justify-between w-full p-2.5 cursor-pointer select-none"
@@ -309,10 +309,10 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
             onClick={() => setIsOpen(!isOpen)}
           >
             <div className="flex items-center justify-center gap-2 font-bold">
-              <span className="text-lg font-bold text-purple-200 px-2">
+              <span className="text-lg font-bold text-brand-glow px-2">
                 AI Executions
               </span>
-              <span className="text-purple-300 bg-purple-700 rounded-full px-2 text-sm mr-2 font-mono">
+              <span className="text-white bg-brand rounded-full px-2 text-sm mr-2 font-mono">
                 {executions.length}
               </span>
             </div>
@@ -325,7 +325,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
               disabled={executions.length === 0}
             >
               <ChevronDown
-                className={`text-purple-200 mr-2 transition-transform duration-300 ease-in-out ${
+                className={`text-brand-glow mr-2 transition-transform duration-300 ease-in-out ${
                   isOpen ? "rotate-180" : ""
                 }`}
                 size={20}

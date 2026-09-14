@@ -15,6 +15,10 @@ export interface DropdownProps {
   viewAllHref?: string;
   onViewAll?: () => void;
   viewAllLabel?: string;
+  classname: {
+    mainCont: string;
+    addButton?: string;
+  };
 }
 
 export function DropdownItem({
@@ -29,7 +33,7 @@ export function DropdownItem({
   return (
     <div
       onClick={onClick}
-      className={`px-3 py-2 rounded-lg bg-purple-500/5 hover:bg-white/10 transition text-sm cursor-pointer text-white flex justify-between items-center ${className}`}
+      className={`px-3 py-2 rounded-lg bg-brand-surface/40 border border-brand-border/20 hover:bg-brand-surface/80 hover:border-brand-border/50 transition text-sm cursor-pointer text-white flex justify-between items-center ${className}`}
     >
       {children}
     </div>
@@ -57,7 +61,7 @@ export function DropdownViewAll({
       {href ? (
         <Link
           href={href}
-          className="flex items-center gap-1 text-xs text-purple-300 hover:text-white transition group cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand-hover hover:text-white transition group cursor-pointer"
         >
           {content}
         </Link>
@@ -65,7 +69,7 @@ export function DropdownViewAll({
         <button
           type="button"
           onClick={onClick}
-          className="flex items-center gap-1 text-xs text-purple-300 hover:text-white transition group cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand-hover hover:text-white transition group cursor-pointer"
         >
           {content}
         </button>
@@ -87,6 +91,10 @@ export default function Dropdown({
   onViewAll,
   viewAllLabel = "View all",
   showViewAll,
+  classname = {
+    mainCont: "",
+    addButton: `font-bold text-lg cursor-pointer border border-brand-border/50 text-brand-hover px-2 hover:bg-brand/30 hover:border-brand-hover hover:scale-110 transition-all rounded`,
+  },
 }: DropdownProps & { showViewAll?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -106,7 +114,7 @@ export default function Dropdown({
   const hasViewAll = Boolean(viewAllHref || onViewAll || showViewAll);
 
   return (
-    <div className={style.container}>
+    <div className={[style.container, classname.mainCont].join(" ")}>
       {/* Top Header Row */}
       <div className={style.headerRow}>
         <div className={style.titleWrapper}>
@@ -151,7 +159,7 @@ export default function Dropdown({
             <button
               type="button"
               onClick={onAdd}
-              className={style.addBtn}
+              className={classname.addButton}
               aria-label={`Add ${title}`}
             >
               <Plus />
@@ -184,10 +192,9 @@ export default function Dropdown({
 }
 
 const style = {
+  container: "",
   itemNum:
-    "flex items-center justify-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-purple-900/50 text-purple-100 border border-purple-400/40 shadow-[0_0_8px_rgba(168,85,247,0.25)] tracking-tight",
-  container:
-    "w-full border p-2 border-purple-900/30 rounded-xl bg-zinc-900/30 shadow-lg shadow-purple-950/20",
+    "flex items-center justify-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-brand-surface border border-brand-border/60 text-brand-hover shadow-sm shadow-brand/30 tracking-tight",
   headerRow: "flex justify-between items-center text-center text-white",
   titleWrapper: "flex items-center gap-2",
   titleText: "text-base sm:text-lg font-bold",
@@ -200,7 +207,6 @@ const style = {
   refreshSpin:
     "animate-[spin_1s_linear_infinite_reverse] transform duration-200 scale-150",
   refreshSpinStopped: "transform duration-200 scale-100",
-  addBtn:
-    "font-bold text-lg cursor-pointer border-2 border-purple-500/40 px-2 hover:bg-purple-800/60 hover:scale-110 transition-all rounded",
+
   listContainer: "flex flex-col gap-1 mt-2 w-full",
 };
