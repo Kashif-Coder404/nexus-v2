@@ -248,7 +248,7 @@ export default function SideBar() {
               alt="Nexus Logo"
               className={style.logoImage}
             />
-            <div className="flex items-center gap-2 px-1 mb-3">
+            <div className="flex items-center gap-2">
               <Link
                 href="/dashboard"
                 onClick={() => isSidebarOpen && toggleSidebar(false)}

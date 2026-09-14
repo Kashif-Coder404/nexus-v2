@@ -29,7 +29,7 @@ const DeviceItem = ({ data, onRevoke }: DeviceItemProps) => {
         <span
           className={`text-xs shrink-0 transition-colors ${
             !online
-              ? "text-zinc-500"
+              ? "text-red-500"
               : service === false
                 ? "text-amber-400"
                 : "text-emerald-400"
@@ -47,7 +47,7 @@ const DeviceItem = ({ data, onRevoke }: DeviceItemProps) => {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-zinc-500 animate-none"></span>
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-bounce"></span>
               {/* Offline */}
             </span>
           )}

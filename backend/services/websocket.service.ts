@@ -13,6 +13,7 @@ export interface CustomWebSocket extends WebSocket {
   deviceName?: string;
   isAuthenticated?: boolean;
   pairingCode?: string;
+  service?: boolean;
 }
 // Practice Promise for ws await function!
 const pendingRequests = new Map();
@@ -142,6 +143,7 @@ const initWebsocket = (server: Server) => {
           ws.deviceId
         ) {
           // Broadcast to the user's frontend web client
+          ws.service = parsedData.service;
           sendToUser(ws.userId!, {
             type: "device_status",
             device: { deviceName: ws.deviceName, id: ws.deviceId },
@@ -255,23 +257,29 @@ setInterval(() => {
 
 const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
   const userDoc = await UserModel.findById(userId);
-  const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
-    .filter((c) => {
-      return (
-        c.userId === userId &&
-        c.deviceId &&
-        c.deviceId !== "web_client" &&
-        c.readyState === WebSocket.OPEN
-      );
-    })
-    .map((c) => c.deviceId);
+  // const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
+  //   .filter((c) => {
+  //     return (
+  //       c.userId === userId &&
+  //       c.deviceId &&
+  //       c.deviceId !== "web_client" &&
+  //       c.readyState === WebSocket.OPEN
+  //     );
+  //   })
+  //   .map((c) => c.deviceId);
   sendJson(ws, {
     type: "device_list",
-    devices: (userDoc?.devices || []).map((d) => ({
-      id: d._id.toString(),
-      deviceName: d.deviceName,
-      online: onlineDevicesIds.includes(d._id.toString()),
-    })),
+    devices: (userDoc?.devices || []).map((d) => {
+      const client = Array.from(wss.clients as Set<CustomWebSocket>).find(
+        (c) => c.deviceId === d._id.toString(),
+      );
+      return {
+        id: d._id.toString(),
+        deviceName: d.deviceName,
+        online: !!client,
+        service: client ? (client.service ?? true) : false,
+      };
+    }),
   });
 };
 

@@ -325,22 +325,22 @@ export default function DashboardUI() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               {[
                 {
-                  label: "📸 Screenshot",
+                  label: "Screenshot",
                   icon: Camera,
                   prompt: "Take a screenshot of my screen",
                 },
                 {
-                  label: "💻 System Specs",
+                  label: "System Specs",
                   icon: Cpu,
                   prompt: "Show my system hardware and battery info",
                 },
                 {
-                  label: "📁 List Desktop",
+                  label: "List Desktop",
                   icon: Folder,
                   prompt: "List files on my Desktop",
                 },
                 {
-                  label: "⚡ Terminal Check",
+                  label: "Terminal Check",
                   icon: Terminal,
                   prompt: "Run PowerShell command to check uptime",
                 },

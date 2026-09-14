@@ -60,33 +60,42 @@ export default function NavBar() {
 
         {/* Center Nav Links */}
         <nav className={style.navLinks}>
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={style.navLinkItem}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`${style.navLinkItem} ${
+                  isActive
+                    ? "bg-purple-600/25 text-white border border-purple-400/30 shadow-sm shadow-purple-950/50"
+                    : ""
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Right Action / Auth Buttons */}
         {user ? (
-          <>
-            <div className={style.leftCont}>
-              <button
-                onClick={handleDownloadNexus}
-                className="flex justify-center items-center gap-2 transition-all duration-300 hover:text-purple-500 cursor-pointer"
-              >
-                <Download />
-                <h1>Latest v2.5.0</h1>
-              </button>
-              <h1 className="rounded-full bg-purple-800 w-4 h-4 text-center text-white flex justify-center items-center p-4">
-                {user?.name.slice(0, 1).toUpperCase()}
-              </h1>
+          <div className={style.leftCont}>
+            <button
+              onClick={handleDownloadNexus}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/25 hover:border-purple-400/50 px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer shadow-sm shadow-purple-950/40 group"
+              title="Download latest Windows Companion"
+            >
+              <Download className="w-3.5 h-3.5 text-purple-400 group-hover:translate-y-0.5 transition-transform" />
+              <span>v2.5.0</span>
+            </button>
+            <div
+              className="rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-600 border border-purple-400/40 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-purple-900/50 cursor-default"
+              title={user?.name || "User"}
+            >
+              {user?.name ? user.name.slice(0, 1).toUpperCase() : "U"}
             </div>
-          </>
+          </div>
         ) : (
           <div className={style.actionsCont}>
             <Link href="/auth/login" className={style.loginBtn}>
@@ -103,23 +112,23 @@ export default function NavBar() {
 }
 
 const style = {
-  navCont: "sticky top-0 z-30 w-full border-b border-b-purple-500/40",
+  navCont: "sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6 lg:px-8 pointer-events-none transition-all duration-300",
   innerCont:
-    "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8",
-  leftLinks: "flex flex-row gap-2 px-2",
-  imageCont: "max-w-30 max-h-30",
-  logoImageNav: "w-10 h-10",
-  brandCont: "flex items-center gap-2",
+    "mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 rounded-full bg-[#0b0f19]/75 backdrop-blur-2xl border border-purple-500/30 ring-1 ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8),0_0_24px_rgba(168,85,247,0.18)] pointer-events-auto transition-all duration-300 hover:border-purple-500/40",
+  leftLinks: "flex items-center gap-2.5",
+  imageCont: "flex items-center justify-center cursor-pointer",
+  logoImageNav: "w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]",
+  brandCont: "flex items-center",
   brandText:
-    "text-xl md:text-3xl font-bold tracking-tight text-white underline-offset-2",
-  brandDot: "text-shadow-green-700",
-  navLinks: "hidden md:flex items-center gap-6",
+    "text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-purple-300 bg-clip-text text-transparent",
+  brandDot: "text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]",
+  navLinks: "hidden md:flex items-center gap-1 bg-zinc-900/50 p-1 rounded-full border border-white/5",
   navLinkItem:
-    "text-sm font-medium transition-all duration-300 hover:bg-purple-900 px-2 py-1 rounded-full text-white/50 hover:text-white",
-  actionsCont: "flex items-center gap-3",
-  leftCont: "flex justify-center items-center text-white gap-4",
+    "text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all duration-200 text-zinc-400 hover:text-white hover:bg-purple-900/30",
+  actionsCont: "flex items-center gap-2 sm:gap-3",
+  leftCont: "flex items-center gap-3",
   loginBtn:
-    "rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition",
+    "text-xs font-semibold px-3 py-1.5 text-zinc-300 hover:text-white transition-colors",
   defaultBtn:
-    "flex flex-col justify-center rounded-xl m-2 px-[clamp(0.8rem,2vw,1rem)] text-white text-[1.2rem] font-bold bg-linear-to-r from-[#7357E2] to-[#9129b6] text-nowrap transform hover:scale-[1.1] duration-300",
+    "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 shadow-md shadow-purple-600/30 hover:brightness-110 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200",
 };

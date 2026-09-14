@@ -254,6 +254,7 @@ const ServerWSConnection = async () => {
         sendJson(ws, { type: "PairingInit", code });
       }
     }
+    sendJson(ws, { type: "device_status", service: isEnable });
   });
 
   ws.on("message", async (data: any) => {
