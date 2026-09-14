@@ -252,10 +252,26 @@ export const stopServer = async () => {
       execSync(`schtasks /end /tn "${TASK_NAME}"`, { stdio: "ignore" });
     } catch {}
 
+    // 1. Try normal termination first (fast, no UAC prompt)
     const killCmd = `Get-Process -Name nexus -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne ${process.pid} } | Stop-Process -Force`;
     spawnSync("powershell.exe", ["-NoProfile", "-Command", killCmd], {
       stdio: "ignore",
     });
+
+    // 2. Check if nexus is still running (e.g. if it was started elevated)
+    if (await isAlreadyRunning()) {
+      const elevateKill = `Start-Process cmd.exe -ArgumentList '/c taskkill /f /im nexus.exe' -Verb RunAs -WindowStyle Hidden -Wait`;
+      spawnSync("powershell.exe", ["-NoProfile", "-Command", elevateKill]);
+    }
+
+    // 3. Final check
+    if (await isAlreadyRunning()) {
+      return {
+        success: false,
+        msg: "Failed to stop server: Access Denied. Please run terminal as Administrator.",
+      };
+    }
+
     return { success: true, msg: "Stopped the server" };
   } catch (error: any) {
     return { success: false, msg: error.message };
@@ -438,15 +454,15 @@ export const setupFirst = async (): Promise<boolean> => {
     // Add Nexus to User PATH so CLI commands work from anywhere
     addDirToUserPath(targetDir);
 
-    // 3. Register task in Windows Task Scheduler to run elevated on logon
+    // 3. Register task in Windows Task Scheduler on logon
 
     fs.writeFileSync(silentVbsPath, vbsContent, "utf-8");
     const taskCmd = `wscript.exe \\"${silentVbsPath}\\"`;
     execSync(
-      `schtasks /create /tn "${TASK_NAME}" /tr "${taskCmd}" /sc onlogon /rl highest /f`,
+      `schtasks /create /tn "${TASK_NAME}" /tr "${taskCmd}" /sc onlogon /f`,
       { stdio: "ignore" },
     );
-    console.log(`[SETUP] Registered elevated task: ${TASK_NAME}`);
+    console.log(`[SETUP] Registered task: ${TASK_NAME}`);
     // Clean up any legacy VBS startup script if present
     if (fs.existsSync(vbsPath)) {
       try {
