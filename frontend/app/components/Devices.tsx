@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Device, useDevices } from "../store/useDevices";
+import { useUserCredentials } from "../store/useUserCredentials";
 import { livewebsocket } from "@/services/liveFeedWs.service";
 import {
   Cpu,
@@ -13,7 +14,10 @@ import {
   Radio,
   Pencil,
   Trash2,
+  Minus,
+  Dot,
 } from "lucide-react";
+import { IconSettingsPause, IconStatusChange } from "@tabler/icons-react";
 
 interface SystemInfo {
   os?: {
@@ -44,6 +48,70 @@ interface SystemInfo {
 const Devices = ({ device }: { device: Device }) => {
   const [data, setData] = useState<any>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isRenaming, setIsRenaming] = useState<boolean>(false);
+  const [newName, setNewName] = useState<string>(device.deviceName);
+  const [isRevoking, setIsRevoking] = useState<boolean>(false);
+
+  const token = useUserCredentials((state) => state.token);
+
+  const handleRevoke = async () => {
+    if (!token || !device.id) return;
+    setIsRevoking(true);
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://nexus-v2-e38m.onrender.com";
+      const res = await fetch(`${backendUrl}/api/device/${device.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        useDevices
+          .getState()
+          .setDevices(
+            useDevices.getState().devices.filter((d) => d.id !== device.id),
+          );
+      } else {
+        console.error("[REVOKE DEVICE FAILED]:", data.message);
+      }
+    } catch (err: any) {
+      console.error("[REVOKE DEVICE ERROR]:", err.message);
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const handleRenaming = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/devices/renameDevice`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: device.id,
+            deviceName: newName,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        setIsRenaming(false);
+      } else {
+        setNewName(device.deviceName);
+      }
+    } catch (error) {
+      console.error("Error renaming device:", error);
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
   const currentDevice = useDevices((state) => {
     return state.devices.find((d) => d.id === device.id);
   });
@@ -84,71 +152,102 @@ const Devices = ({ device }: { device: Device }) => {
   const ramPercentNumber = parseFloat(sysInfo?.memory?.usagePercentage || "0");
 
   return (
-    <div className="relative w-full max-w-2xl p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-5 transition-all">
-      {/* 1. Header: Device Name, IP, Live Pulse */}
-      <div className="flex flex-col gap-3 border-b border-brand-border/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: icon + info */}
-        {/* 1. Header: Top row (Title + Actions), Bottom row (Hostname + IP) */}
-        <div className="border-b border-brand-border/30 pb-4 space-y-2.5">
-          {/* Top Row: Device Name & Action Buttons */}
-          <div className="flex items-center justify-between gap-3">
-            {/* Left: Icon & Name */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover shadow-sm">
-                <Laptop className="w-5 h-5" />
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
-                  {device.deviceName}
-                </h2>
-                <button
-                  type="button"
-                  className="text-zinc-400 hover:text-brand-hover transition-colors p-0.5 rounded shrink-0"
-                  title="Rename device"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Live Badge & Revoke Button */}
-            <div className="flex items-center gap-2 shrink-0">
+    <div className="relative w-full max-w-[30rem] p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-5 transition-all">
+      {/* 1. Header: Top row (Title + Actions), Bottom row (Hostname + IP) */}
+      <div className="border-b border-brand-border/30 pb-4 space-y-2.5">
+        {/* Top Row: Device Name & Action Buttons */}
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Icon & Name */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative w-10 h-10 shrink-0 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover shadow-sm">
               <div
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs font-semibold shrink-0 transition-all ${
+                className={`absolute -right-4 -bottom-2 flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
                   isDeviceOnline
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                    : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                    ? "text-emerald-400"
+                    : "border-rose-500/30 text-rose-400"
                 }`}
               >
-                <Radio
-                  className={`w-3.5 h-3.5 ${isDeviceOnline ? "animate-pulse text-emerald-400" : "text-rose-400"}`}
+                <Dot
+                  strokeWidth={10}
+                  className={`w-3.5 h-3.5 ${isDeviceOnline ? "animate-pulse text-emerald-400" : " animate-spin text-rose-400"}`}
                 />
-                <span className="font-mono text-[11px] sm:text-xs">
-                  {isDeviceOnline ? "LIVE STREAM" : "OFFLINE"}
-                </span>
               </div>
-
+              <Laptop className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <div>
+                <input
+                  type="text"
+                  id="renameDevice"
+                  value={newName}
+                  className="w-full min-w-0 max-w-[14rem] bg-transparent border-none text-white font-bold text-lg truncate focus:outline-none focus:ring-1 focus:ring-brand-hover rounded px-1"
+                  onChange={(e) => {
+                    setNewName(e.target.value);
+                  }}
+                  onFocus={(e) => {
+                    e.target.select();
+                  }}
+                  maxLength={15}
+                  onBlur={(e) => {
+                    if (e.target.value !== device.deviceName) {
+                      // handle rename
+                    }
+                  }}
+                  disabled={!isRenaming}
+                />
+              </div>
               <button
                 type="button"
-                onClick={() => {}}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 text-rose-400 text-xs font-semibold hover:bg-rose-500/20 hover:border-rose-500/60 hover:text-rose-300 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
-                title="Revoke device"
+                className="text-zinc-400 hover:text-brand-hover transition-colors p-0.5 rounded shrink-0"
+                title="Rename device"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // focus to the input field
+                  if (!isRenaming) {
+                    setTimeout(() => {
+                      document.getElementById("renameDevice")?.focus();
+                    }, 100);
+                  }
+                  setIsRenaming((prev) => !prev);
+                }}
               >
-                <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                <span className="text-[11px] sm:text-xs">Revoke</span>
+                <Pencil
+                  className={`w-3.5 h-3.5 ${
+                    isRenaming
+                      ? "text-brand-hover scale-110"
+                      : "text-zinc-400"
+                  }`}
+                />
               </button>
             </div>
           </div>
 
-          {/* Subtitle Row: Hostname and IP (Full width, no squishing) */}
-          <div className="pl-[52px] flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-zinc-400">
-            <span>({sysInfo?.os?.hostname || device.id.slice(0, 8)})</span>
-            <span className="text-zinc-600 hidden sm:inline">•</span>
-            <p className="text-brand-glow/80 flex items-center gap-1.5">
-              <Wifi className="w-3.5 h-3.5 text-brand shrink-0" />
-              <span>Direct LAN • {device.ipAddress}:4100</span>
-            </p>
+          {/* Right: Live Badge & Revoke Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleRevoke}
+              disabled={isRevoking}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border transform hover:scale-110 active:border-white active:bg-red-950 border-rose-500/70 text-rose-400 text-xs font-semibold hover:bg-rose-500/20 hover:border-rose-500/60 hover:text-rose-300 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+              title="Revoke device"
+              aria-label={`Revoke device ${device.deviceName}`}
+            >
+              <Minus className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline text-[11px]">
+                {isRevoking ? "Revoking..." : "Revoke"}
+              </span>
+            </button>
           </div>
+        </div>
+
+        {/* Subtitle Row: Hostname and IP (Full width, no squishing) */}
+        <div className="flex flex-wrap justify-center w-full items-center gap-x-3 gap-y-1 text-xs font-mono text-zinc-400">
+          <span>({sysInfo?.os?.hostname || device.id.slice(0, 8)})</span>
+          <span className="text-zinc-600 hidden sm:inline">•</span>
+          <p className="text-brand-glow/80 flex items-center gap-1.5">
+            <Wifi className="w-3.5 h-3.5 text-brand shrink-0" />
+            <span>Direct LAN • {device.ipAddress}:4100</span>
+          </p>
         </div>
       </div>
 

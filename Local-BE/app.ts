@@ -27,7 +27,7 @@ app.use(
   }),
 );
 
-app.use("/commands", router); // Temp usage
+app.use("/commands", router);
 
 // Serve pairing setup page
 const serveSetupPage = (req: express.Request, res: express.Response) => {

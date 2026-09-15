@@ -195,7 +195,7 @@ const style = {
   container: "",
   itemNum:
     "flex items-center justify-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-brand-surface border border-brand-border/60 text-brand-hover shadow-sm shadow-brand/30 tracking-tight",
-  headerRow: "flex justify-between items-center text-center text-white",
+  headerRow: "flex ml-1 justify-between items-center text-center text-white",
   titleWrapper: "flex items-center gap-2",
   titleText: "text-base sm:text-lg font-bold",
   toggleBtn: "text-zinc-300 hover:text-white transition cursor-pointer p-0.5",

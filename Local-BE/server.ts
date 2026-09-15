@@ -28,7 +28,9 @@ async function bootstrap() {
         sendSystemdata(ws);
       }
     }, 1000); // every 10s
-
+    ws.on("error", (err: any) => {
+      console.error("[LOCAL WS] Error:", err?.message || err);
+    });
     ws.on("close", () => {
       clearInterval(sysInterVal);
     });

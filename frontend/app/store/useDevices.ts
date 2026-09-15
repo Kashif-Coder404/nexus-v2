@@ -15,6 +15,7 @@ type DeviceStore = {
   setOnlineDevices: (id: string, online: boolean) => void;
   setIpAddress: (id: string, ipAddress: string) => void;
   setService: (id: string, service: boolean) => void;
+  removeDevice: (id: string) => void;
   openPairModal: () => void;
   closePairModal: () => void;
 };
@@ -39,6 +40,10 @@ export const useDevices = create<DeviceStore>((set) => ({
       devices: state.devices.map((device) =>
         device.id === id ? { ...device, service } : device,
       ),
+    })),
+  removeDevice: (id: string) =>
+    set((state) => ({
+      devices: state.devices.filter((device) => device.id !== id),
     })),
   openPairModal: () => set({ isPairModalOpen: true }),
   closePairModal: () => set({ isPairModalOpen: false }),

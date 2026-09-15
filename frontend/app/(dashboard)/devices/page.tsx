@@ -13,7 +13,8 @@ const DevicesPage = () => {
           Manage Your Devices
         </h1>
         <p className="text-sm text-zinc-400 mt-1">
-          Direct hardware telemetry and companion devices linked to your account.
+          Direct hardware telemetry and companion devices linked to your
+          account.
         </p>
       </div>
 
@@ -24,11 +25,15 @@ const DevicesPage = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex flex-col justify-center items-center w-full">
         {devices.length === 0 ? (
           <p className="text-sm text-zinc-500">No devices connected.</p>
         ) : (
-          devices.map((el) => <Devices device={el} key={el.id} />)
+          <>
+            {devices.map((el) => (
+              <Devices key={el.id} device={el} />
+            ))}
+          </>
         )}
       </div>
     </div>

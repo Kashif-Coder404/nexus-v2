@@ -269,7 +269,11 @@ const ServerWSConnection = async () => {
         sendJson(ws, { type: "PairingInit", code });
       }
     }
-    sendJson(ws, { type: "device_status", service: isEnable });
+    sendJson(ws, {
+      type: "device_status",
+      service: isEnable,
+      ipAddress: getIP(),
+    });
   });
 
   ws.on("message", async (data: any) => {
@@ -286,6 +290,12 @@ const ServerWSConnection = async () => {
             await saveDeviceTokenFile({ token });
           }
           currentPairingState = null;
+          sendJson(ws, {
+            type: "device_status",
+            service: isEnable,
+            ipAddress: getIP(),
+          });
+          sendSystemdata(ws);
           break;
         }
 

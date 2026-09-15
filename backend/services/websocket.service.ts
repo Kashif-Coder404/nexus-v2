@@ -126,6 +126,7 @@ const initWebsocket = (server: Server) => {
       req.headers["Authorization"] ||
       queryToken;
     const ipHeader = req.headers["ipaddress"] || req.headers["ipAddress"];
+    console.log("IP ADDRESS: ", ipHeader);
     if (authHeader) {
       await connectDevice(ws, authHeader, ipHeader as string);
     }
@@ -152,9 +153,17 @@ const initWebsocket = (server: Server) => {
         ) {
           // Broadcast to the user's frontend web client
           ws.service = parsedData.service;
+          if (parsedData.ipAddress) {
+            ws.ipAddress = parsedData.ipAddress;
+          }
           sendToUser(ws.userId!, {
             type: "device_status",
-            device: { deviceName: ws.deviceName, id: ws.deviceId },
+            device: {
+              deviceName: ws.deviceName,
+              id: ws.deviceId,
+              ipAddress: ws.ipAddress,
+            },
+            online: true,
             service: parsedData.service,
           });
         } else if (parsedData.type === "cmd_response") {
@@ -265,16 +274,6 @@ setInterval(() => {
 
 const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
   const userDoc = await UserModel.findById(userId);
-  // const onlineDevicesIds = Array.from(wss.clients as Set<CustomWebSocket>)
-  //   .filter((c) => {
-  //     return (
-  //       c.userId === userId &&
-  //       c.deviceId &&
-  //       c.deviceId !== "web_client" &&
-  //       c.readyState === WebSocket.OPEN
-  //     );
-  //   })
-  //   .map((c) => c.deviceId);
   sendJson(ws, {
     type: "device_list",
     devices: (userDoc?.devices || []).map((d) => {

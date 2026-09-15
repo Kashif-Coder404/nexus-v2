@@ -171,6 +171,14 @@ export const askAI = async (
           terminal_output: terminalOutput || "No output",
           terminal_error: terminalError || "",
         };
+        sendToUser(userId, {
+          type: "ai_data",
+          data: {
+            workingon: "✍️ Finalizing response...",
+            msg: "",
+            cmd: "",
+          },
+        });
         commandRunningMsgs.push({
           role: "user",
           content: JSON.stringify(feedbackContent, null, 2),

@@ -33,11 +33,11 @@ export default function DashboardLayout({
       ) : (
         <PairDevice setWindowAlert={setIsWindowAlert} />
       )}
-      <div className="flex w-screen h-screen overflow-hidden">
+      <div className="flex w-full h-screen overflow-hidden">
         <SideBar />
         <div className="flex-1 flex flex-col min-w-0">
           <NavBar />
-          <main className="flex-1 flex flex-col overflow-y-auto">
+          <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
             {children}
           </main>
         </div>

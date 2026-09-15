@@ -157,11 +157,10 @@ export default function Home() {
         <div className="p-4 rounded-xl bg-brand-surface/30 border border-brand-border/30 text-left">
           <Search className="w-5 h-5 text-brand-hover mb-2" />
           <h2 className="text-sm font-semibold text-zinc-200">
-            Everything File Search
+            Quick File Search
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Sub-second desktop file indexing to locate and interact with your
-            files right from chat.
+            Instantly find files on your PC and open them whenever you need.
           </p>
         </div>
 
