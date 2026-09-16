@@ -1,5 +1,5 @@
-import { commandParser } from "../Parsers.js";
-
+// import { commandParser } from "../Parsers.js";
+import { commandParser } from "../command";
 export const runCommand = async (
   action: any,
   param: string | Object,

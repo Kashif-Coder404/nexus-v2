@@ -3,6 +3,8 @@ import fsSync from "fs";
 import path from "path";
 import process from "process";
 
+import { execSync } from "child_process";
+
 const IGNORED_DIRS = new Set([
   "$recycle.bin",
   "system volume information",
@@ -40,7 +42,26 @@ export function getAvailableDrives(): string[] {
   }
   return drives;
 }
+export async function searchStoreApps(
+  appName: string,
+): Promise<SearchResult[]> {
+  try {
+    const cmd = `powershell.exe -NoProfile -Command "Get-StartApps | Where-Object Name -like '*${appName}*' | ConvertTo-Json -Compress"`;
+    const output = execSync(cmd, { timeout: 3000 }).toString().trim();
+    if (!output) return [];
 
+    const parsed = JSON.parse(output);
+    const list = Array.isArray(parsed) ? parsed : [parsed];
+
+    return list.map((app: any) => ({
+      name: app.Name,
+      path: `shell:AppsFolder\\${app.AppID}`,
+      type: "file" as const,
+    }));
+  } catch {
+    return [];
+  }
+}
 /**
  * Whitespace, hyphen, and symbol-insensitive matching
  */
@@ -247,6 +268,8 @@ export async function nexusSmartSearchApp(
   extension: string = "",
 ): Promise<SearchResult[]> {
   if (!appName) return [];
+  const windowsApps = await searchStoreApps(appName);
+  if (windowsApps.length > 0) return windowsApps;
 
   // Strip trailing extension if user/AI passed e.g. "spider man 2.exe" or "spider man 2 .exe"
   let cleanAppName = appName.trim();

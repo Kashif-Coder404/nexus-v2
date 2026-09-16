@@ -4,14 +4,12 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { GeminiResponse } from "../Types.js";
 import { GoogleGenAI, Modality } from "@google/genai";
 import {
-  GEMINI_API,
-  GEMINI_API_CW,
-  GEMINI_API2,
-  GEMINI_API3,
+  GEMINI_API_Don_Acc,
+  GEMINI_API_Main_Acc,
   initializeKeys,
 } from "../../EnvVariables.js";
 await initializeKeys();
-const GEMINI_API_KEYS = [GEMINI_API, GEMINI_API2, GEMINI_API3].filter(
+const GEMINI_API_KEYS = [GEMINI_API_Don_Acc, GEMINI_API_Main_Acc].filter(
   Boolean,
 ) as string[];
 export type GeminiModelsTypes =
@@ -39,7 +37,7 @@ export const geminiAICall = async ({
   const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
   const safeKeyIndex =
     GEMINI_API_KEYS.length > 0 ? keyIndex % GEMINI_API_KEYS.length : 0;
-  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API;
+  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API_Main_Acc;
   console.log(
     `[GEMINI AI CALL] Model: ${model} | KeyIndex: ${safeKeyIndex} | Retry: ${retryCount}`,
   );
@@ -214,7 +212,7 @@ export const liveGeminiAICall = async ({
   const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
   const safeKeyIndex =
     GEMINI_API_KEYS.length > 0 ? keyIndex % GEMINI_API_KEYS.length : 0;
-  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API;
+  const Current_API_KEY = GEMINI_API_KEYS[safeKeyIndex] || GEMINI_API_Main_Acc;
   console.log(
     `[GEMINI LIVE AI CALL] Model: ${model} | KeyIndex: ${safeKeyIndex} | Retry: ${retryCount}`,
   );

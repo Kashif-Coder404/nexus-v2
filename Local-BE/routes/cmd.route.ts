@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post("/run-command", async (req, res) => {
   const { commands } = req.body;
+  console.log("RUNNING COMMAND: ", commands);
   const actualCommands =
     typeof commands === "string" ? JSON.parse(commands) : commands;
   const action = actualCommands.action;
@@ -20,6 +21,7 @@ router.post("/run-command", async (req, res) => {
     });
   }
   const data = await runCommand(action, param, timeout, isDaemon);
+  console.log("RUNNING COMMAND: ", data);
   res.status(200).json({
     isSuccess: data.isSuccess,
     msg: "Response from the commands",
