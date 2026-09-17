@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- WinExe makes it run 100% silently in the background with NO black terminal window -->
+    <!-- <OutputType>WinExe</OutputType> -->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Hardware Monitoring (CPU/GPU temps, fans, wattage) -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
+
+    <!-- Native Screen Capture (GDI+) -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.8" />
+
+    <!-- Allows running as a native Windows Service -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+  </ItemGroup>
+
+</Project>

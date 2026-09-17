@@ -60,3 +60,7 @@ tasks.md
 backend/screenshot.png
 demo_gemini_live.ts
 run_nexus.vbs
+
+# .NET Build outputs
+[Bb]in/
+[Oo]bj/

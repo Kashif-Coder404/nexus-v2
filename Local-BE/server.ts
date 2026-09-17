@@ -27,7 +27,7 @@ async function bootstrap() {
       if (ws.readyState === WebSocket.OPEN) {
         sendSystemdata(ws);
       }
-    }, 1000); // every 10s
+    }, 20000); // every 10s
     ws.on("error", (err: any) => {
       console.error("[LOCAL WS] Error:", err?.message || err);
     });

@@ -17,6 +17,7 @@ import {
   getService,
 } from "./services/ws.service";
 import { uninstallNexus, stopServer } from "./setupnexus";
+import { executeCommand } from "./services/executeTesting";
 
 const app = express();
 app.use(express.json());
@@ -28,7 +29,22 @@ app.use(
 );
 
 app.use("/commands", router);
-
+app.post("/testingCommand", async (req, res) => {
+  try {
+    const { command } = req.body;
+    console.log("[CMD TESTER]:", command);
+    await executeCommand(command);
+    return res.status(200).json({
+      success: true,
+      message: "Command executed successfully.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 // Serve pairing setup page
 const serveSetupPage = (req: express.Request, res: express.Response) => {
   try {
