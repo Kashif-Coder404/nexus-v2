@@ -16,7 +16,13 @@ public enum VerifyType
     Window,
     Pid,
 }
-
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum OutputMode
+{
+    Final,
+    Live,
+    Event //Extra when the command tooks too long to response or something installing...
+}
 
 public class RunCommandDto
 {
@@ -24,6 +30,7 @@ public class RunCommandDto
     public int TimeoutSeconds { get; set; } = 30;
     public ExecutionTypes ExecutionType { get; set; } = ExecutionTypes.Wait;
     public VerifyType VerifyType { get; set; } = VerifyType.None;
+    public OutputMode OutputMode { get; set; } = OutputMode.Final;
 }
 
 public class CommandResponse
@@ -37,4 +44,11 @@ public class CommandResponse
     public string? VerifiedStatus { get; set; }
     public int? ExitCode { get; set; }
     public string? ImageBase64 { get; set; }
+}
+
+public class AppProcess(string name, int pid, string title)
+{
+    public string Name { get; } = name;
+    public int Pid { get; } = pid;
+    public string Title { get; } = title;
 }

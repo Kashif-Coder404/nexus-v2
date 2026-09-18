@@ -96,3 +96,11 @@ The following core challenges and edge cases have been identified during initial
 - [ ] **System Tray Icon (Notification Area):**
   - Minimalist tray icon next to the Windows clock.
   - Right-click menu: "Open Dashboard", "Pause Remote Access", "Check for Updates", "Quit".
+
+### Phase 7: Nexus Browser Companion Extension (Granular Tab & Web Control)
+- [ ] **Chromium Browser Extension (Brave / Chrome / Edge):**
+  - Connects locally to `Local-BE-v2` via local WebSocket (`ws://localhost:4100/extension`).
+  - **Granular Tab Management:** Query all open tabs, focus tabs, close specific tabs (e.g. "close GitHub tab") cleanly without affecting other tabs or killing the browser.
+  - **In-Page DOM & Web Actions:** Read page contents, extract clean text/markdown for AI analysis, and trigger actions.
+  - **Media Control:** Control YouTube/Spotify web playback directly via `chrome.tabs` messaging.
+
