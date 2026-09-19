@@ -9,9 +9,17 @@ export type BaseCommandType<
   timeout?: number;
   isDaemon?: boolean;
 };
+export interface InBuiltParam {
+  command: string;
+  executionType?: "wait" | "background";
+  verifyType?: "none" | "window" | "pid";
+  outputMode?: "final" | "live" | "event";
+  timeout?: number; // Timeout in seconds
+}
+
 export type MatchKeyType = keyof ActionTypes;
 export interface ActionTypes {
-  in_built: string; // AI MUST USE IT TO CALL REAL COMMANDS
+  in_built: InBuiltParam | string; // AI MUST USE IT TO CALL REAL COMMANDS
   memory_read: { alias?: string; category?: string };
   memory_write: { alias: string; value: string; category: string };
   memory_delete: { value: string; alias?: string; category?: string };

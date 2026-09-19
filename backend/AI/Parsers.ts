@@ -13,6 +13,7 @@ import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
   CommandTypes,
+  InBuiltParam,
   ParametersType,
 } from "./Types/ParserTypes.js";
 
@@ -298,17 +299,62 @@ export const commandParser = async (
       }
     },
     in_built: async () => {
-      const timeoutMs =
-        cmd.timeout && !isNaN(Number(cmd.timeout))
-          ? Number(cmd.timeout)
-          : 30000;
+      let commandPayload: any;
+      let timeoutMs = 30000;
+
+      if (
+        typeof cmd.param === "object" &&
+        cmd.param !== null &&
+        "command" in cmd.param
+      ) {
+        const inBuilt = cmd.param as InBuiltParam;
+        timeoutMs = inBuilt.timeout ? Number(inBuilt.timeout) * 1000 : 30000;
+        commandPayload = {
+          Command: inBuilt.command,
+          ExecutionType: inBuilt.executionType
+            ? inBuilt.executionType.charAt(0).toUpperCase() +
+              inBuilt.executionType.slice(1).toLowerCase()
+            : "Wait",
+          VerifyType: inBuilt.verifyType
+            ? inBuilt.verifyType.charAt(0).toUpperCase() +
+              inBuilt.verifyType.slice(1).toLowerCase()
+            : "None",
+          OutputMode: inBuilt.outputMode
+            ? inBuilt.outputMode.charAt(0).toUpperCase() +
+              inBuilt.outputMode.slice(1).toLowerCase()
+            : "Final",
+          TimeoutSeconds: inBuilt.timeout || Math.round(timeoutMs / 1000),
+        };
+      } else {
+        const rawCmd =
+          typeof cmd.param === "string"
+            ? cmd.param
+            : JSON.stringify(cmd.param || "");
+        timeoutMs =
+          cmd.timeout && !isNaN(Number(cmd.timeout))
+            ? Number(cmd.timeout)
+            : 30000;
+        commandPayload = {
+          Command: rawCmd,
+          ExecutionType: cmd.isDaemon ? "Background" : "Wait",
+          VerifyType: "None",
+          OutputMode: "Final",
+          TimeoutSeconds: Math.round(timeoutMs / 1000),
+        };
+      }
+
       try {
         const executionResponse = await sendCmdRequest(
           userId,
-          returningCmd,
+          commandPayload,
           timeoutMs,
         );
-        finalResponse.cmd = returningCmd;
+        finalResponse.cmd =
+          typeof cmd.param === "object" &&
+          cmd.param !== null &&
+          "command" in cmd.param
+            ? (cmd.param as InBuiltParam).command
+            : returningCmd;
         finalResponse.msg = executionResponse?.msg || "";
         finalResponse.terminalOutput = executionResponse?.terminalOutput || "";
         finalResponse.terminalError = executionResponse?.terminalError || "";

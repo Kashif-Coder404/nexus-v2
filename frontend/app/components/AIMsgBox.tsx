@@ -39,14 +39,17 @@ export interface AiData {
 }
 const commandDisplay = (param: object | string) => {
   if (typeof param === "string") return param;
-  let string = "";
   if (typeof param === "object" && param !== null) {
+    if ("command" in param && typeof (param as any).command === "string") {
+      return (param as any).command;
+    }
     return Object.entries(param)
       .map(([key, value]) => `${key}: ${value}`)
       .join(" ");
   }
   return String(param ?? "");
 };
+
 const CommandBox = ({
   terminalData,
   paramContent,
