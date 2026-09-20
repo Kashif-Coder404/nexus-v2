@@ -240,7 +240,11 @@ function cmd_explainer(action: string, param: any) {
   } else if (action === "search_app") {
     return `🚀 Searching for app "${param?.name || ""}"...`;
   } else if (action === "in_built") {
-    return `⚡ Running: ${param}...`;
+    const cmdText =
+      typeof param === "object" && param !== null
+        ? param.command || JSON.stringify(param)
+        : param || "";
+    return `⚡ Running: ${cmdText}...`;
   } else if (action === "capture_screen") {
     return "📸 Capturing desktop screenshot...";
   } else if (action === "system_info") {

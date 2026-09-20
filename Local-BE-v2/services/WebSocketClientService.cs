@@ -84,35 +84,131 @@ public class WebSocketClientService : BackgroundService
                         Console.WriteLine("🎉 [WS] Pairing confirmed and saved to disk!");
                     }
                 }
+                //Comand Processing...
+                var cmdNode = json?["cmd"];
+                if (cmdNode is JsonValue val && val.TryGetValue(out string? rawStr))
+                {
+                    try
+                    {
+                        cmdNode = JsonNode.Parse(rawStr) ?? cmdNode;
+                    }
+                    catch { }
+                }
+                string action = cmdNode?["action"]?.GetValue<string>()?.ToLowerInvariant() ?? "";
+                string rawCmd = cmdNode?.ToJsonString() ?? "";
+                CommandResponse? response = null;
+                string? requestId = json?["requestId"]?.GetValue<string>();
+
+
+                if (string.IsNullOrEmpty(requestId) || cmdNode == null) continue;
+
+                Console.WriteLine($"⚡ [WS] Received RunCMD request: {requestId}");
                 if (type == "RunCMD")
                 {
-                    string? requestId = json?["requestId"]?.GetValue<string>();
-                    var cmdNode = json?["cmd"];
-
-                    if (string.IsNullOrEmpty(requestId) || cmdNode == null) continue;
-
-                    Console.WriteLine($"⚡ [WS] Received RunCMD request: {requestId}");
-
-                    RunCommandDto? cmdDto = cmdNode is JsonValue val && val.TryGetValue(out string? str)
-                        ? JsonSerializer.Deserialize<RunCommandDto>(str, _jsonOptions)
-                        : cmdNode.Deserialize<RunCommandDto>(_jsonOptions);
-
-                    if (cmdDto == null) continue;
-
-                    // Execute through your 4-persona engine!
-                    CommandResponse response = await ExecuteServices.RunAsync(cmdDto);
-
-                    // Send back the response!
-                    var payload = new
+                    switch (action)
                     {
-                        type = "cmd_response",
-                        requestId,
-                        cmdResponse = response
-                    };
+                        case "system_info":
+                            string infoJson = SystemInfoService.GetSystemInfoJson();
+                            response = new CommandResponse
+                            {
+                                Cmd = rawCmd,
+                                Msg = "System info retrieved",
+                                TerminalOutput = infoJson,
+                                IsSuccess = true,
+                                ExitCode = 0
+                            };
+                            break;
+                        case "capture_screen":
+                            var (success, base64, msg) = CaptureScreenShots.CaptureScreen();
+                            response = new CommandResponse
+                            {
+                                Cmd = rawCmd,
+                                Msg = success ? "Screenshot Captured" : msg,
+                                TerminalOutput = success ? "ScreenShot Captured" : "",
+                                TerminalError = success ? "" : msg,
+                                IsSuccess = success,
+                                ExitCode = success ? 0 : 1,
+                                ImageBase64 = success ? base64 : null
+                            };
+                            break;
+                        case "search":
+                            var searchParam = cmdNode["param"];
+                            bool isDeepSearch = searchParam?["isDeepSearch"]?.GetValue<bool>() ?? false;
+                            int maxDepth = isDeepSearch ? 8 : 4;
 
-                    await SendJsonAsync(ws, payload, ct);
-                    Console.WriteLine($"✅ [WS] Sent cmd_response for {requestId} (Success: {response.IsSuccess})");
+                            string query = searchParam?["expected_name"]?.GetValue<string>() ?? searchParam?["name"]?.GetValue<string>() ?? "";
+                            string customPath = searchParam?["path"]?.GetValue<string>() ?? "";
+                            string typeStr = searchParam?["type"]?.GetValue<string>()?.ToLowerInvariant() ?? "both";
+                            SearchType sType = typeStr switch
+                            {
+                                "folder" => SearchType.Folder,
+                                "file" => SearchType.File,
+                                _ => SearchType.Both
+                            };
+                            var searchResults = SearchServices.Search(sType, query, string.IsNullOrWhiteSpace(customPath) ? null : customPath, maxResult: 10, maxLimit: maxDepth);
+                            response = new CommandResponse
+                            {
+                                Cmd = rawCmd,
+                                Msg = $"Found {searchResults.Count} items",
+                                TerminalOutput = JsonSerializer.Serialize(searchResults, _jsonOptions),
+                                IsSuccess = searchResults.Count > 0,
+                                ExitCode = 0
+                            };
+
+                            break;
+                        case "search_app":
+                            var appParam = cmdNode?["param"];
+                            string appName = appParam?["name"]?.GetValue<string>()
+                                          ?? appParam?["appName"]?.GetValue<string>()
+                                          ?? "";
+                            var appResults = SearchServices.SearchApp(appName);
+                            response = new CommandResponse
+                            {
+                                Cmd = rawCmd,
+                                Msg = $"Found {appResults.Count} apps",
+                                TerminalOutput = JsonSerializer.Serialize(appResults, _jsonOptions),
+                                IsSuccess = appResults.Count > 0,
+                                ExitCode = 0
+                            };
+                            break;
+                        case "in_built":
+                        default:
+                            RunCommandDto? cmdDto = null;
+                            var inBuiltParam = cmdNode?["param"];
+
+                            if (inBuiltParam is JsonValue pVal && pVal.TryGetValue(out string? cmdStr))
+                            {
+                                cmdDto = new RunCommandDto { Command = cmdStr };
+                            }
+                            else if (inBuiltParam != null)
+                            {
+                                cmdDto = inBuiltParam.Deserialize<RunCommandDto>(_jsonOptions);
+                            }
+
+                            if (cmdDto == null || string.IsNullOrWhiteSpace(cmdDto.Command))
+                            {
+                                cmdDto = cmdNode?.Deserialize<RunCommandDto>(_jsonOptions);
+                            }
+
+                            if (cmdDto == null || string.IsNullOrWhiteSpace(cmdDto.Command)) continue;
+
+                            response = await ExecuteServices.RunAsync(cmdDto);
+                            break;
+                    }
+
+                    if (response != null)
+                    {
+                        var payload = new
+                        {
+                            type = "cmd_response",
+                            requestId,
+                            cmdResponse = response
+                        };
+                        await SendJsonAsync(ws, payload, ct);
+                        Console.WriteLine($"✅ [WS] Sent cmd_response for {requestId} (Success: {response.IsSuccess})");
+                    }
                 }
+
             }
             catch (Exception ex)
             {
