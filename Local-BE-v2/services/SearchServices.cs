@@ -173,6 +173,43 @@ public static class SearchServices
             }
         }
 
+        // If normal shortcut search found results, return them immediately!
+        if (results.Count > 0) return results;
+
+        // Fallback: If normal app search failed, automatically search Windows 'shell:AppsFolder' (Store/UWP/MSIX apps)
+        try
+        {
+            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            if (shellType != null)
+            {
+                dynamic? shell = Activator.CreateInstance(shellType);
+                dynamic? appsFolder = shell?.NameSpace("shell:AppsFolder");
+                if (appsFolder != null)
+                {
+                    foreach (dynamic item in appsFolder.Items())
+                    {
+                        string name = (string)item.Name;
+                        string rawPath = (string)item.Path;
+                        if (string.IsNullOrWhiteSpace(name)) continue;
+
+                        if (Normalize(name).Contains(cleanToken))
+                        {
+                            string launchPath = (rawPath.Contains(@":\") || rawPath.StartsWith(@"\\"))
+                                ? rawPath
+                                : $@"shell:AppsFolder\{rawPath}";
+
+                            if (seen.Add(name))
+                            {
+                                results.Add(new SearchResults(name, launchPath, "App"));
+                                if (results.Count >= maxResults) return results;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+
         return results;
     }
 }
