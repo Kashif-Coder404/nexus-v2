@@ -32,8 +32,10 @@ app.MapPost("/kill/{pid:int}", (int pid) =>
     return Results.NotFound(new { success = false, message = $"PID {pid} not found in active processes." });
 });
 
-var searchTestResults = SearchServices.SearchApp("pc manager", 100);
-Console.WriteLine($"Found : {searchTestResults.Count}");
-
-Console.WriteLine(JsonSerializer.Serialize(searchTestResults, jsonOptions));
+app.MapGet("/system-info", () => Results.Content(SystemInfoService.GetSystemInfoJson(), "application/json"));
+app.MapGet("/capture-screen", () =>
+{
+    var (success, base64, msg) = CaptureScreenShots.CaptureScreen();
+    return Results.Ok(new { success, imageBase64 = base64, message = msg });
+});
 app.Run("http://localhost:4100");
