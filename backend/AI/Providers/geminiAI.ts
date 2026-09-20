@@ -49,6 +49,7 @@ export const geminiAICall = async ({
         msg: "Gemini API Failed or Rate Limited!",
         workingon: "",
       },
+      usedKeyIndex: safeKeyIndex,
     };
   }
 
@@ -128,6 +129,7 @@ export const geminiAICall = async ({
     // Detect Service Busy, Overloaded, Rate Limits (429), or Quota Exceeded
     const isRetryableError =
       status === 429 ||
+      status === 403 ||
       status === 503 ||
       status === 500 ||
       status === 504 ||
@@ -140,6 +142,7 @@ export const geminiAICall = async ({
       errorData.includes("RESOURCE_EXHAUSTED") ||
       errorData.includes("UNAVAILABLE") ||
       errorData.toLowerCase().includes("overloaded") ||
+      errorData.toLowerCase().includes("quota") ||
       isParseError;
 
     const maxKeys = Math.max(GEMINI_API_KEYS.length, 1);
@@ -197,6 +200,7 @@ export const geminiAICall = async ({
         msg: userFriendlyMsg,
         workingon: "",
       },
+      usedKeyIndex: safeKeyIndex,
     };
   }
 };

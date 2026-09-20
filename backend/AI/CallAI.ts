@@ -123,8 +123,8 @@ export const callAI = async (
           keyIndex: geminiKeyIndex,
         });
     const actualContent = res.content || {};
-    if (res.success && res.usedKeyIndex !== undefined) {
-      geminiKeyIndex = res.usedKeyIndex;
+    if (res.usedKeyIndex !== undefined) {
+      geminiKeyIndex = res.success ? res.usedKeyIndex : res.usedKeyIndex + 1;
     }
 
     return {

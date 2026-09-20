@@ -3,9 +3,9 @@ import { instructions } from "./instructions/main.Instructions.js";
 import readlineSync from "readline-sync";
 import { timeStamp } from "console";
 import { liveGeminiAICall } from "./Providers/geminiAI.js";
-import { GEMINI_API } from "../EnvVariables.js";
+import { GEMINI_API_Main_Acc } from "../EnvVariables.js";
 
-const GOOGLE_API_KEY = GEMINI_API;
+const GOOGLE_API_KEY = GEMINI_API_Main_Acc;
 const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 
 async function getFullLiveResponse(promptText: string) {
@@ -57,7 +57,7 @@ async function getFullLiveResponse(promptText: string) {
       },
     },
   });
-  
+
   const mainInstructions: string = instructions;
   session.sendClientContent({
     turns: [
@@ -92,52 +92,6 @@ async function getFullLiveResponse(promptText: string) {
 
   return result as string;
 }
-
-// try {
-//   let userMessage: string = readlineSync.question("Message to ai: ");
-//   let msg: any = { msg: userMessage, time: new Date().getTime() };
-//   const prompt: any = [
-//     {
-//       role: "user",
-//       content: JSON.stringify(msg),
-//     },
-//   ];
-//   while (userMessage !== "exit") {
-//     msg = { msg: userMessage, time: new Date().getTime() };
-//     prompt.push({
-//       role: "user",
-//       content: JSON.stringify(msg),
-//     });
-//     console.log("Sending live request, waiting for full prepared response...");
-
-//     const result: string = await getFullLiveResponse(JSON.stringify(prompt));
-
-//     console.log("\n--- Full Prepared Live Response ---");
-//     const parsedResults: { cmd: any; msg: any; workingon: string; time: any } =
-//       JSON.parse(result);
-//     console.log("MESSAGE: ", parsedResults.msg);
-//     console.log("COMMAND RUNNING: ", parsedResults.cmd);
-//     console.log("WorkingON: ", parsedResults.workingon);
-//     console.log(
-//       "Time: ",
-//       new Date(parsedResults.time).toLocaleString("en-US", {
-//         hour12: true,
-//         hour: "2-digit",
-//         minute: "2-digit",
-//       }),
-//     );
-//     prompt.push({
-//       role: "assistant",
-//       content: { ...JSON.parse(result), time: new Date().getTime() },
-//     });
-//     console.log("PROMPT THEN: ", prompt);
-//     userMessage = readlineSync.question("Message to ai: ");
-//   }
-// } catch (error) {
-//   console.error("Error communicating with Gemini Live API:", error);
-
-//   process.exitCode = 1;
-// }
 
 (async () => {
   const result = await liveGeminiAICall({

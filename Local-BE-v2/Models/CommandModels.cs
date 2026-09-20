@@ -52,3 +52,5 @@ public class AppProcess(string name, int pid, string title)
     public int Pid { get; } = pid;
     public string Title { get; } = title;
 }
+
+
