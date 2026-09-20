@@ -12,6 +12,7 @@ var jsonOptions = new JsonSerializerOptions
     IncludeFields = true,
     WriteIndented = true
 };
+
 app.MapGet("/", () => "Hello from Nexus C# Agent!");
 
 app.MapPost("/test-cmd", async (RunCommandDto body) =>
