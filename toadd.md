@@ -85,13 +85,32 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 
 ## ⚡ Local-BE-v2 (.NET 8 C#) — Full Operational Parity & `nexus.exe` Compilation
 
-### 1. WebSocket Client Control Parity (`WebSocketClientService.cs`)
-- [ ] **`BroadcastStatusAsync(bool isEnabled)`**: Sends `{ type: "device_status", service: isEnabled, ipAddress }` to cloud backend when killswitch `/switch` is toggled.
-- [ ] **`SendPairingInitAsync()`**: Emits `{ type: "PairingInit", code }` when regenerating temporary pairing code.
-- [ ] **`SendRevokeAsync()`**: Emits `{ type: "revoke-device", deviceToken }` to cloud backend upon local uninstallation.
-- [ ] **Token Storage Helpers**: Expose `GetTokenAsync()` and `DeleteTokenAsync()` targeting `%APPDATA%\Nexus\deviceToken.json`.
+### ✅ Completed Milestones
+- [x] **Core AI Execution Engine**: All 5 actions ported to native C# (.NET 8): `in_built`, `search`, `search_app`, `capture_screen`, `system_info`.
+- [x] **4-Persona Process Launcher**: Process lifecycle engine supporting `Wait`, `Background`, `Window`, and `Pid` with process tree kill.
+- [x] **LAN IPv4 Detection & Device Status**: Local IP resolution and `device_status` broadcast on WebSocket connect.
+- [x] **Remote Execution Killswitch Backend**: Active `IsServiceEnabled` gate rejecting commands with user-friendly notices when paused.
+- [x] **WebSocket Control Methods (`WebSocketClientService.cs`)**:
+  - `BroadcastStatusAsync(bool isEnabled)`: Broadcasts updated switch state to cloud.
+  - `SendPairingInitAsync()`: Emits `PairingInit` with temporary code.
+  - `SendRevokeAsync()`: Emits `revoke-device` on local uninstallation.
+  - `GetTokenAsync()` & `DeleteTokenAsync()`: Helpers managing `%APPDATA%\Nexus\deviceToken.json`.
+- [x] **Global Session Expiry Guard & UI Protection**:
+  - Zero-latency client-side `isTokenExpired` helper decoding JWT `exp` claims.
+  - Active event listeners on `focus`, `visibilitychange`, and `resize` in `DashboardLayout` auto-logging out expired sessions.
+  - `401 Unauthorized` fetch interceptor in `SendMsg.tsx` preventing raw `"jwt expired"` messages in chat feed.
+  - Extended backend token lifetime in `jwt.service.ts` from 1 hour to 7 days.
+  - Defaulted frontend input model to `gemini-3.5-flash-lite`.
+- [x] **Surgical Process Termination Directive (`main.Instructions.ts`)**:
+  - Mandated hunting chat history for recent process launch PIDs.
+  - Enforced `taskkill /F /PID <pid> /T` and `Stop-Process -Id <pid> -Force` for complete process tree termination.
+  - Restricted `MainWindowTitle` exclusively to browser tab targeting.
 
-### 2. Direct P2P LAN Hardware Telemetry Stream (Port 4100)
+---
+
+### 🎯 Remaining Roadmap (Priority Order)
+
+### 1. Direct P2P LAN Hardware Telemetry Stream (Port 4100)
 - [ ] **`GetLiveFeedJson()` in `GetSystemInfoService.cs`**:
   - Prepares system snapshot: OS details, CPU model/cores/clock speed, memory used/total/percentage, user info, and rich hardware telemetry.
   - Matches exact schema consumed by `Devices.tsx` and `liveFeedWs.service.ts`.
@@ -101,7 +120,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - Background loop streams updated telemetry every 5 seconds over local Wi-Fi with zero cloud latency.
 - [ ] **LAN IP Binding**: Bind Kestrel to `http://0.0.0.0:4100` so mobile phones and LAN clients can connect.
 
-### 3. Local Web Dashboard & REST APIs (`Program.cs`)
+### 2. Local Web Dashboard & REST APIs (`Program.cs`)
 - [ ] **Embedded `paringcode.html`**:
   - Embed `paringcode.html` as `<EmbeddedResource>` inside `Nexus.Agent.csproj`.
   - Serve directly from memory at `/`, `/setup`, `/login`, `/paring` (100% standalone, no external files required).
@@ -114,7 +133,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - `POST /api/stop-server`: Gracefully terminates the agent process.
   - `POST /api/uninstall`: Revokes cloud registration and removes local device token.
 
-### 4. Standalone Single-File Compilation (`nexus.exe`)
+### 3. Standalone Single-File Compilation (`nexus.exe`)
 - [ ] **UAC Administrator Elevation (`app.manifest`)**:
   - Embed `<requestedExecutionLevel level="requireAdministrator" uiAccess="false" />` so `WinRing0x64.sys` always gets kernel permissions on launch (preventing CPU Temp: 0).
 - [ ] **Single-File Self-Contained Profile (`Nexus.Agent.csproj`)**:
@@ -125,7 +144,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 - [ ] **One-Click Build Script (`build-agent.ps1`)**:
   - Automates clean release publishing into `Local-BE-v2/dist/nexus.exe`.
 
-### 5. Self-Installer & Service Lifecycle (`SetupService.cs`)
+### 4. Self-Installer & Service Lifecycle (`SetupService.cs`)
 - [ ] **First-Launch Installation Flow**:
   - Detects if running from `%LOCALAPPDATA%\Programs\Nexus\nexus.exe`.
   - If external, copies binary, adds directory to User `PATH`, and registers Windows Task Scheduler logon task (`schtasks /sc onlogon /rl HIGHEST`).
@@ -134,3 +153,4 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - `nexus --start`: Starts background agent.
   - `nexus --stop`: Terminates running instances.
   - `nexus --uninstall`: Unregisters task, cleans PATH, revokes cloud registration, and deletes program folder.
+
