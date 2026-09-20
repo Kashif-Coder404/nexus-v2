@@ -9,6 +9,7 @@ import {
 import React, { useState } from "react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useChat from "../store/useChat";
+import { useRouter } from "next/navigation";
 
 type ModelsName =
   | "gemini-3.5-flash-lite"
@@ -39,15 +40,12 @@ const Models: ModelType[] = [
 const SendMsg = () => {
   const [msg, setMsg] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [model, setModel] = useState<ModelType>({
-    provider: "gemini",
-    name: "gemini-3.1-flash-live-preview",
-    isLiveModel: true,
-  });
+  const [model, setModel] = useState<ModelType>(Models[0]);
   const token = useUserCredentials((state) => state.token);
   const session = useChat((state) => state.session);
   const addChat = useChat((state) => state.addChat);
   const setSession = useChat((state) => state.setSession);
+  const router = useRouter();
 
   const handleSendMsg = async () => {
     const actualMessage = msg.trim();
@@ -82,6 +80,12 @@ const SendMsg = () => {
           },
         }),
       });
+
+      if (res.status === 401) {
+        useUserCredentials.getState().logout();
+        router.push("/auth/login");
+        return;
+      }
 
       const data = await res.json();
       if (data.success) {

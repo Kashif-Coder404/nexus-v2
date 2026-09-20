@@ -53,8 +53,16 @@ export const useUserCredentials = create<UserCredentialsType>()(
     },
   ),
 );
-// export const useSideBar = create<SidebarState>((set) => ({
-//   isSidebarOpen: true,
-//   toggleSidebar: () =>
-//     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
-// }));
+export const isTokenExpired = (token: string | null): boolean => {
+  if (!token) return true;
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+};
+

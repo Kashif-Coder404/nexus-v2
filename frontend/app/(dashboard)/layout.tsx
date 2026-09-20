@@ -2,10 +2,11 @@
 // import React from "react";
 import SideBar from "@/app/components/SideBar";
 import NavBar from "@/app/components/NavBar";
-import { useUserCredentials } from "@/app/store/useUserCredentials";
+import { useUserCredentials, isTokenExpired } from "@/app/store/useUserCredentials";
 import WebSocketInit from "@/services/ws.service";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PairDevice, WindowAlert } from "@/app/components/PairDevice";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
@@ -14,8 +15,38 @@ export default function DashboardLayout({
 }) {
   const [isWindowAlert, setIsWindowAlert] = useState(false);
   const token = useUserCredentials((state) => state.token);
+  const _hasHydrated = useUserCredentials((state) => state._hasHydrated);
+  const router = useRouter();
+
+  const verifySession = useCallback(() => {
+    if (!_hasHydrated) return;
+    if (!token || isTokenExpired(token)) {
+      console.warn("🔒 [AUTH] Token expired or missing. Logging out...");
+      useUserCredentials.getState().logout();
+      router.push("/auth/login");
+    }
+  }, [token, _hasHydrated, router]);
+
   useEffect(() => {
-    if (!token) return;
+    verifySession();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") verifySession();
+    };
+
+    window.addEventListener("focus", verifySession);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("resize", verifySession);
+
+    return () => {
+      window.removeEventListener("focus", verifySession);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("resize", verifySession);
+    };
+  }, [verifySession]);
+
+  useEffect(() => {
+    if (!token || isTokenExpired(token)) return;
     let socket: WebSocket | undefined;
     WebSocketInit().then((ws) => {
       socket = ws;

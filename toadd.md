@@ -80,3 +80,57 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - Store temporary session unlock token.
 
 > For the detailed technical task specification, see [backend/tasks.md](../../backend/tasks.md).
+
+---
+
+## ⚡ Local-BE-v2 (.NET 8 C#) — Full Operational Parity & `nexus.exe` Compilation
+
+### 1. WebSocket Client Control Parity (`WebSocketClientService.cs`)
+- [ ] **`BroadcastStatusAsync(bool isEnabled)`**: Sends `{ type: "device_status", service: isEnabled, ipAddress }` to cloud backend when killswitch `/switch` is toggled.
+- [ ] **`SendPairingInitAsync()`**: Emits `{ type: "PairingInit", code }` when regenerating temporary pairing code.
+- [ ] **`SendRevokeAsync()`**: Emits `{ type: "revoke-device", deviceToken }` to cloud backend upon local uninstallation.
+- [ ] **Token Storage Helpers**: Expose `GetTokenAsync()` and `DeleteTokenAsync()` targeting `%APPDATA%\Nexus\deviceToken.json`.
+
+### 2. Direct P2P LAN Hardware Telemetry Stream (Port 4100)
+- [ ] **`GetLiveFeedJson()` in `GetSystemInfoService.cs`**:
+  - Prepares system snapshot: OS details, CPU model/cores/clock speed, memory used/total/percentage, user info, and rich hardware telemetry.
+  - Matches exact schema consumed by `Devices.tsx` and `liveFeedWs.service.ts`.
+- [ ] **ASP.NET Core WebSocket Endpoint (`ws://*:4100/`) in `Program.cs`**:
+  - Enables `app.UseWebSockets()`.
+  - Pushes `{ message: "Connected to Local-BE!" }` and immediate initial snapshot.
+  - Background loop streams updated telemetry every 5 seconds over local Wi-Fi with zero cloud latency.
+- [ ] **LAN IP Binding**: Bind Kestrel to `http://0.0.0.0:4100` so mobile phones and LAN clients can connect.
+
+### 3. Local Web Dashboard & REST APIs (`Program.cs`)
+- [ ] **Embedded `paringcode.html`**:
+  - Embed `paringcode.html` as `<EmbeddedResource>` inside `Nexus.Agent.csproj`.
+  - Serve directly from memory at `/`, `/setup`, `/login`, `/paring` (100% standalone, no external files required).
+- [ ] **REST Endpoints**:
+  - `GET /api/pairing-status`: `{ isConnected, isPaired, isEnable, code, remainingSeconds, pairingError }`.
+  - `GET /getParingCode`: Legacy backwards-compatible alias.
+  - `POST /api/generate-code`: Generates a fresh temporary pairing code.
+  - `PUT /switch`: Toggles `DeviceStateManager.IsServiceEnabled` and calls `BroadcastStatusAsync`.
+  - `GET /getService`: Returns `{ isEnable }`.
+  - `POST /api/stop-server`: Gracefully terminates the agent process.
+  - `POST /api/uninstall`: Revokes cloud registration and removes local device token.
+
+### 4. Standalone Single-File Compilation (`nexus.exe`)
+- [ ] **UAC Administrator Elevation (`app.manifest`)**:
+  - Embed `<requestedExecutionLevel level="requireAdministrator" uiAccess="false" />` so `WinRing0x64.sys` always gets kernel permissions on launch (preventing CPU Temp: 0).
+- [ ] **Single-File Self-Contained Profile (`Nexus.Agent.csproj`)**:
+  - Set `PublishSingleFile=true`, `SelfContained=true`, `RuntimeIdentifier=win-x64`, `IncludeNativeLibrariesForSelfExtract=true`, `EnableCompressionInSingleFile=true`.
+  - Produces standalone ~55-65 MB executable with zero prerequisites.
+- [ ] **Silent Background Execution**:
+  - Configure `<OutputType>WinExe</OutputType>` for production to run with no black console window.
+- [ ] **One-Click Build Script (`build-agent.ps1`)**:
+  - Automates clean release publishing into `Local-BE-v2/dist/nexus.exe`.
+
+### 5. Self-Installer & Service Lifecycle (`SetupService.cs`)
+- [ ] **First-Launch Installation Flow**:
+  - Detects if running from `%LOCALAPPDATA%\Programs\Nexus\nexus.exe`.
+  - If external, copies binary, adds directory to User `PATH`, and registers Windows Task Scheduler logon task (`schtasks /sc onlogon /rl HIGHEST`).
+  - Launches background service silently.
+- [ ] **CLI Flags**:
+  - `nexus --start`: Starts background agent.
+  - `nexus --stop`: Terminates running instances.
+  - `nexus --uninstall`: Unregisters task, cleans PATH, revokes cloud registration, and deletes program folder.

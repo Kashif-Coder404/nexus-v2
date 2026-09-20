@@ -10,7 +10,7 @@ export type JWT_PAYLOAD_TYPE = {
 
 export const generateToken = (
   payload: JWT_PAYLOAD_TYPE,
-  expiresIn: SignOptions["expiresIn"] = "1h",
+  expiresIn: SignOptions["expiresIn"] = "7d",
 ): string | null => {
   try {
     const token: string = jwt.sign(payload, JWT_SECRET!, { expiresIn });
