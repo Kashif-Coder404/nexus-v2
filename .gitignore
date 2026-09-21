@@ -64,3 +64,6 @@ run_nexus.vbs
 # .NET Build outputs
 [Bb]in/
 [Oo]bj/
+
+./Local-BE-v2/setupPage.html
+

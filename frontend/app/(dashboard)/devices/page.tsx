@@ -1,5 +1,6 @@
 "use client";
 import Devices from "@/app/components/Devices";
+import DevicesRedesign from "@/app/components/DevicesRedesign";
 import { useDevices } from "@/app/store/useDevices";
 import React from "react";
 
@@ -7,8 +8,8 @@ const DevicesPage = () => {
   const devices = useDevices((state) => state.devices);
 
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="border-b border-brand-border/30 pb-5">
+    <div className="flex-1 w-full max-w-5xl mx-auto sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="border-b border-brand-border/30 ">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
           Manage Your Devices
         </h1>
@@ -31,7 +32,10 @@ const DevicesPage = () => {
         ) : (
           <>
             {devices.map((el) => (
-              <Devices key={el.id} device={el} />
+              // <Devices key={el.id} device={el} />
+              <div className="flex">
+                <DevicesRedesign key={el.id} device={el} />
+              </div>
             ))}
           </>
         )}

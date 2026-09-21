@@ -16,10 +16,85 @@ import {
   Trash2,
   Minus,
   Dot,
+  Flame,
+  ArrowDown,
+  ArrowUp,
+  Activity,
+  Gauge,
+  Disc,
+  Zap,
 } from "lucide-react";
 import { IconSettingsPause, IconStatusChange } from "@tabler/icons-react";
 
-interface SystemInfo {
+export interface SystemDiskInfo {
+  name: string;
+  temp?: number;
+  used_pct?: number;
+  read_rate?: string;
+  write_rate?: string;
+  total_space?: string;
+  free_space?: string;
+}
+
+export interface SystemFanInfo {
+  name: string;
+  rpm: number;
+  pct: number;
+}
+
+export interface DeviceTelemetry {
+  // CPU Vitals & Thermals
+  cpu_usage?: number;
+  cpu_temp?: number;
+  cpu_load?: number;
+  cpu_power?: number;
+  cpu_clock_ghz?: number;
+  cpu_voltage?: number;
+  cpu_fan_rpm?: number;
+  cpu_fan_pct?: number;
+  cpu_model?: string;
+
+  // GPU Vitals & Thermals
+  gpu_temp?: number;
+  gpu_hotspot?: number;
+  gpu_load?: number;
+  gpu_power?: number;
+  gpu_vram_used?: number;
+  gpu_vram_total?: number;
+  gpu_fan_rpm?: number;
+  gpu_fan_pct?: number;
+  gpu_clock_mhz?: number;
+  gpu_memory_clock_mhz?: number;
+  gpu_voltage?: number;
+
+  // RAM
+  ram_usage?: number;
+  ram_used_gb?: number;
+  ram_avail_gb?: number;
+
+  // Storage / NVMe
+  disk_usage?: number;
+  nvme_temp?: number;
+  nvme_used_pct?: number;
+  disks?: SystemDiskInfo[];
+
+  // Live Network Speed
+  net_up_mbps?: number;
+  net_down_mbps?: number;
+  net_up_str?: string;
+  net_down_str?: string;
+
+  // Motherboard & System Fans
+  motherboard_system_temp?: number;
+  motherboard_vrm_temp?: number;
+  motherboard_pch_temp?: number;
+  system_fans?: SystemFanInfo[];
+
+  // Uptime
+  uptime_hours?: number;
+}
+
+export interface SystemInfo {
   os?: {
     platform: string;
     type: string;
@@ -43,6 +118,7 @@ interface SystemInfo {
     username: string;
     homedir: string;
   };
+  telemetry?: DeviceTelemetry | null;
 }
 
 const Devices = ({ device }: { device: Device }) => {
@@ -85,6 +161,7 @@ const Devices = ({ device }: { device: Device }) => {
   };
 
   const handleRenaming = async () => {
+    // Not added yet
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/devices/renameDevice`,
@@ -134,6 +211,7 @@ const Devices = ({ device }: { device: Device }) => {
 
   // Safely extract system info whether wrapped or raw
   let sysInfo: SystemInfo | null = null;
+  let telemetry: DeviceTelemetry | null = null;
   try {
     const raw = data?.data
       ? typeof data.data === "string"
@@ -145,14 +223,43 @@ const Devices = ({ device }: { device: Device }) => {
     } else {
       sysInfo = raw;
     }
+    if (raw?.telemetry) {
+      telemetry =
+        typeof raw.telemetry === "string"
+          ? JSON.parse(raw.telemetry)
+          : raw.telemetry;
+      if (sysInfo) {
+        sysInfo.telemetry = telemetry;
+      }
+    }
   } catch {
     sysInfo = null;
+    telemetry = null;
   }
 
   const ramPercentNumber = parseFloat(sysInfo?.memory?.usagePercentage || "0");
+  const cpuUsagePercent = telemetry?.cpu_usage ?? telemetry?.cpu_load ?? 0;
+  const cpuTemp = telemetry?.cpu_temp ?? 0;
+  const cpuSpeed = sysInfo?.cpu?.speedMHz || (telemetry?.cpu_clock_ghz ? Math.round(telemetry.cpu_clock_ghz * 1000) : 0);
+  const cpuVoltage = telemetry?.cpu_voltage ?? 0;
+  const cpuPower = telemetry?.cpu_power ?? 0;
+  const gpuTemp = telemetry?.gpu_temp ?? 0;
+  const gpuHotspot = telemetry?.gpu_hotspot ?? 0;
+  const gpuLoad = telemetry?.gpu_load ?? 0;
+  const gpuPower = telemetry?.gpu_power ?? 0;
+  const gpuClock = telemetry?.gpu_clock_mhz ?? 0;
+  const gpuVoltage = telemetry?.gpu_voltage ?? 0;
+  const hasGpu = gpuTemp > 0 || gpuLoad > 0 || (telemetry?.gpu_vram_total !== undefined && telemetry.gpu_vram_total > 0);
+  const netDown = telemetry?.net_down_str;
+  const netUp = telemetry?.net_up_str;
+  const nvmeTemp = telemetry?.nvme_temp ?? 0;
+  const cpuFanRpm = telemetry?.cpu_fan_rpm ?? 0;
+  const disks = telemetry?.disks || [];
+  const primaryDisk = disks.find((d) => d.name.toUpperCase().startsWith("C")) || disks[0];
+  const otherDisks = disks.filter((d) => d !== primaryDisk);
 
   return (
-    <div className="relative w-full max-w-[30rem] p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-5 transition-all">
+    <div className="relative w-full max-w-lg p-5 rounded-2xl bg-brand-surface/70 border border-brand-border/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl text-white space-y-4 transition-all">
       {/* 1. Header: Top row (Title + Actions), Bottom row (Hostname + IP) */}
       <div className="border-b border-brand-border/30 pb-4 space-y-2.5">
         {/* Top Row: Device Name & Action Buttons */}
@@ -213,9 +320,7 @@ const Devices = ({ device }: { device: Device }) => {
               >
                 <Pencil
                   className={`w-3.5 h-3.5 ${
-                    isRenaming
-                      ? "text-brand-hover scale-110"
-                      : "text-zinc-400"
+                    isRenaming ? "text-brand-hover scale-110" : "text-zinc-400"
                   }`}
                 />
               </button>
@@ -270,41 +375,56 @@ const Devices = ({ device }: { device: Device }) => {
         )
       ) : (
         <div
-          className={`space-y-4 transition-all duration-300 ${!isDeviceOnline ? "opacity-45 grayscale pointer-events-none" : ""}`}
+          className={`space-y-3.5 transition-all duration-300 ${!isDeviceOnline ? "opacity-45 grayscale pointer-events-none" : ""}`}
         >
-          {/* 2. CPU & Memory Grid */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          {/* 2. CPU & Memory Primary Grid */}
+          <div className="grid sm:grid-cols-2 gap-3.5">
             {/* CPU Card */}
-            <div className="p-5 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-3.5 flex flex-col justify-between">
+            <div className="p-4 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-2.5 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-zinc-400 gap-2">
                 <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wider">
-                  <Cpu className="w-4 h-4 text-brand-hover shrink-0" />{" "}
-                  Processor
+                  <Cpu className="w-4 h-4 text-brand-hover shrink-0" /> Processor
                 </span>
-                <span className="text-[11px] font-mono text-brand-glow bg-brand-surface px-2 py-0.5 rounded border border-brand-border/40 whitespace-nowrap shrink-0">
-                  {sysInfo.cpu?.cores} Cores
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {cpuTemp > 0 && (
+                    <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-0.5">
+                      <Flame className="w-3 h-3 text-amber-400" /> {cpuTemp}°C
+                    </span>
+                  )}
+                  <span className="text-[11px] font-mono text-brand-glow bg-brand-surface px-1.5 py-0.5 rounded border border-brand-border/40 whitespace-nowrap">
+                    {sysInfo.cpu?.cores} Cores
+                  </span>
+                </div>
               </div>
-              <p
-                className="text-sm font-bold text-white truncate"
-                title={sysInfo.cpu?.model}
-              >
+
+              <p className="text-sm font-bold text-white truncate" title={sysInfo.cpu?.model}>
                 {sysInfo.cpu?.model}
               </p>
-              <div className="text-xs font-mono text-zinc-400">
-                Clock Speed:{" "}
-                <span className="text-zinc-200">
-                  {sysInfo.cpu?.speedMHz} MHz
-                </span>
+
+              {/* Real-Time CPU Load Bar */}
+              <div className="space-y-1">
+                <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(cpuUsagePercent, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                  <span>Speed: {cpuSpeed} MHz</span>
+                  <div className="flex items-center gap-2">
+                    {cpuVoltage > 0 && <span className="text-zinc-300">{cpuVoltage}V</span>}
+                    {cpuPower > 0 && <span className="text-zinc-300">{cpuPower}W</span>}
+                    <span className="text-zinc-200 font-semibold">{cpuUsagePercent.toFixed(0)}% Load</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* RAM Usage Card */}
-            <div className="p-5 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-3.5 flex flex-col justify-between">
+            <div className="p-4 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-2.5 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-zinc-400 gap-2">
                 <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wider">
-                  <HardDrive className="w-4 h-4 text-brand-hover shrink-0" />{" "}
-                  Memory (RAM)
+                  <HardDrive className="w-4 h-4 text-brand-hover shrink-0" /> Memory (RAM)
                 </span>
                 <span className="font-mono text-brand-hover font-bold whitespace-nowrap shrink-0">
                   {sysInfo.memory?.usagePercentage}
@@ -312,57 +432,218 @@ const Devices = ({ device }: { device: Device }) => {
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-zinc-800/80 rounded-full h-2 overflow-hidden border border-white/5">
-                <div
-                  className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(168,85,247,0.5)]"
-                  style={{ width: `${Math.min(ramPercentNumber, 100)}%` }}
-                />
+              <div className="space-y-1">
+                <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+                    style={{ width: `${Math.min(ramPercentNumber, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                  <span>
+                    {Number(sysInfo.memory?.usedGB.replace("GB", "")).toFixed(1)} GB used
+                  </span>
+                  <span>of {sysInfo.memory?.totalGB}</span>
+                </div>
               </div>
 
-              <div className="flex justify-center gap-2 items-center text-xs font-mono text-zinc-400">
-                <span>
-                  {Number(sysInfo.memory?.usedGB.replace("GB", "")).toFixed(0)}{" "}
-                  GB used
-                </span>
-                <span>
-                  of{" "}
-                  {Number(sysInfo.memory?.totalGB.replace("GB", "")).toFixed(0)}{" "}
-                  GB
-                </span>
+              {/* Sub Vitals: Available Memory */}
+              <div className="text-[11px] font-mono text-zinc-400">
+                Free: <span className="text-zinc-200">{sysInfo.memory?.freeGB}</span>
               </div>
             </div>
           </div>
 
-          {/* 3. System Vitals Bottom Bar */}
-          <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
-            <div className="p-2.5 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-brand-hover shrink-0" />
+          {/* 3. GPU & Live Telemetry Secondary Grid */}
+          <div className="grid sm:grid-cols-2 gap-3.5">
+            {/* GPU Card */}
+            {hasGpu ? (
+              <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                    <Gauge className="w-3.5 h-3.5 text-brand-hover shrink-0" /> GPU Vitals
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {gpuTemp > 0 && (
+                      <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-0.5">
+                        <Flame className="w-3 h-3 text-amber-400" /> {gpuTemp}°C
+                      </span>
+                    )}
+                    {gpuHotspot > 0 && (
+                      <span className="text-[10px] font-mono text-rose-300 bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 hidden sm:inline" title="GPU Hotspot Temperature">
+                        {gpuHotspot}°C HS
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-zinc-400">Core Load:</span>
+                  <span className="text-white font-semibold">{gpuLoad.toFixed(0)}%</span>
+                </div>
+
+                {telemetry?.gpu_vram_total && telemetry.gpu_vram_total > 0 ? (
+                  <div className="space-y-1">
+                    <div className="w-full bg-zinc-800/80 rounded-full h-1 overflow-hidden border border-white/5">
+                      <div
+                        className="bg-gradient-to-r from-purple-500 to-brand-hover h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(((telemetry.gpu_vram_used || 0) / telemetry.gpu_vram_total) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                      <span>VRAM:</span>
+                      <span className="text-zinc-200">
+                        {telemetry.gpu_vram_used?.toFixed(1)} / {telemetry.gpu_vram_total?.toFixed(1)} GB
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {(gpuClock > 0 || gpuPower > 0 || gpuVoltage > 0) && (
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 pt-1 border-t border-brand-border/20">
+                    {gpuClock > 0 && <span>{gpuClock} MHz</span>}
+                    {gpuPower > 0 && <span>{gpuPower} W</span>}
+                    {gpuVoltage > 0 && <span>{gpuVoltage} V</span>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Fallback Single Storage Card when no dedicated GPU */
+              primaryDisk ? (
+                <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                      <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Storage ({primaryDisk.name})
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-brand-hover">
+                      {primaryDisk.used_pct?.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                    <div
+                      className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                    <span>{primaryDisk.free_space} free</span>
+                    <span>of {primaryDisk.total_space}</span>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Live Network Bandwidth Card */}
+            <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-zinc-400">
+                <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                  <Activity className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Live Throughput
+                </span>
+                {cpuFanRpm > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded border border-brand-border/30">
+                    {cpuFanRpm} RPM
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono py-1">
+                <div className="flex items-center gap-1 text-emerald-400">
+                  <ArrowDown className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{netDown || "0.0 KB/s"}</span>
+                </div>
+                <div className="flex items-center gap-1 text-cyan-400">
+                  <ArrowUp className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{netUp || "0.0 KB/s"}</span>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono text-zinc-500 truncate">
+                Direct LAN Stream
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Dedicated Storage Card (Shown when GPU is also present) */}
+          {hasGpu && primaryDisk && (
+            <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2">
+              <div className="flex items-center justify-between text-xs text-zinc-400">
+                <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                  <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Primary Storage ({primaryDisk.name})
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {nvmeTemp > 0 && (
+                    <span className="text-[10px] font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded border border-brand-border/30 flex items-center gap-0.5">
+                      <Flame className="w-3 h-3 text-amber-400" /> {nvmeTemp}°C
+                    </span>
+                  )}
+                  <span className="text-[11px] font-mono font-bold text-brand-hover">
+                    {primaryDisk.used_pct?.toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                  <span>Drive {primaryDisk.name}</span>
+                  <span>
+                    {primaryDisk.free_space ? `${primaryDisk.free_space} free of ${primaryDisk.total_space}` : primaryDisk.total_space}
+                  </span>
+                </div>
+              </div>
+
+              {/* Secondary Partitions Row */}
+              {otherDisks.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-brand-border/15">
+                  <span className="text-[9px] uppercase font-mono text-zinc-500 tracking-wider">Other:</span>
+                  {otherDisks.slice(0, 5).map((d, i) => {
+                    const match = d.name.match(/\(([A-Z]:\\?)\)/i) || d.name.match(/^([A-Z]:\\?)/i);
+                    const label = match ? match[1] : d.name.slice(0, 10);
+                    return (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-surface/60 border border-brand-border/20 text-[10px] font-mono text-zinc-300"
+                        title={`${d.name}: ${d.used_pct}% used (${d.free_space} free of ${d.total_space})`}
+                      >
+                        <Disc className="w-2.5 h-2.5 text-brand" />
+                        <span className="font-semibold text-white">{label}</span>
+                        <span className="text-zinc-400">{d.used_pct?.toFixed(0)}%</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. System Vitals Bottom Bar */}
+          <div className="grid grid-cols-3 gap-2 pt-1 text-xs font-mono">
+            <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0">
-                <span className="text-zinc-400 block text-[10px]">UPTIME</span>
-                <span className="text-white font-semibold truncate block">
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">UPTIME</span>
+                <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.os?.uptimeHours} hrs
                 </span>
               </div>
             </div>
-            <div className="p-2.5 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
-              <User className="w-4 h-4 text-brand-hover shrink-0" />
+            <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0 truncate">
-                <span className="text-zinc-400 block text-[10px]">
-                  OPERATOR
-                </span>
-                <span className="text-white font-semibold truncate block">
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">OPERATOR</span>
+                <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.userInfo?.username}
                 </span>
               </div>
             </div>
-
-            <div className="p-2.5 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
-              <Laptop className="w-4 h-4 text-brand-hover shrink-0" />
+            <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
+              <Laptop className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0 truncate">
-                <span className="text-zinc-400 block text-[10px]">
-                  PLATFORM
-                </span>
-                <span className="text-white font-semibold truncate block">
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">PLATFORM</span>
+                <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.os?.platform} ({sysInfo.os?.arch})
                 </span>
               </div>

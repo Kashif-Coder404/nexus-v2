@@ -111,20 +111,20 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 ### 🎯 Remaining Roadmap (Priority Order)
 
 ### 1. Direct P2P LAN Hardware Telemetry Stream (Port 4100)
-- [ ] **`GetLiveFeedJson()` in `GetSystemInfoService.cs`**:
+- [x] **`GetLiveFeedJson()` in `GetSystemInfoService.cs`**:
   - Prepares system snapshot: OS details, CPU model/cores/clock speed, memory used/total/percentage, user info, and rich hardware telemetry.
   - Matches exact schema consumed by `Devices.tsx` and `liveFeedWs.service.ts`.
-- [ ] **ASP.NET Core WebSocket Endpoint (`ws://*:4100/`) in `Program.cs`**:
+- [x] **ASP.NET Core WebSocket Endpoint (`ws://*:4100/`) in `Program.cs`**:
   - Enables `app.UseWebSockets()`.
   - Pushes `{ message: "Connected to Local-BE!" }` and immediate initial snapshot.
   - Background loop streams updated telemetry every 5 seconds over local Wi-Fi with zero cloud latency.
-- [ ] **LAN IP Binding**: Bind Kestrel to `http://0.0.0.0:4100` so mobile phones and LAN clients can connect.
+- [x] **LAN IP Binding**: Bind Kestrel to `http://0.0.0.0:4100` so mobile phones and LAN clients can connect.
 
 ### 2. Local Web Dashboard & REST APIs (`Program.cs`)
-- [ ] **Embedded `paringcode.html`**:
-  - Embed `paringcode.html` as `<EmbeddedResource>` inside `Nexus.Agent.csproj`.
-  - Serve directly from memory at `/`, `/setup`, `/login`, `/paring` (100% standalone, no external files required).
-- [ ] **REST Endpoints**:
+- [x] **Modern React Setup Dashboard (`setupPage.html`)**:
+  - React 19 + Tailwind v4 + Lucide React Single Page App compiled with `vite-plugin-singlefile`.
+  - Embedded as `<EmbeddedResource>` inside `Nexus.Agent.csproj` and served directly from memory or disk at `/`, `/setup`, `/pairing` (100% standalone, zero external files required).
+- [x] **REST Endpoints**:
   - `GET /api/pairing-status`: `{ isConnected, isPaired, isEnable, code, remainingSeconds, pairingError }`.
   - `GET /getParingCode`: Legacy backwards-compatible alias.
   - `POST /api/generate-code`: Generates a fresh temporary pairing code.
