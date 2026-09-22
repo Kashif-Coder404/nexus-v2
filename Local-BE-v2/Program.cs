@@ -23,6 +23,7 @@ if (args.Contains("--service", StringComparer.OrdinalIgnoreCase))
 }
 if (!SetupServices.IsInstalled())
 {
+    SetupServices.EnsureElevated(args.Length > 0 ? args : ["--install"]);
     Console.Title = "Nexus Setup";
     await SetupServices.InstallAsync();
     await Task.Delay(1500);

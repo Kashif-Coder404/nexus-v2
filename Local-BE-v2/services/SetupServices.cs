@@ -180,16 +180,39 @@ public static class SetupServices
             AddPath();
             SheduleTask(isRemove: false);
 
-            // Start the installed agent silently in the background with elevation
-            Process.Start(new ProcessStartInfo
+            // Start the installed agent silently in the background with HIGHEST elevation
+            try
             {
-                FileName = TargetExePath,
-                Arguments = "--service",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
+                var taskProc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "schtasks.exe",
+                    Arguments = $"/run /tn \"{TaskName}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
+                taskProc?.WaitForExit(3000);
+
+                if (taskProc?.ExitCode != 0)
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = TargetExePath,
+                        Arguments = "--service",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    });
+                }
+            }
+            catch
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = TargetExePath,
+                    Arguments = "--service",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
+            }
 
             OpenDashboard();
 
@@ -233,5 +256,4 @@ public static class SetupServices
         }
         await Task.CompletedTask;
     }
-
 }

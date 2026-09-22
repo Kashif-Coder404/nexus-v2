@@ -50,6 +50,9 @@ When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desk
   - Pass `activeDeviceId` with chat/command execution requests.
   - Filter `sendCmdRequest` socket dispatch to execute only on the selected `activeDeviceId` rather than broadcasting to all devices.
 
+- [ ] **Cloud Device Revocation on Local Uninstall**:
+  - When running `nexus --uninstall` or triggering `/api/uninstall` locally, dispatch a revocation request to the cloud backend so the uninstalled companion is immediately unlinked and pruned from the user's dashboard device list.
+
 ---
 
 ### 📦 Maintenance & Build Tasks
