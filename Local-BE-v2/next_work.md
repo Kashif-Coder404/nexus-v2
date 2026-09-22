@@ -42,6 +42,14 @@ The following core challenges and edge cases have been identified during initial
 - **Planned Solution:**
   - Dynamic polling loop (checking every 500ms up to 7–10 seconds) with early exit as soon as the target PID and window handle appear. (Partially implemented for Roblox; needs expansion to general GUI launches).
 
+### 5. CLI Execution in Non-Elevated Terminals (UAC Window Flash & Immediate Exit)
+- **Issue:** Running `nexus` CLI commands (e.g. `nexus --status`, `nexus --version`, `nexus --uninstall`, `nexus --service`) from a non-elevated terminal prompts for UAC elevation permissions, causing a separate elevated window to flash open and immediately exit. The original non-elevated terminal receives no output.
+- **Current Requirement / Rule:** Do not allow or recommend running `nexus` CLI commands from a non-elevated terminal. Commands must be run from an **Elevated (Administrator) Terminal** until a fix is implemented.
+- **Planned Solution (To fix later):**
+  - Differentiate commands that actually require elevation (`--install`, `--uninstall`, `--service`) vs read-only commands (`--version`, `--status`, `--help`) which can run without admin privileges.
+  - For non-elevated terminals, display a clear inline message in the active console: `"[!] Error: This command requires Administrator privileges. Please re-run from an elevated terminal."` rather than attempting a `runas` popup that flashes a new window and vanishes.
+  - Or, if elevated relaunch is necessary, inherit the parent terminal's console output stream so results print in the user's active session.
+
 ---
 
 ## 🏗️ Nexus v2 Roadmap & Architecture Blueprint (Matching & Beating v1)
