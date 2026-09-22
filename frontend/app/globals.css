@@ -12,6 +12,12 @@
 }
 
 @layer base {
+  html,
+  body {
+    background-color: #080711;
+    color-scheme: dark;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(168, 85, 247, 0.4) transparent;

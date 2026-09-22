@@ -130,7 +130,7 @@ export default function DashboardUI() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:border-brand-border/70 hover:text-white transition-all"
           >
             <Download className="w-4 h-4 text-brand-hover" />
-            <span className="hidden md:block"> Download v2.6.0</span>
+            <span className="hidden md:block"> Download v2.6.1</span>
           </a>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function DashboardUI() {
             </p>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-2xl font-bold text-white">
-                Nexus v2.6.0
+                Nexus v2.6.1
               </span>
             </div>
             <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
@@ -305,7 +305,7 @@ export default function DashboardUI() {
 
                   <div className="pt-2 border-t border-brand-border/20 flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
-                      Companion v2.6.0
+                      Companion v2.6.1
                     </span>
                     <Link
                       href="/chat"

@@ -1,7 +1,5 @@
-import type { Metadata } from "next";
-import NavBar from "./components/NavBar";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import SideBar from "./components/SideBar";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -9,6 +7,14 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 export const metadata: Metadata = {
   title: "Nexus-AI",
   description: "Nexus-AI-Frontend",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#080711",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -19,9 +25,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("min-h-dvh antialiased", "font-sans", geist.variable)}
+      className={cn("min-h-dvh bg-[#080711] antialiased", "font-sans", geist.variable)}
     >
-      <body className="min-h-screen flex flex-col bg-gradient-to-b from-black via-[#0d091a] to-brand-surface bg-fixed bg-no-repeat text-white">
+      <body className="min-h-dvh flex flex-col bg-gradient-to-b from-black via-[#0d091a] to-[#080711] bg-no-repeat text-white">
         {children}
       </body>
     </html>

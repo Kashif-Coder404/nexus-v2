@@ -22,7 +22,7 @@ const ChatUI = () => {
     }
   }, [user]);
   return (
-    <div className="flex flex-col h-screen w-full text-white overflow-hidden">
+    <div className="flex flex-col h-full w-full text-white overflow-hidden">
       {/* 1. Scrollable Message Feed */}
       <div className="flex-1 overflow-y-auto scroll-smooth px-4 sm:px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
         {chat.length === 0 ? (
@@ -72,7 +72,7 @@ const ChatUI = () => {
       </div>
 
       {/* 2. Pinned Bottom Input Bar */}
-      <div className="shrink-0 w-full backdrop-blur-md py-2">
+      <div className="shrink-0 w-full backdrop-blur-md bg-[#080711]/90 py-2">
         <SendMsg />
       </div>
     </div>

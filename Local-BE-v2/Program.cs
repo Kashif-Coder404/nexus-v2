@@ -37,12 +37,14 @@ if (args.Length > 0)
 
     if (command is "--install" or "-i")
     {
+        SetupServices.EnsureElevated(args);
         await SetupServices.InstallAsync();
         return;
     }
 
     if (command is "--uninstall" or "-u")
     {
+        SetupServices.EnsureElevated(args);
         await SetupServices.UninstallAsync();
         return;
     }
@@ -64,6 +66,25 @@ if (args.Length > 0)
             return;
         }
 
+        // Try launching via the scheduled task (starts with HIGHEST admin privileges silently)
+        var taskProc = Process.Start(new ProcessStartInfo
+        {
+            FileName = "schtasks.exe",
+            Arguments = $"/run /tn \"{SetupServices.TaskName}\"",
+            CreateNoWindow = true,
+            UseShellExecute = false
+        });
+        taskProc?.WaitForExit(3000);
+
+        if (taskProc?.ExitCode == 0)
+        {
+            Console.WriteLine("[Nexus] Started Nexus background agent on http://localhost:4100/");
+            return;
+        }
+
+        // Fallback: direct start with elevation if not installed via task
+        SetupServices.EnsureElevated(args);
+
         Process.Start(new ProcessStartInfo
         {
             FileName = SetupServices.TargetExePath,
@@ -79,7 +100,7 @@ if (args.Length > 0)
 
     if (command is "--version" or "-v")
     {
-        Console.WriteLine("Nexus Companion Agent v2.6.0 (x64 Windows)");
+        Console.WriteLine("Nexus Companion Agent v2.6.1 (x64 Windows)");
         return;
     }
 
@@ -91,14 +112,14 @@ if (args.Length > 0)
     {
         // Unknown flag or --help: show clean help menu and exit!
         Console.WriteLine("==================================================");
-        Console.WriteLine("   Nexus Companion Agent v2.6.0 (x64 Windows)");
+        Console.WriteLine("   Nexus Companion Agent v2.6.1 (x64 Windows)");
         Console.WriteLine("   Pairing Dashboard: http://localhost:4100/");
         Console.WriteLine("==================================================");
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  nexus --start          : Start background agent");
         Console.WriteLine("  nexus --stop           : Stop background agent");
-        Console.WriteLine("  nexus --install   (-i) : cd to path where you download the nexus.exe file then run it using this flash (e.g., cd C:/User/user/Downloads nexus --install)");
+        Console.WriteLine("  nexus --install   (-i) : Install & register background service");
         Console.WriteLine("  nexus --uninstall (-u) : Remove & clean files");
         Console.WriteLine("  nexus --version   (-v) : Print current version");
         Console.WriteLine("  nexus --help      (-h) : Show this help message");
@@ -107,7 +128,19 @@ if (args.Length > 0)
 }
 else
 {
-    // 4. User typed just "nexus" in terminal with NO flags:
+    // 4. User typed just "nexus" in terminal with NO flags, or double-clicked:
+    if (!SetupServices.IsInstalled())
+    {
+        Console.WriteLine("==================================================");
+        Console.WriteLine("   Nexus Companion Agent - First-Time Setup");
+        Console.WriteLine("==================================================");
+        Console.WriteLine();
+        Console.WriteLine("[*] Starting installation & registering background service...");
+        SetupServices.EnsureElevated(["--install"]);
+        await SetupServices.InstallAsync();
+        return;
+    }
+
     var running = Process.GetProcessesByName("nexus").FirstOrDefault(p => p.Id != Environment.ProcessId);
     if (running != null)
     {

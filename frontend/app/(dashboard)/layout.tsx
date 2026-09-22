@@ -64,7 +64,7 @@ export default function DashboardLayout({
       ) : (
         <PairDevice setWindowAlert={setIsWindowAlert} />
       )}
-      <div className="flex w-full h-screen overflow-hidden">
+      <div className="flex w-full h-dvh overflow-hidden bg-brand-base">
         <SideBar />
         <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full">
           <NavBar />

@@ -86,7 +86,7 @@ export default function NavBar() {
               title="Download latest Windows Companion"
             >
               <Download className="w-3.5 h-3.5 text-brand-hover group-hover:translate-y-0.5 transition-transform" />
-              <span>v2.6.0</span>
+              <span>v2.6.1</span>
             </button>
             <div
               className="rounded-full bg-gradient-to-tr from-brand-surface via-brand to-brand-hover border border-brand-border/50 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-brand/30 cursor-default"

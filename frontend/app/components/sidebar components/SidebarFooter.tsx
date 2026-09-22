@@ -102,7 +102,7 @@ export default function SidebarFooter() {
                   <span>GitHub Repository</span>
                 </div>
                 <span className="text-[10px] text-brand-hover font-mono bg-brand-surface/60 px-1.5 py-0.5 rounded border border-brand-border/50">
-                  v2.6.0
+                  v2.6.1
                 </span>
               </a>
 

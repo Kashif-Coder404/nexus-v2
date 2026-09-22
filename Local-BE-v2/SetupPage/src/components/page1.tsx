@@ -14,9 +14,9 @@ import { useEffect, useState, useCallback } from "react";
 
 interface StatusResponse {
   isConnected: boolean; // Is local agent connected to Cloud?
-  isPaired: boolean;    // Is this PC paired or unpaired?
-  isEnable?: boolean;   // Can AI execute commands?
-  code?: string;        // The 6-character pairing code (e.g. "A1B2C3")
+  isPaired: boolean; // Is this PC paired or unpaired?
+  isEnable?: boolean; // Can AI execute commands?
+  code?: string; // The 6-character pairing code (e.g. "A1B2C3")
   remainingSeconds?: number;
   cooldown?: number;
   pairingError?: string;
@@ -65,7 +65,7 @@ const PairingPage = () => {
       setStatus((prev) =>
         prev && prev.remainingSeconds && prev.remainingSeconds > 0
           ? { ...prev, remainingSeconds: prev.remainingSeconds - 1 }
-          : prev
+          : prev,
       );
     }, 1000);
     return () => clearInterval(timer);
@@ -90,7 +90,7 @@ const PairingPage = () => {
       const data = await res.json();
       if (data.code) {
         setStatus((prev) =>
-          prev ? { ...prev, code: data.code, remainingSeconds: 300 } : null
+          prev ? { ...prev, code: data.code, remainingSeconds: 300 } : null,
         );
         setCooldown(data.cooldown ?? 15);
       } else if (data.cooldown) {
@@ -149,7 +149,7 @@ const PairingPage = () => {
   const handleUninstall = async () => {
     if (
       !confirm(
-        "Are you sure you want to disconnect this device from your cloud account? Stored tokens will be removed."
+        "Are you sure you want to disconnect this device from your cloud account? Stored tokens will be removed.",
       )
     ) {
       return;
@@ -158,7 +158,9 @@ const PairingPage = () => {
     setIsRevoking(true);
     try {
       await fetch("http://localhost:4100/api/uninstall", { method: "POST" });
-      setStatus((prev) => (prev ? { ...prev, isPaired: false, code: "" } : null));
+      setStatus((prev) =>
+        prev ? { ...prev, isPaired: false, code: "" } : null,
+      );
       alert("Device unlinked successfully.");
     } catch (err) {
       console.error("Failed to revoke device:", err);
@@ -182,7 +184,8 @@ const PairingPage = () => {
         </div>
         <h2 className="text-base font-semibold text-white">Agent Stopped</h2>
         <p className="text-xs text-zinc-400">
-          The background agent on port 4100 has been shut down. Restart the application to reconnect.
+          The background agent on port 4100 has been shut down. Restart the
+          application to reconnect.
         </p>
       </div>
     );
@@ -197,8 +200,12 @@ const PairingPage = () => {
             <Laptop className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-white">Nexus Companion</h1>
-            <span className="text-[11px] text-zinc-500 font-mono">Port 4100</span>
+            <h1 className="text-sm font-semibold text-white">
+              Nexus Companion
+            </h1>
+            <span className="text-[11px] text-zinc-500 font-mono">
+              Port 4100
+            </span>
           </div>
         </div>
 
@@ -232,7 +239,9 @@ const PairingPage = () => {
           <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
             <div className="text-left">
-              <h2 className="text-sm font-semibold text-emerald-300">Device Linked & Ready</h2>
+              <h2 className="text-sm font-semibold text-emerald-300">
+                Device Linked & Ready
+              </h2>
               <p className="text-xs text-emerald-400/80">
                 Connected and authenticated with your cloud account.
               </p>
@@ -301,7 +310,9 @@ const PairingPage = () => {
             </span>
 
             <div className="text-4xl sm:text-5xl font-mono font-bold tracking-widest text-purple-300 py-1">
-              {status?.code ? `NX-${status.code.replaceAll("NX-", "")}` : "NX------"}
+              {status?.code
+                ? `NX-${status.code.replaceAll("NX-", "")}`
+                : "NX------"}
             </div>
 
             {status?.remainingSeconds ? (
@@ -319,7 +330,11 @@ const PairingPage = () => {
               disabled={!status?.code || status.code === "------"}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-40"
             >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
               <span>{copied ? "Copied!" : "Copy Code"}</span>
             </button>
 
@@ -329,13 +344,15 @@ const PairingPage = () => {
               disabled={codeLoading || cooldown > 0}
               className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${codeLoading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${codeLoading ? "animate-spin" : ""}`}
+              />
               <span>
                 {codeLoading
                   ? "..."
                   : cooldown > 0
-                  ? `Wait ${cooldown}s`
-                  : "New Code"}
+                    ? `Wait ${cooldown}s`
+                    : "New Code"}
               </span>
             </button>
           </div>
@@ -347,7 +364,10 @@ const PairingPage = () => {
             </span>
             <ol className="list-decimal list-inside space-y-1 text-xs text-zinc-400">
               <li>Open Nexus web app on your phone or browser.</li>
-              <li>Go to <strong className="text-zinc-200">Devices</strong> → <strong className="text-zinc-200">Pair New Device</strong>.</li>
+              <li>
+                Go to <strong className="text-zinc-200">Devices</strong> →{" "}
+                <strong className="text-zinc-200">Pair New Device</strong>.
+              </li>
               <li>Enter the code above to finish linking.</li>
             </ol>
           </div>
@@ -366,7 +386,7 @@ const PairingPage = () => {
             </span>
           )}
         </span>
-        <span>v2.6.0</span>
+        <span>v2.6.1</span>
       </div>
     </div>
   );

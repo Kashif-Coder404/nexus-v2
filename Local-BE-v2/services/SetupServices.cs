@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Principal;
 using Microsoft.VisualBasic;
 
 public static class SetupServices
@@ -12,7 +13,42 @@ public static class SetupServices
 
     public static string InstallDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Nexus");
     public static string TargetExePath => Path.Combine(InstallDir, "nexus.exe");
-    public static string CurrentExePath => Environment.ProcessPath ?? "";
+    public static string CurrentExePath => Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
+
+    public static bool IsAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    public static bool EnsureElevated(string[] args)
+    {
+        if (IsAdministrator()) return true;
+
+        try
+        {
+            Console.WriteLine("[*] Requesting Administrator privileges...");
+            var psi = new ProcessStartInfo
+            {
+                FileName = CurrentExePath,
+                Arguments = string.Join(" ", args),
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+
+            var process = Process.Start(psi);
+            process?.WaitForExit();
+            Environment.Exit(process?.ExitCode ?? 0);
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteLine("\n[!] Administrator privileges were declined or cancelled.");
+            Environment.Exit(1);
+            return false;
+        }
+    }
 
     public static bool IsInstalled()
     {
@@ -100,7 +136,14 @@ public static class SetupServices
             psi.Arguments = $"/create /tn \"{TaskName}\" /tr \"\\\"{TargetExePath}\\\" --service\" /sc onlogon /rl HIGHEST /f";
             using var proc = Process.Start(psi);
             proc?.WaitForExit(5000);
-            Console.WriteLine("[Setup] Registered Windows Startup Task.");
+            if (proc?.ExitCode == 0)
+            {
+                Console.WriteLine("[Setup] Registered Windows Startup Task with Highest Privileges.");
+            }
+            else
+            {
+                Console.WriteLine($"[!] Failed to register Windows Startup Task (Exit Code: {proc?.ExitCode}).");
+            }
         }
         catch (Exception ex)
         {
