@@ -153,6 +153,55 @@ public static class SetupServices
             Console.WriteLine($"[Setup] Task scheduler error: {ex.Message}");
         }
     }
+
+    public static void AddDefenderExclusion(bool isRemove = false)
+    {
+        try
+        {
+            var cmd = isRemove
+                ? $"Remove-MpPreference -ExclusionPath '{InstallDir}' -ErrorAction SilentlyContinue"
+                : $"Add-MpPreference -ExclusionPath '{InstallDir}' -ErrorAction SilentlyContinue";
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{cmd}\"",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(5000);
+            if (!isRemove)
+            {
+                Console.WriteLine("[Setup] Added Windows Defender exclusion for Nexus folder.");
+            }
+        }
+        catch { }
+    }
+
+    public static void ConfigureFirewall(bool isRemove = false)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "netsh.exe",
+                Arguments = isRemove
+                    ? "advfirewall firewall delete rule name=\"Nexus Companion Agent\""
+                    : "advfirewall firewall add rule name=\"Nexus Companion Agent\" dir=in action=allow protocol=TCP localport=4100 profile=any",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(5000);
+            if (!isRemove)
+            {
+                Console.WriteLine("[Setup] Added Windows Firewall rule for Port 4100.");
+            }
+        }
+        catch { }
+    }
+
     public static async Task InstallAsync()
     {
         Console.Clear();
@@ -178,6 +227,8 @@ public static class SetupServices
             }
 
             AddPath();
+            AddDefenderExclusion(isRemove: false);
+            ConfigureFirewall(isRemove: false);
             SheduleTask(isRemove: false);
 
             // Start the installed agent silently in the background with HIGHEST elevation
@@ -233,6 +284,8 @@ public static class SetupServices
         {
             StopRunningInstances();
             SheduleTask(isRemove: true);
+            ConfigureFirewall(isRemove: true);
+            AddDefenderExclusion(isRemove: true);
             RemovePath();
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var nexusPath = Path.Combine(appData, "Nexus");
