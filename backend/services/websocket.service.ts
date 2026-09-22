@@ -38,6 +38,7 @@ const connectDevice = async (
   ws: CustomWebSocket,
   token: string,
   ipaddress: string,
+  service?: boolean,
 ): Promise<void> => {
   const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
   const decodedToken = verifyToken(actualToken) as JwtPayload;
@@ -94,6 +95,7 @@ const connectDevice = async (
   ws.deviceId = decodedDeviceId || "web_client";
   ws.deviceName = deviceName;
   ws.ipAddress = ipaddress;
+  ws.service = typeof service === "boolean" ? service : true;
   console.log(
     `[WS] Authenticated ${decodedDeviceId ? `device ${decodedDeviceId}` : "web client"} for user ${decodedUserId}`,
   );
@@ -106,6 +108,7 @@ const connectDevice = async (
         ipaddress: ws.ipAddress,
       },
       online: true,
+      service: ws.service,
     });
   } else {
     await sendDeviceStatus(ws, decodedUserId);
@@ -139,7 +142,12 @@ const initWebsocket = (server: Server) => {
         if (parsedData.type === "PairingInit") {
           ws.pairingCode = parsedData.code;
         } else if (parsedData.type === "auth" && parsedData.token) {
-          await connectDevice(ws, parsedData.token, ipHeader);
+          await connectDevice(
+            ws,
+            parsedData.token,
+            parsedData.ipAddress || parsedData.ipaddress || ipHeader,
+            parsedData.service,
+          );
         } else if (
           parsedData.type === "get_devices" &&
           ws.isAuthenticated &&
@@ -284,7 +292,7 @@ const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
         id: d._id.toString(),
         deviceName: d.deviceName,
         online: !!client,
-        service: client ? (client.service ?? true) : false,
+        service: client ? (client.service ?? true) : true,
         ipAddress: client?.ipAddress,
       };
     }),

@@ -3,6 +3,7 @@
 ## 🎨 Frontend Roadmap & Milestones
 
 ### ✅ Completed
+
 - [x] **Tailwind CSS v4 & IntelliSense Integration**:
   - Configured workspace settings for nested `style` object autocomplete and TSX support.
 - [x] **Landing Page (`page.tsx`)**:
@@ -34,7 +35,9 @@
 ---
 
 ### 🎯 Next Up: Active Target Device Selector (Sidebar Radio Buttons)
+
 When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desktop"):
+
 - [ ] **Frontend UI (`SideBar.tsx`)**:
   - Add purple radio indicator button next to each device in the sidebar list.
   - Clicking any device sets it as the currently active target machine.
@@ -50,6 +53,7 @@ When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desk
 ---
 
 ### 📦 Maintenance & Build Tasks
+
 - [x] **Rebuild Companion Binary & Release v2.4.0 (`nexus.exe`)**:
   - Compiled and bundled the latest debounced remote execution toggle and real-time status sync into standalone executable `nexus.exe` (Node.js SEA).
 - [x] **Native PowerShell Shell Execution & Release v2.5.0 (`nexus.exe`)**:
@@ -62,12 +66,15 @@ When users pair multiple machines (e.g. "Work Laptop", "Gaming PC", "Office Desk
 ## 🔐 Priority Backend Feature: Device Secret Code / 2FA PIN Verification (Zero-Trust Remote Access)
 
 ### Concept
+
 Allow users to define a private **Secret Code / PIN** directly on their physical machine companion (`http://localhost:4100/`) during pairing. When paired:
+
 - The Cloud Backend stores this PIN hashed using `bcrypt` (`deviceSecretHash`).
 - Whenever the user logs in to the Web Frontend, they are prompted to enter this Secret Code to unlock the device.
 - **Zero-Trust**: Even with stolen account credentials, no remote commands can run on the user's PC without knowing the physical device's PIN.
 
 ### Implementation Checklist
+
 - [ ] **Local Companion (`Local-BE`)**:
   - Add Secret Code input field in `Local-BE/paringcode.html`.
   - Transmit `secretCode` in `PairingInit` payload in `Local-BE/services/ws.service.ts`.
@@ -86,6 +93,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 ## ⚡ Local-BE-v2 (.NET 8 C#) — Full Operational Parity & `nexus.exe` Compilation
 
 ### ✅ Completed Milestones
+
 - [x] **Core AI Execution Engine**: All 5 actions ported to native C# (.NET 8): `in_built`, `search`, `search_app`, `capture_screen`, `system_info`.
 - [x] **4-Persona Process Launcher**: Process lifecycle engine supporting `Wait`, `Background`, `Window`, and `Pid` with process tree kill.
 - [x] **LAN IPv4 Detection & Device Status**: Local IP resolution and `device_status` broadcast on WebSocket connect.
@@ -111,6 +119,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 ### 🎯 Remaining Roadmap (Priority Order)
 
 ### 1. Direct P2P LAN Hardware Telemetry Stream (Port 4100)
+
 - [x] **`GetLiveFeedJson()` in `GetSystemInfoService.cs`**:
   - Prepares system snapshot: OS details, CPU model/cores/clock speed, memory used/total/percentage, user info, and rich hardware telemetry.
   - Matches exact schema consumed by `Devices.tsx` and `liveFeedWs.service.ts`.
@@ -121,6 +130,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
 - [x] **LAN IP Binding**: Bind Kestrel to `http://0.0.0.0:4100` so mobile phones and LAN clients can connect.
 
 ### 2. Local Web Dashboard & REST APIs (`Program.cs`)
+
 - [x] **Modern React Setup Dashboard (`setupPage.html`)**:
   - React 19 + Tailwind v4 + Lucide React Single Page App compiled with `vite-plugin-singlefile`.
   - Embedded as `<EmbeddedResource>` inside `Nexus.Agent.csproj` and served directly from memory or disk at `/`, `/setup`, `/pairing` (100% standalone, zero external files required).
@@ -134,6 +144,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - `POST /api/uninstall`: Revokes cloud registration and removes local device token.
 
 ### 3. Standalone Single-File Compilation (`nexus.exe`)
+
 - [ ] **UAC Administrator Elevation (`app.manifest`)**:
   - Embed `<requestedExecutionLevel level="requireAdministrator" uiAccess="false" />` so `WinRing0x64.sys` always gets kernel permissions on launch (preventing CPU Temp: 0).
 - [ ] **Single-File Self-Contained Profile (`Nexus.Agent.csproj`)**:
@@ -145,6 +156,7 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - Automates clean release publishing into `Local-BE-v2/dist/nexus.exe`.
 
 ### 4. Self-Installer & Service Lifecycle (`SetupService.cs`)
+
 - [ ] **First-Launch Installation Flow**:
   - Detects if running from `%LOCALAPPDATA%\Programs\Nexus\nexus.exe`.
   - If external, copies binary, adds directory to User `PATH`, and registers Windows Task Scheduler logon task (`schtasks /sc onlogon /rl HIGHEST`).
@@ -154,3 +166,16 @@ Allow users to define a private **Secret Code / PIN** directly on their physical
   - `nexus --stop`: Terminates running instances.
   - `nexus --uninstall`: Unregisters task, cleans PATH, revokes cloud registration, and deletes program folder.
 
+# Plan driven process execution
+
+## The AI ---> plan ---> execute on pc ;
+
+### example
+
+- User: create folder called project and clonse this github.xyz repo inside it and run it after installing dependencies (commands : npm install and then npm run dev),
+- AI:
+  - Plan: create folder called project, clone repo, install dependencies, run dev
+- Backend:
+  - Execute plan decide which steps to execute when and what output it gets;
+- Edge Case:
+  - if the error comes we just give the error output to the ai and tell him that find the fix and run that command to execute the after process commands. Ai gives solution command we ran and then resume process plan where it was stuck.

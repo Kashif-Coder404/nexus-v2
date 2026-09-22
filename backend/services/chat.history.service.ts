@@ -37,13 +37,13 @@ const getChatHandler = async (req: any, res: any) => {
   try {
     const { lastMsgCount = 10 } = req.query;
     const result: any = await getChat(req.userId, req.sessionId, lastMsgCount);
-    if (!result.success) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Chat is not Found!",
-        data: null,
-      });
-    }
+    // if (!result.success) {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Unauthorized: Chat is not Found!",
+    //     data: null,
+    //   });
+    // }
     return res.status(200).json({
       success: true,
       message: "Chat History",
@@ -165,26 +165,12 @@ const deleteSession = async (userId: string, sessionId: string) => {
 };
 const delete_Chat_Session_Handler = async (req: any, res: any) => {
   try {
-    const chat_delete = await deleteChat(req.userId, req.sessionId);
-    if (!chat_delete.success) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Chat is not Found!",
-        data: null,
-      });
-    }
-    const session_delete = await deleteSession(req.userId, req.sessionId);
-    if (!session_delete.success) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Session is not Found!",
-        data: null,
-      });
-    }
+    await deleteChat(req.userId, req.sessionId);
+    await deleteSession(req.userId, req.sessionId);
     return res.status(200).json({
       success: true,
       message: "Chat Session Deleted",
-      data: chat_delete.doc, //Can be remove !
+      data: null,
     });
   } catch (error: any) {
     return res.status(500).json({

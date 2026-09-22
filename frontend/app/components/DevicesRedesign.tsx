@@ -17,6 +17,8 @@ import {
   Wifi,
   Zap,
 } from "lucide-react";
+import { requestDevices } from "@/services/ws.service";
+import Devices from "./Devices";
 
 export interface SystemDiskInfo {
   name: string;
@@ -157,9 +159,7 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(device.deviceName);
   const [isRevoking, setIsRevoking] = useState(false);
-
   const token = useUserCredentials((state) => state.token);
-
   const handleRevoke = async () => {
     if (!token || !device.id) return;
 
@@ -198,11 +198,12 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
   const handleRenaming = async () => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/devices/renameDevice`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/devices/rename`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             id: device.id,
@@ -212,11 +213,12 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
       );
 
       const result = await res.json();
-
       if (result.success) {
-        setIsRenaming(false);
+        console.log("Device renamed successfully");
+        requestDevices();
       } else {
         setNewName(device.deviceName);
+        console.log("Device rename failed");
       }
     } catch (error) {
       console.error("Error renaming device:", error);
@@ -236,7 +238,7 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
     }
 
     const socket = livewebsocket(
-      currentDevice.ipAddress,
+      currentDevice?.ipAddress,
       (msg) => setData(msg),
       (connected) => setIsConnected(connected),
     );
@@ -357,7 +359,10 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
                 </h2>
 
                 <button
-                  onClick={() => setIsRenaming(true)}
+                  onClick={() => {
+                    setNewName(device.deviceName || (device as any).name || "");
+                    setIsRenaming(true);
+                  }}
                   className="text-zinc-600 transition hover:text-zinc-300"
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -368,7 +373,12 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
             <div className="mt-1 flex items-center gap-2 text-[10px] text-zinc-500">
               <span>{sysInfo?.os?.platform || "Windows"}</span>
               <span className="text-zinc-700">•</span>
-              <span className="font-mono">{device.ipAddress}:4100</span>
+              <span className="font-mono">
+                {currentDevice?.ipAddress ||
+                  currentDevice?.ipAddress ||
+                  "Unknown"}
+                :4100
+              </span>
             </div>
           </div>
         </div>

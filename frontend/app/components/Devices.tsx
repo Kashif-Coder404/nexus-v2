@@ -164,7 +164,7 @@ const Devices = ({ device }: { device: Device }) => {
     // Not added yet
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/devices/renameDevice`,
+        `${process.env.NEXT_PUBLIC_API_URL}/devices/rename`,
         {
           method: "POST",
           headers: {
@@ -240,7 +240,9 @@ const Devices = ({ device }: { device: Device }) => {
   const ramPercentNumber = parseFloat(sysInfo?.memory?.usagePercentage || "0");
   const cpuUsagePercent = telemetry?.cpu_usage ?? telemetry?.cpu_load ?? 0;
   const cpuTemp = telemetry?.cpu_temp ?? 0;
-  const cpuSpeed = sysInfo?.cpu?.speedMHz || (telemetry?.cpu_clock_ghz ? Math.round(telemetry.cpu_clock_ghz * 1000) : 0);
+  const cpuSpeed =
+    sysInfo?.cpu?.speedMHz ||
+    (telemetry?.cpu_clock_ghz ? Math.round(telemetry.cpu_clock_ghz * 1000) : 0);
   const cpuVoltage = telemetry?.cpu_voltage ?? 0;
   const cpuPower = telemetry?.cpu_power ?? 0;
   const gpuTemp = telemetry?.gpu_temp ?? 0;
@@ -249,13 +251,17 @@ const Devices = ({ device }: { device: Device }) => {
   const gpuPower = telemetry?.gpu_power ?? 0;
   const gpuClock = telemetry?.gpu_clock_mhz ?? 0;
   const gpuVoltage = telemetry?.gpu_voltage ?? 0;
-  const hasGpu = gpuTemp > 0 || gpuLoad > 0 || (telemetry?.gpu_vram_total !== undefined && telemetry.gpu_vram_total > 0);
+  const hasGpu =
+    gpuTemp > 0 ||
+    gpuLoad > 0 ||
+    (telemetry?.gpu_vram_total !== undefined && telemetry.gpu_vram_total > 0);
   const netDown = telemetry?.net_down_str;
   const netUp = telemetry?.net_up_str;
   const nvmeTemp = telemetry?.nvme_temp ?? 0;
   const cpuFanRpm = telemetry?.cpu_fan_rpm ?? 0;
   const disks = telemetry?.disks || [];
-  const primaryDisk = disks.find((d) => d.name.toUpperCase().startsWith("C")) || disks[0];
+  const primaryDisk =
+    disks.find((d) => d.name.toUpperCase().startsWith("C")) || disks[0];
   const otherDisks = disks.filter((d) => d !== primaryDisk);
 
   return (
@@ -383,7 +389,8 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-4 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-2.5 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-zinc-400 gap-2">
                 <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wider">
-                  <Cpu className="w-4 h-4 text-brand-hover shrink-0" /> Processor
+                  <Cpu className="w-4 h-4 text-brand-hover shrink-0" />{" "}
+                  Processor
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {cpuTemp > 0 && (
@@ -397,7 +404,10 @@ const Devices = ({ device }: { device: Device }) => {
                 </div>
               </div>
 
-              <p className="text-sm font-bold text-white truncate" title={sysInfo.cpu?.model}>
+              <p
+                className="text-sm font-bold text-white truncate"
+                title={sysInfo.cpu?.model}
+              >
                 {sysInfo.cpu?.model}
               </p>
 
@@ -412,9 +422,15 @@ const Devices = ({ device }: { device: Device }) => {
                 <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
                   <span>Speed: {cpuSpeed} MHz</span>
                   <div className="flex items-center gap-2">
-                    {cpuVoltage > 0 && <span className="text-zinc-300">{cpuVoltage}V</span>}
-                    {cpuPower > 0 && <span className="text-zinc-300">{cpuPower}W</span>}
-                    <span className="text-zinc-200 font-semibold">{cpuUsagePercent.toFixed(0)}% Load</span>
+                    {cpuVoltage > 0 && (
+                      <span className="text-zinc-300">{cpuVoltage}V</span>
+                    )}
+                    {cpuPower > 0 && (
+                      <span className="text-zinc-300">{cpuPower}W</span>
+                    )}
+                    <span className="text-zinc-200 font-semibold">
+                      {cpuUsagePercent.toFixed(0)}% Load
+                    </span>
                   </div>
                 </div>
               </div>
@@ -424,7 +440,8 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-4 rounded-xl bg-brand-base/60 border border-brand-border/30 space-y-2.5 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-zinc-400 gap-2">
                 <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wider">
-                  <HardDrive className="w-4 h-4 text-brand-hover shrink-0" /> Memory (RAM)
+                  <HardDrive className="w-4 h-4 text-brand-hover shrink-0" />{" "}
+                  Memory (RAM)
                 </span>
                 <span className="font-mono text-brand-hover font-bold whitespace-nowrap shrink-0">
                   {sysInfo.memory?.usagePercentage}
@@ -441,7 +458,10 @@ const Devices = ({ device }: { device: Device }) => {
                 </div>
                 <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
                   <span>
-                    {Number(sysInfo.memory?.usedGB.replace("GB", "")).toFixed(1)} GB used
+                    {Number(sysInfo.memory?.usedGB.replace("GB", "")).toFixed(
+                      1,
+                    )}{" "}
+                    GB used
                   </span>
                   <span>of {sysInfo.memory?.totalGB}</span>
                 </div>
@@ -449,7 +469,8 @@ const Devices = ({ device }: { device: Device }) => {
 
               {/* Sub Vitals: Available Memory */}
               <div className="text-[11px] font-mono text-zinc-400">
-                Free: <span className="text-zinc-200">{sysInfo.memory?.freeGB}</span>
+                Free:{" "}
+                <span className="text-zinc-200">{sysInfo.memory?.freeGB}</span>
               </div>
             </div>
           </div>
@@ -461,7 +482,8 @@ const Devices = ({ device }: { device: Device }) => {
               <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between text-xs text-zinc-400">
                   <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
-                    <Gauge className="w-3.5 h-3.5 text-brand-hover shrink-0" /> GPU Vitals
+                    <Gauge className="w-3.5 h-3.5 text-brand-hover shrink-0" />{" "}
+                    GPU Vitals
                   </span>
                   <div className="flex items-center gap-1.5">
                     {gpuTemp > 0 && (
@@ -470,7 +492,10 @@ const Devices = ({ device }: { device: Device }) => {
                       </span>
                     )}
                     {gpuHotspot > 0 && (
-                      <span className="text-[10px] font-mono text-rose-300 bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 hidden sm:inline" title="GPU Hotspot Temperature">
+                      <span
+                        className="text-[10px] font-mono text-rose-300 bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 hidden sm:inline"
+                        title="GPU Hotspot Temperature"
+                      >
                         {gpuHotspot}°C HS
                       </span>
                     )}
@@ -479,7 +504,9 @@ const Devices = ({ device }: { device: Device }) => {
 
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-zinc-400">Core Load:</span>
-                  <span className="text-white font-semibold">{gpuLoad.toFixed(0)}%</span>
+                  <span className="text-white font-semibold">
+                    {gpuLoad.toFixed(0)}%
+                  </span>
                 </div>
 
                 {telemetry?.gpu_vram_total && telemetry.gpu_vram_total > 0 ? (
@@ -487,13 +514,16 @@ const Devices = ({ device }: { device: Device }) => {
                     <div className="w-full bg-zinc-800/80 rounded-full h-1 overflow-hidden border border-white/5">
                       <div
                         className="bg-gradient-to-r from-purple-500 to-brand-hover h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(((telemetry.gpu_vram_used || 0) / telemetry.gpu_vram_total) * 100, 100)}%` }}
+                        style={{
+                          width: `${Math.min(((telemetry.gpu_vram_used || 0) / telemetry.gpu_vram_total) * 100, 100)}%`,
+                        }}
                       />
                     </div>
                     <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
                       <span>VRAM:</span>
                       <span className="text-zinc-200">
-                        {telemetry.gpu_vram_used?.toFixed(1)} / {telemetry.gpu_vram_total?.toFixed(1)} GB
+                        {telemetry.gpu_vram_used?.toFixed(1)} /{" "}
+                        {telemetry.gpu_vram_total?.toFixed(1)} GB
                       </span>
                     </div>
                   </div>
@@ -507,37 +537,39 @@ const Devices = ({ device }: { device: Device }) => {
                   </div>
                 )}
               </div>
-            ) : (
-              /* Fallback Single Storage Card when no dedicated GPU */
-              primaryDisk ? (
-                <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs text-zinc-400">
-                    <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
-                      <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Storage ({primaryDisk.name})
-                    </span>
-                    <span className="text-[11px] font-mono font-bold text-brand-hover">
-                      {primaryDisk.used_pct?.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
-                    <div
-                      className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
-                    <span>{primaryDisk.free_space} free</span>
-                    <span>of {primaryDisk.total_space}</span>
-                  </div>
+            ) : /* Fallback Single Storage Card when no dedicated GPU */
+            primaryDisk ? (
+              <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                    <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" />{" "}
+                    Storage ({primaryDisk.name})
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-brand-hover">
+                    {primaryDisk.used_pct?.toFixed(0)}%
+                  </span>
                 </div>
-              ) : null
-            )}
+                <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                  <span>{primaryDisk.free_space} free</span>
+                  <span>of {primaryDisk.total_space}</span>
+                </div>
+              </div>
+            ) : null}
 
             {/* Live Network Bandwidth Card */}
             <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-zinc-400">
                 <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
-                  <Activity className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Live Throughput
+                  <Activity className="w-3.5 h-3.5 text-brand-hover shrink-0" />{" "}
+                  Live Throughput
                 </span>
                 {cpuFanRpm > 0 && (
                   <span className="text-[10px] font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded border border-brand-border/30">
@@ -566,7 +598,8 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-3.5 rounded-xl bg-brand-base/40 border border-brand-border/25 space-y-2">
               <div className="flex items-center justify-between text-xs text-zinc-400">
                 <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
-                  <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" /> Primary Storage ({primaryDisk.name})
+                  <HardDrive className="w-3.5 h-3.5 text-brand-hover shrink-0" />{" "}
+                  Primary Storage ({primaryDisk.name})
                 </span>
                 <div className="flex items-center gap-1.5">
                   {nvmeTemp > 0 && (
@@ -584,13 +617,17 @@ const Devices = ({ device }: { device: Device }) => {
                 <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden border border-white/5">
                   <div
                     className="bg-gradient-to-r from-brand to-brand-hover h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%` }}
+                    style={{
+                      width: `${Math.min(primaryDisk.used_pct ?? 0, 100)}%`,
+                    }}
                   />
                 </div>
                 <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400">
                   <span>Drive {primaryDisk.name}</span>
                   <span>
-                    {primaryDisk.free_space ? `${primaryDisk.free_space} free of ${primaryDisk.total_space}` : primaryDisk.total_space}
+                    {primaryDisk.free_space
+                      ? `${primaryDisk.free_space} free of ${primaryDisk.total_space}`
+                      : primaryDisk.total_space}
                   </span>
                 </div>
               </div>
@@ -598,9 +635,13 @@ const Devices = ({ device }: { device: Device }) => {
               {/* Secondary Partitions Row */}
               {otherDisks.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-brand-border/15">
-                  <span className="text-[9px] uppercase font-mono text-zinc-500 tracking-wider">Other:</span>
+                  <span className="text-[9px] uppercase font-mono text-zinc-500 tracking-wider">
+                    Other:
+                  </span>
                   {otherDisks.slice(0, 5).map((d, i) => {
-                    const match = d.name.match(/\(([A-Z]:\\?)\)/i) || d.name.match(/^([A-Z]:\\?)/i);
+                    const match =
+                      d.name.match(/\(([A-Z]:\\?)\)/i) ||
+                      d.name.match(/^([A-Z]:\\?)/i);
                     const label = match ? match[1] : d.name.slice(0, 10);
                     return (
                       <span
@@ -609,8 +650,12 @@ const Devices = ({ device }: { device: Device }) => {
                         title={`${d.name}: ${d.used_pct}% used (${d.free_space} free of ${d.total_space})`}
                       >
                         <Disc className="w-2.5 h-2.5 text-brand" />
-                        <span className="font-semibold text-white">{label}</span>
-                        <span className="text-zinc-400">{d.used_pct?.toFixed(0)}%</span>
+                        <span className="font-semibold text-white">
+                          {label}
+                        </span>
+                        <span className="text-zinc-400">
+                          {d.used_pct?.toFixed(0)}%
+                        </span>
                       </span>
                     );
                   })}
@@ -624,7 +669,9 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0">
-                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">UPTIME</span>
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">
+                  UPTIME
+                </span>
                 <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.os?.uptimeHours} hrs
                 </span>
@@ -633,7 +680,9 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
               <User className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0 truncate">
-                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">OPERATOR</span>
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">
+                  OPERATOR
+                </span>
                 <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.userInfo?.username}
                 </span>
@@ -642,7 +691,9 @@ const Devices = ({ device }: { device: Device }) => {
             <div className="p-2 rounded-lg bg-brand-surface/50 border border-brand-border/20 flex items-center gap-2">
               <Laptop className="w-3.5 h-3.5 text-brand-hover shrink-0" />
               <div className="min-w-0 truncate">
-                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">PLATFORM</span>
+                <span className="text-zinc-400 block text-[9px] uppercase tracking-wider">
+                  PLATFORM
+                </span>
                 <span className="text-white font-semibold truncate block text-[11px]">
                   {sysInfo.os?.platform} ({sysInfo.os?.arch})
                 </span>

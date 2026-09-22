@@ -9,7 +9,11 @@ using System.Text.Json.Nodes;
 
 public class WebSocketClientService : BackgroundService
 {
-    private readonly string _backendurl = Environment.GetEnvironmentVariable("CLOUD_BACKEND_WS_LOCAL") ?? "ws://localhost:3100";
+#if DEBUG
+    private readonly string _backendurl =  "ws://localhost:3100";
+#else
+    private readonly string _backendurl =  "wss://nexus-v2-e38m.onrender.com";
+#endif
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static ClientWebSocket? _activeWs;
 
@@ -29,24 +33,30 @@ public class WebSocketClientService : BackgroundService
                 string? token = await LoadDeviceTokenAsync();
                 if (!string.IsNullOrEmpty(token))
                 {
-                    Console.WriteLine("🔑 [WS] Found saved device token. Authenticating...");
-                    await SendJsonAsync(ws, new { type = "auth", token }, stoppingToken);
+                    Console.WriteLine("[WS] Found saved device token. Authenticating...");
+                    await SendJsonAsync(ws, new
+                    {
+                        type = "auth",
+                        token,
+                        ipAddress = DeviceStateManager.GetLocalIpAddress(),
+                        service = DeviceStateManager.IsServiceEnabled
+                    }, stoppingToken);
                     await SendJsonAsync(ws, new
                     {
                         type = "device_status",
                         service = DeviceStateManager.IsServiceEnabled,
                         ipAddress = DeviceStateManager.GetLocalIpAddress()
                     }, stoppingToken);
-                    Console.WriteLine($"📡 [WS] Broadcasted device_status (IP: {DeviceStateManager.GetLocalIpAddress()})");
+                    Console.WriteLine($"[WS] Broadcasted device_status (IP: {DeviceStateManager.GetLocalIpAddress()})");
                 }
                 else
                 {
                     string pairingCode = DeviceStateManager.GenerateNewPairingCode();
-                    Console.WriteLine($"🔑 [WS] No device token found. Pairing Code: {pairingCode}");
-                    Console.WriteLine($"👉 Enter code '{pairingCode}' in your Nexus Web UI to pair this machine.");
+                    Console.WriteLine($"[WS] No device token found. Pairing Code: {pairingCode}");
+                    Console.WriteLine($"[WS] Enter code '{pairingCode}' in your Nexus Web UI to pair this machine.");
                     await SendJsonAsync(ws, new { type = "PairingInit", code = pairingCode }, stoppingToken);
                 }
-                Console.WriteLine("✅ [WS] Connected to Cloud Backend!");
+                Console.WriteLine("[WS] Connected to Cloud Backend!");
                 await ReceiveLoopAsync(ws, stoppingToken);
 
             }
@@ -54,7 +64,7 @@ public class WebSocketClientService : BackgroundService
             {
                 DeviceStateManager.IsConnectedToBackend = false;
                 _activeWs = null;
-                Console.WriteLine($"⚠️ [WS] Backend offline ({ex.Message}). Retrying in 5s...");
+                Console.WriteLine($"[WS] Backend offline ({ex.Message}). Retrying in 5s...");
                 await Task.Delay(5000, stoppingToken);
             }
             finally
@@ -101,20 +111,20 @@ public class WebSocketClientService : BackgroundService
                         await SaveDeviceTokenAsync(newToken);
                         DeviceStateManager.ClearPairingCode();
                         DeviceStateManager.PairingError = "";
-                        Console.WriteLine("🎉 [WS] Pairing confirmed and saved to disk!");
+                        Console.WriteLine("[WS] Pairing confirmed and saved to disk!");
                         await SendJsonAsync(ws, new
                         {
                             type = "device_status",
                             service = DeviceStateManager.IsServiceEnabled,
                             ipAddress = DeviceStateManager.GetLocalIpAddress()
                         }, ct);
-                        Console.WriteLine($"📡 [WS] Broadcasted device_status after pairing (IP: {DeviceStateManager.GetLocalIpAddress()})");
+                        Console.WriteLine($"[WS] Broadcasted device_status after pairing (IP: {DeviceStateManager.GetLocalIpAddress()})");
                     }
                 }
                 else if (type == "PairingFailed")
                 {
                     string errMsg = json?["message"]?.GetValue<string>() ?? "Pairing failed";
-                    Console.WriteLine($"⛔ [WS] Pairing failed: {errMsg}");
+                    Console.WriteLine($"[WS] Pairing failed: {errMsg}");
                     DeviceStateManager.PairingError = errMsg;
                     await SaveDeviceTokenAsync("");
                     string freshCode = DeviceStateManager.GenerateNewPairingCode();
@@ -122,7 +132,7 @@ public class WebSocketClientService : BackgroundService
                 }
                 else if (type == "RevokeResponse")
                 {
-                    Console.WriteLine("🗑️ [WS] Device revoke confirmed by cloud backend");
+                    Console.WriteLine("[WS] Device revoke confirmed by cloud backend");
                     await SaveDeviceTokenAsync("");
                     string freshCode = DeviceStateManager.GenerateNewPairingCode();
                     await SendJsonAsync(ws, new { type = "PairingInit", code = freshCode }, ct);
@@ -145,7 +155,7 @@ public class WebSocketClientService : BackgroundService
 
                 if (string.IsNullOrEmpty(requestId) || cmdNode == null) continue;
 
-                Console.WriteLine($"⚡ [WS] Received RunCMD request: {requestId}");
+                Console.WriteLine($"[WS] Received RunCMD request: {requestId}");
                 if (type == "RunCMD")
                 {
                     if (!DeviceStateManager.IsServiceEnabled)
@@ -269,7 +279,7 @@ public class WebSocketClientService : BackgroundService
                             cmdResponse = response
                         };
                         await SendJsonAsync(ws, payload, ct);
-                        Console.WriteLine($"✅ [WS] Sent cmd_response for {requestId} (Success: {response.IsSuccess})");
+                        Console.WriteLine($"[WS] Sent cmd_response for {requestId} (Success: {response.IsSuccess})");
                     }
                 }
 
@@ -318,7 +328,7 @@ public class WebSocketClientService : BackgroundService
             service = isServiceEnabled,
             ipAddress = DeviceStateManager.GetLocalIpAddress()
         }, CancellationToken.None);
-        Console.WriteLine($"📡 [WS] Broadcasted device_status (service={isServiceEnabled})");
+        Console.WriteLine($"[WS] Broadcasted device_status (service={isServiceEnabled})");
     }
 
     public static async Task SendPairingInitAsync()
@@ -326,7 +336,7 @@ public class WebSocketClientService : BackgroundService
         if (_activeWs == null || _activeWs.State != WebSocketState.Open) return;
         string code = DeviceStateManager.CurrentPairingCode ?? DeviceStateManager.GenerateNewPairingCode();
         await SendJsonAsync(_activeWs, new { type = "PairingInit", code }, CancellationToken.None);
-        Console.WriteLine($"🔑 [WS] Sent PairingInit with code: {code}");
+        Console.WriteLine($"[WS] Sent PairingInit with code: {code}");
     }
 
     public static async Task SendRevokeAsync()
@@ -335,7 +345,7 @@ public class WebSocketClientService : BackgroundService
         if (_activeWs != null && _activeWs.State == WebSocketState.Open && !string.IsNullOrEmpty(token))
         {
             await SendJsonAsync(_activeWs, new { type = "revoke-device", deviceToken = token }, CancellationToken.None);
-            Console.WriteLine("🗑️ [WS] Sent revoke-device to cloud backend");
+            Console.WriteLine("[WS] Sent revoke-device to cloud backend");
         }
         await DeleteTokenAsync();
     }
@@ -349,12 +359,12 @@ public class WebSocketClientService : BackgroundService
             if (File.Exists(TokenFilePath))
             {
                 File.Delete(TokenFilePath);
-                Console.WriteLine("🗑️ [WS] Deleted local device token file.");
+                Console.WriteLine("[WS] Deleted local device token file.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ [WS] Failed to delete token file: {ex.Message}");
+            Console.WriteLine($"[WS] Failed to delete token file: {ex.Message}");
         }
         return Task.CompletedTask;
     }

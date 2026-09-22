@@ -33,7 +33,7 @@ const DevicesPage = () => {
           <>
             {devices.map((el) => (
               // <Devices key={el.id} device={el} />
-              <div className="flex">
+              <div key={el.id} className="flex">
                 <DevicesRedesign key={el.id} device={el} />
               </div>
             ))}

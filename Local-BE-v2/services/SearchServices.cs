@@ -101,7 +101,7 @@ public static class SearchServices
 
     public static List<SearchResults> Search(SearchType type, string searchToken, string? customPath, int maxResult = 10, int maxLimit = 5)
     {
-        Console.WriteLine($"🔍 --- V1-STYLE SMART SEARCH: {searchToken} ({type}) | Path: {customPath ?? "ALL DRIVES"} ---");
+        Console.WriteLine($"--- V1-STYLE SMART SEARCH: {searchToken} ({type}) | Path: {customPath ?? "ALL DRIVES"} ---");
         var results = new ConcurrentBag<SearchResults>();
         string cleanToken = Normalize(searchToken);
         if (string.IsNullOrWhiteSpace(cleanToken)) return [];

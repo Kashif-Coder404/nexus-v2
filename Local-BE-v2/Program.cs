@@ -6,8 +6,133 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.Extensions.Hosting;
+using System.Runtime.InteropServices;
+
+
+// If running as background service, immediately detach and destroy the console
+
+
+// 2. FIRST: If running from Downloads / outside install dir, run the installer popup!
+#if !DEBUG
+[DllImport("kernel32.dll")]
+static extern bool FreeConsole();
+
+if (args.Contains("--service", StringComparer.OrdinalIgnoreCase))
+{
+    FreeConsole();
+}
+if (!SetupServices.IsInstalled())
+{
+    Console.Title = "Nexus Setup";
+    await SetupServices.InstallAsync();
+    await Task.Delay(1500);
+    return;
+}
+#endif
+
+// 3. Handle CLI Commands (if user passed any arguments)
+if (args.Length > 0)
+{
+    string command = args[0].ToLowerInvariant();
+
+    if (command is "--install" or "-i")
+    {
+        await SetupServices.InstallAsync();
+        return;
+    }
+
+    if (command is "--uninstall" or "-u")
+    {
+        await SetupServices.UninstallAsync();
+        return;
+    }
+
+    if (command is "--stop")
+    {
+        SetupServices.StopRunningInstances();
+        Console.WriteLine("[Nexus] All running instances stopped.");
+        return;
+    }
+
+    if (command is "--start")
+    {
+        var running = Process.GetProcessesByName("nexus").FirstOrDefault(p => p.Id != Environment.ProcessId);
+        if (running != null)
+        {
+            Console.WriteLine($"[Nexus] Nexus is already running in the background (PID: {running.Id}).");
+            Console.WriteLine("Dashboard: http://localhost:4100/");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = SetupServices.TargetExePath,
+            Arguments = "--service",
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        });
+        Console.WriteLine("[Nexus] Started Nexus background agent on http://localhost:4100/");
+        return;
+    }
+
+    if (command is "--version" or "-v")
+    {
+        Console.WriteLine("Nexus Companion Agent v2.6.0 (x64 Windows)");
+        return;
+    }
+
+    if (command is "--service")
+    {
+        // Internal flag: proceed to start the web server!
+    }
+    else
+    {
+        // Unknown flag or --help: show clean help menu and exit!
+        Console.WriteLine("==================================================");
+        Console.WriteLine("   Nexus Companion Agent v2.6.0 (x64 Windows)");
+        Console.WriteLine("   Pairing Dashboard: http://localhost:4100/");
+        Console.WriteLine("==================================================");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  nexus --start          : Start background agent");
+        Console.WriteLine("  nexus --stop           : Stop background agent");
+        Console.WriteLine("  nexus --install   (-i) : cd to path where you download the nexus.exe file then run it using this flash (e.g., cd C:/User/user/Downloads nexus --install)");
+        Console.WriteLine("  nexus --uninstall (-u) : Remove & clean files");
+        Console.WriteLine("  nexus --version   (-v) : Print current version");
+        Console.WriteLine("  nexus --help      (-h) : Show this help message");
+        return;
+    }
+}
+else
+{
+    // 4. User typed just "nexus" in terminal with NO flags:
+    var running = Process.GetProcessesByName("nexus").FirstOrDefault(p => p.Id != Environment.ProcessId);
+    if (running != null)
+    {
+        Console.WriteLine($"[Nexus] Already running in the background (PID: {running.Id}).");
+        Console.WriteLine("Pairing Dashboard: http://localhost:4100/");
+        Console.WriteLine("Type 'nexus --help' for commands, or 'nexus --stop' to terminate.");
+    }
+    else
+    {
+        Console.WriteLine("[Nexus] Agent is currently stopped.");
+        Console.WriteLine("Run 'nexus --start' to start in background, or 'nexus --help' for options.");
+    }
+    return;
+}
+
+
+// 5. RUN THE WEB SERVER (Runs when --service is passed or when launched as service)
+// Only the dedicated background daemon is allowed to run the server
+if (!args.Contains("--service", StringComparer.OrdinalIgnoreCase))
+{
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.SetMinimumLevel(LogLevel.Warning); // Silence all internal HTTP ping spam!
 builder.Services.AddHostedService<WebSocketClientService>();
 builder.Services.AddCors(options =>
 {
@@ -43,7 +168,7 @@ app.Use(async (context, next) =>
         {
             try
             {
-                await Task.Delay(5000, context.RequestAborted);
+                await Task.Delay(1000, context.RequestAborted);
                 if (ws.State == WebSocketState.Open)
                 {
                     var bytes = Encoding.UTF8.GetBytes(SystemInfoService.GetLiveFeedJson());
@@ -104,6 +229,7 @@ app.MapGet("/api/pairing-status", async () =>
         code = code,
         expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
         remainingSeconds = DeviceStateManager.RemainingSeconds,
+        cooldown = DeviceStateManager.CooldownSecondsRemaining,
         pairingError = DeviceStateManager.PairingError,
         message = ""
     });
@@ -124,6 +250,7 @@ app.MapGet("/getParingCode", () =>
         code = code,
         expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
         remainingSeconds = DeviceStateManager.RemainingSeconds,
+        cooldown = DeviceStateManager.CooldownSecondsRemaining,
         isConnected = DeviceStateManager.IsConnectedToBackend,
         message = ""
     });
@@ -149,6 +276,19 @@ app.MapPut("/switch", async (JsonElement body) =>
 
 app.MapPost("/api/generate-code", async () =>
 {
+    if (DeviceStateManager.CooldownSecondsRemaining > 0)
+    {
+        return Results.Ok(new
+        {
+            success = false,
+            code = DeviceStateManager.CurrentPairingCode,
+            expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
+            remainingSeconds = DeviceStateManager.RemainingSeconds,
+            cooldown = DeviceStateManager.CooldownSecondsRemaining,
+            message = $"Please wait {DeviceStateManager.CooldownSecondsRemaining}s before generating a new code."
+        });
+    }
+
     string code = DeviceStateManager.GenerateNewPairingCode();
     await WebSocketClientService.SendPairingInitAsync();
     return Results.Ok(new
@@ -156,7 +296,9 @@ app.MapPost("/api/generate-code", async () =>
         success = true,
         code = code,
         expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
-        remainingSeconds = DeviceStateManager.RemainingSeconds
+        remainingSeconds = DeviceStateManager.RemainingSeconds,
+        cooldown = 15,
+        message = "New pairing code generated"
     });
 });
 
@@ -173,10 +315,11 @@ app.MapPost("/api/stop-server", (IHostApplicationLifetime lifetime) =>
 app.MapPost("/api/uninstall", async (IHostApplicationLifetime lifetime) =>
 {
     await WebSocketClientService.SendRevokeAsync();
+
     _ = Task.Run(async () =>
     {
         await Task.Delay(500);
-        lifetime.StopApplication();
+        await SetupServices.UninstallAsync();
     });
     return Results.Ok(new { success = true, message = "Uninstaller launched successfully." });
 });
@@ -207,4 +350,5 @@ app.MapGet("/capture-screen", () =>
 });
 
 // Bind to 0.0.0.0 to accept LAN connections from other devices and browsers
+
 app.Run("http://0.0.0.0:4100");

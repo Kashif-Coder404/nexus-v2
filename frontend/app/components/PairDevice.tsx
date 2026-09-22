@@ -265,7 +265,7 @@ const PairDevice = ({
               className="flex items-center gap-2 px-3 py-1.5 bg-brand/20 hover:bg-brand/35 border border-brand-border/50 text-brand-glow hover:text-white rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <Download className="w-3.5 h-3.5 text-brand-hover" />
-              <span>nexus.exe (v2.5.3)</span>
+              <span>nexus.exe (v2.6.0)</span>
             </button>
           </div>
 

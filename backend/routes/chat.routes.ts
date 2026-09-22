@@ -6,7 +6,6 @@ import { sessionAuthentication } from "../middlewares/auth/sessionVerification.j
 import {
   delete_Chat_Session_Handler,
   getChatHandler,
-  updateChatHandler,
   getUserSessionsHandler,
 } from "../services/chat.history.service.js";
 

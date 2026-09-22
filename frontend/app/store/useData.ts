@@ -5,7 +5,7 @@ interface dataType {
 }
 
 const useData = create<dataType>((set) => ({
-  localBackendVersion: "2.5.x",
+  localBackendVersion: "2.6.0",
 }));
 
 export default useData;

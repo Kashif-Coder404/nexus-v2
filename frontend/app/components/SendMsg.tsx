@@ -6,41 +6,76 @@ import {
   ChevronDown,
   CheckCircle2,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useChat from "../store/useChat";
 import { useRouter } from "next/navigation";
 
-type ModelsName =
-  | "gemini-3.5-flash-lite"
-  | "gemini-3.5-flash"
-  | "gemini-3.1-flash-live-preview";
-type ModelType = {
-  provider: "gemini";
-  name: ModelsName;
+export type ModelType = {
+  provider: "gemini" | "local_gemini";
+  name: string;
+  displayName: string;
   isLiveModel: boolean;
 };
-const Models: ModelType[] = [
+
+const StandardModels: ModelType[] = [
   {
     provider: "gemini",
     name: "gemini-3.5-flash-lite",
+    displayName: "gemini-3.5-flash-lite",
     isLiveModel: false,
   },
   {
     provider: "gemini",
     name: "gemini-3.5-flash",
+    displayName: "gemini-3.5-flash",
     isLiveModel: false,
   },
   {
     provider: "gemini",
     name: "gemini-3.1-flash-live-preview",
+    displayName: "gemini-3.1-flash-live-preview",
     isLiveModel: true,
   },
 ];
+
+const LocalModels: ModelType[] = [
+  {
+    provider: "local_gemini",
+    name: "gemini-3.7-flash",
+    displayName: "gemini-3.7-flash (Local)",
+    isLiveModel: false,
+  },
+  {
+    provider: "local_gemini",
+    name: "gemini-3.1-pro",
+    displayName: "gemini-3.1-pro (Local Pro)",
+    isLiveModel: false,
+  },
+];
+
 const SendMsg = () => {
   const [msg, setMsg] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [model, setModel] = useState<ModelType>(Models[0]);
+  const [isLocalHost, setIsLocalHost] = useState<boolean>(false);
+  const [model, setModel] = useState<ModelType>(StandardModels[0]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isLocal =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+      setIsLocalHost(isLocal);
+      if (isLocal) {
+        // Default to best local model when running locally
+        setModel(LocalModels[0]);
+      }
+    }
+  }, []);
+
+  const availableModels = isLocalHost
+    ? [...LocalModels, ...StandardModels]
+    : StandardModels;
   const token = useUserCredentials((state) => state.token);
   const session = useChat((state) => state.session);
   const addChat = useChat((state) => state.addChat);
@@ -74,7 +109,7 @@ const SendMsg = () => {
           role: "user",
           content: actualMessage,
           model: {
-            provider: "gemini",
+            provider: model.provider,
             name: model.name,
             isLiveModel: model.isLiveModel,
           },
@@ -128,16 +163,16 @@ const SendMsg = () => {
             onClick={() => setIsModelSelectOpen(!isModelSelectOpen)}
             className="flex items-center gap-2 text-brand-glow hover:text-brand-hover transition"
           >
-            <span className="font-mono">{model.name}</span>
+            <span className="font-mono">{model.displayName || model.name}</span>
             <ChevronDown className="h-3 w-3 transition-transform group-hover:rotate-180" />
           </button>
 
           {/* Dropdown Menu */}
           <div
-            className={`absolute bottom-full left-0 mb-2 w-56 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 ${isModelSelectOpen ? "opacity-100 visible" : "opacity-0 invisible transition-all duration-200"}`}
+            className={`absolute bottom-full left-0 mb-2 w-64 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 ${isModelSelectOpen ? "opacity-100 visible" : "opacity-0 invisible transition-all duration-200"}`}
           >
             <div className="p-1">
-              {Models.map((m) => (
+              {availableModels.map((m) => (
                 <button
                   key={m.name}
                   onClick={() => {
@@ -150,7 +185,7 @@ const SendMsg = () => {
                       : "text-zinc-300 hover:bg-brand/10 hover:text-white"
                   }`}
                 >
-                  {m.name}
+                  <span>{m.displayName || m.name}</span>
                   {model.name === m.name && (
                     <CheckCircle2 className="h-4 w-4 ml-auto text-brand-hover" />
                   )}

@@ -18,6 +18,7 @@ interface StatusResponse {
   isEnable?: boolean;   // Can AI execute commands?
   code?: string;        // The 6-character pairing code (e.g. "A1B2C3")
   remainingSeconds?: number;
+  cooldown?: number;
   pairingError?: string;
 }
 
@@ -30,6 +31,7 @@ const PairingPage = () => {
     remainingSeconds: 0,
   });
   const [codeLoading, setCodeLoading] = useState<boolean>(false);
+  const [cooldown, setCooldown] = useState<number>(0);
   const [copied, setCopied] = useState<boolean>(false);
   const [isRevoking, setIsRevoking] = useState<boolean>(false);
   const [isToggling, setIsToggling] = useState<boolean>(false);
@@ -41,6 +43,9 @@ const PairingPage = () => {
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
+        if (typeof data.cooldown === "number" && data.cooldown > 0) {
+          setCooldown((prev) => (prev <= 0 ? data.cooldown : prev));
+        }
       }
     } catch {
       // Agent offline
@@ -53,7 +58,7 @@ const PairingPage = () => {
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
-  // Local Countdown Timer
+  // Local Countdown Timer for Pairing Code Expiry
   useEffect(() => {
     if (!status?.remainingSeconds || status.remainingSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -66,7 +71,17 @@ const PairingPage = () => {
     return () => clearInterval(timer);
   }, [status?.remainingSeconds]);
 
+  // Cooldown countdown timer for code regeneration debounce
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const handleRegenerate = async () => {
+    if (codeLoading || cooldown > 0) return;
     setCodeLoading(true);
     try {
       const res = await fetch("http://localhost:4100/api/generate-code", {
@@ -77,6 +92,9 @@ const PairingPage = () => {
         setStatus((prev) =>
           prev ? { ...prev, code: data.code, remainingSeconds: 300 } : null
         );
+        setCooldown(data.cooldown ?? 15);
+      } else if (data.cooldown) {
+        setCooldown(data.cooldown);
       }
     } catch (err) {
       console.error("Failed to regenerate code:", err);
@@ -308,11 +326,17 @@ const PairingPage = () => {
             <button
               type="button"
               onClick={handleRegenerate}
-              disabled={codeLoading}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 transition cursor-pointer disabled:opacity-40"
+              disabled={codeLoading || cooldown > 0}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${codeLoading ? "animate-spin" : ""}`} />
-              <span>{codeLoading ? "..." : "New Code"}</span>
+              <span>
+                {codeLoading
+                  ? "..."
+                  : cooldown > 0
+                  ? `Wait ${cooldown}s`
+                  : "New Code"}
+              </span>
             </button>
           </div>
 
@@ -342,7 +366,7 @@ const PairingPage = () => {
             </span>
           )}
         </span>
-        <span>v2.5.3</span>
+        <span>v2.6.0</span>
       </div>
     </div>
   );

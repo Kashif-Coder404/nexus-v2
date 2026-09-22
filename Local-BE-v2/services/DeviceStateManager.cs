@@ -14,6 +14,17 @@ public static class DeviceStateManager
     public static string? CurrentPairingCode { get; private set; }
     public static DateTime? CodeExpiresAt { get; private set; }
     public static string PairingError { get; set; } = "";
+    public static DateTime? LastCodeGeneratedAt { get; set; }
+
+    public static int CooldownSecondsRemaining
+    {
+        get
+        {
+            if (LastCodeGeneratedAt == null) return 0;
+            var elapsed = (DateTime.UtcNow - LastCodeGeneratedAt.Value).TotalSeconds;
+            return Math.Max(0, 15 - (int)elapsed);
+        }
+    }
 
     public static int RemainingSeconds
     {
@@ -38,6 +49,7 @@ public static class DeviceStateManager
             }
             CurrentPairingCode = "NX-" + new string(codeChars);
             CodeExpiresAt = DateTime.UtcNow.AddMinutes(5);
+            LastCodeGeneratedAt = DateTime.UtcNow;
             return CurrentPairingCode;
         }
     }
