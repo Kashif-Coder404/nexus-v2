@@ -9,6 +9,7 @@ import { userAuthentication } from "./middlewares/auth/authUserLogin.js";
 import {
   startParingHandler,
   revokeDeviceHandler,
+  revokeSelfHandler,
 } from "./services/websocket.service.js";
 import { UserModel } from "./db/schema/user-schema.js";
 
@@ -62,5 +63,7 @@ app.post("/api/pairrequest", userAuthentication, startParingHandler);
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/devices", userAuthentication, deviceRoutes);
+app.post("/api/device/revoke-self", revokeSelfHandler);
+app.delete("/api/device/revoke-self", revokeSelfHandler);
 app.delete("/api/device/:deviceId", userAuthentication, revokeDeviceHandler);
 export default app;

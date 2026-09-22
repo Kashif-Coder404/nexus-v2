@@ -379,19 +379,35 @@ const sendCmdRequest = async (
     });
   });
 };
-export const revokeDevice = async (userId: string, deviceId: string) => {
-  const deviceObjectId = Types.ObjectId.isValid(deviceId)
-    ? new Types.ObjectId(deviceId)
-    : null;
+export const revokeDevice = async (
+  userId: string,
+  deviceId?: string,
+  deviceToken?: string,
+) => {
+  let targetDeviceId = deviceId;
+  if (!targetDeviceId && deviceToken) {
+    const user = await UserModel.findById(userId);
+    const matched = user?.devices?.find((d) => d.deviceToken === deviceToken);
+    if (matched) {
+      targetDeviceId = matched._id.toString();
+    }
+  }
+
+  const deviceObjectId =
+    targetDeviceId && Types.ObjectId.isValid(targetDeviceId)
+      ? new Types.ObjectId(targetDeviceId)
+      : null;
+  const orConditions: any[] = [];
+  if (deviceObjectId) orConditions.push({ _id: deviceObjectId });
+  if (targetDeviceId) orConditions.push({ _id: targetDeviceId });
+  if (deviceToken) orConditions.push({ deviceToken: deviceToken });
+
   const result = await UserModel.updateOne(
     { _id: userId },
     {
       $pull: {
         devices: {
-          $or: [
-            ...(deviceObjectId ? [{ _id: deviceObjectId }] : []),
-            { _id: deviceId },
-          ],
+          $or: orConditions.length > 0 ? orConditions : [{ _id: targetDeviceId }],
         },
       },
     },
@@ -399,14 +415,14 @@ export const revokeDevice = async (userId: string, deviceId: string) => {
   if (result.modifiedCount === 0) {
     return {
       success: false,
-      message: "Failed to revoke device",
+      message: "Failed to revoke device: Device not found",
       data: null,
     };
   }
   if (wss) {
     for (const client of wss.clients as Set<CustomWebSocket>) {
       if (
-        client.deviceId === deviceId &&
+        (client.deviceId === targetDeviceId || (client as any).deviceToken === deviceToken) &&
         client.userId?.toString() === userId?.toString()
       ) {
         sendJson(client, {
@@ -417,16 +433,60 @@ export const revokeDevice = async (userId: string, deviceId: string) => {
       }
     }
   }
-  sendToUser(userId, {
-    type: "device_removed",
-    deviceId: deviceId,
-  });
+  if (targetDeviceId) {
+    sendToUser(userId, {
+      type: "device_removed",
+      deviceId: targetDeviceId,
+    });
+  }
   return {
     success: true,
     message: "Device revoked successfully",
     data: null,
   };
 };
+
+export const revokeSelfHandler = async (req: any, res: any) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    const bodyToken = req.body?.deviceToken;
+    const rawToken = authHeader || (bodyToken ? `Bearer ${bodyToken}` : null);
+    if (!rawToken || !rawToken.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Token not provided",
+      });
+    }
+    const token = rawToken.substring(7);
+    const decodedToken: any = verifyToken(token);
+    if (!decodedToken.success || !decodedToken.token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid or expired token",
+      });
+    }
+    const userId = (decodedToken.token.userId || decodedToken.token.id)?.toString();
+    const deviceId = decodedToken.token.deviceId?.toString();
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Token does not contain user identity",
+      });
+    }
+    const result = await revokeDevice(userId, deviceId, token);
+    return res.status(200).json({
+      success: result.success,
+      message: result.message,
+    });
+  } catch (error: any) {
+    console.error("[REVOKE SELF ERROR]:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during device revocation",
+    });
+  }
+};
+
 export const revokeDeviceHandler = async (req: any, res: any) => {
   const userId: string = req.userId ? req.userId.toString() : "";
   const { deviceId } = req.params;

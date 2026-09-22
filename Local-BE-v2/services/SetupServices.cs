@@ -5,6 +5,9 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Principal;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text.Json.Nodes;
 using Microsoft.VisualBasic;
 
 public static class SetupServices
@@ -277,11 +280,73 @@ public static class SetupServices
         await Task.CompletedTask;
     }
 
+    public static async Task RevokeFromCloudAsync()
+    {
+        try
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var tokenFile = Path.Combine(appData, "Nexus", "deviceToken.json");
+            if (!File.Exists(tokenFile))
+            {
+                Console.WriteLine("[Nexus] No local device token found to revoke.");
+                return;
+            }
+
+            var content = await File.ReadAllTextAsync(tokenFile);
+            var node = JsonNode.Parse(content);
+            var token = node?["token"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Console.WriteLine("[Nexus] Token in deviceToken.json is empty.");
+                return;
+            }
+
+            Console.WriteLine("[Nexus] Notifying cloud backend to revoke device registration...");
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(6);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            string[] endpoints = new[]
+            {
+#if DEBUG
+                "http://localhost:3100/api/device/revoke-self",
+#endif
+                "https://nexus-v2-e38m.onrender.com/api/device/revoke-self"
+            };
+
+            foreach (var url in endpoints)
+            {
+                try
+                {
+                    var response = await client.PostAsync(url, null);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[Nexus] Cloud device revoked successfully via {url}!");
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Nexus] Cloud revoke returned status {response.StatusCode} from {url}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Nexus] Could not reach {url}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Nexus] Error during cloud device revoke: {ex.Message}");
+        }
+    }
+
     public static async Task UninstallAsync()
     {
         Console.WriteLine("[Nexus] Uninstalling Nexus...");
         try
         {
+            await RevokeFromCloudAsync();
             StopRunningInstances();
             SheduleTask(isRemove: true);
             ConfigureFirewall(isRemove: true);

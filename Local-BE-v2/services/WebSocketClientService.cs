@@ -341,6 +341,7 @@ public class WebSocketClientService : BackgroundService
 
     public static async Task SendRevokeAsync()
     {
+        await SetupServices.RevokeFromCloudAsync();
         string? token = await LoadDeviceTokenAsync();
         if (_activeWs != null && _activeWs.State == WebSocketState.Open && !string.IsNullOrEmpty(token))
         {
