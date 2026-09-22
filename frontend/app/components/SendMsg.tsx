@@ -33,6 +33,18 @@ const StandardModels: ModelType[] = [
   },
   {
     provider: "gemini",
+    name: "gemini-3.6-flash",
+    displayName: "gemini-3.6-flash",
+    isLiveModel: false,
+  },
+  {
+    provider: "gemini",
+    name: "gemini-3.7-flash",
+    displayName: "gemini-3.7-flash",
+    isLiveModel: false,
+  },
+  {
+    provider: "gemini",
     name: "gemini-3.1-flash-live-preview",
     displayName: "gemini-3.1-flash-live-preview",
     isLiveModel: true,
@@ -44,6 +56,12 @@ const LocalModels: ModelType[] = [
     provider: "local_gemini",
     name: "gemini-3.7-flash",
     displayName: "gemini-3.7-flash (Local)",
+    isLiveModel: false,
+  },
+  {
+    provider: "local_gemini",
+    name: "gemini-3.6-flash",
+    displayName: "gemini-3.6-flash (Local)",
     isLiveModel: false,
   },
   {
@@ -66,10 +84,6 @@ const SendMsg = () => {
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1";
       setIsLocalHost(isLocal);
-      if (isLocal) {
-        // Default to best local model when running locally
-        setModel(LocalModels[0]);
-      }
     }
   }, []);
 
@@ -172,25 +186,29 @@ const SendMsg = () => {
             className={`absolute bottom-full left-0 mb-2 w-64 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 ${isModelSelectOpen ? "opacity-100 visible" : "opacity-0 invisible transition-all duration-200"}`}
           >
             <div className="p-1">
-              {availableModels.map((m) => (
-                <button
-                  key={m.name}
-                  onClick={() => {
-                    setModel(m);
-                    setIsModelSelectOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-left transition-all ${
-                    model.name === m.name
-                      ? "bg-brand/20 text-brand-glow"
-                      : "text-zinc-300 hover:bg-brand/10 hover:text-white"
-                  }`}
-                >
-                  <span>{m.displayName || m.name}</span>
-                  {model.name === m.name && (
-                    <CheckCircle2 className="h-4 w-4 ml-auto text-brand-hover" />
-                  )}
-                </button>
-              ))}
+              {availableModels.map((m) => {
+                const isSelected =
+                  model.name === m.name && model.provider === m.provider;
+                return (
+                  <button
+                    key={`${m.provider}-${m.name}`}
+                    onClick={() => {
+                      setModel(m);
+                      setIsModelSelectOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-left transition-all ${
+                      isSelected
+                        ? "bg-brand/20 text-brand-glow"
+                        : "text-zinc-300 hover:bg-brand/10 hover:text-white"
+                    }`}
+                  >
+                    <span>{m.displayName || m.name}</span>
+                    {isSelected && (
+                      <CheckCircle2 className="h-4 w-4 ml-auto text-brand-hover" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
