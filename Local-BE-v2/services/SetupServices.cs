@@ -123,7 +123,9 @@ public static class SetupServices
                 FileName = "schtasks.exe",
                 Arguments = "",
                 CreateNoWindow = true,
-                UseShellExecute = false
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
             if (isRemove)
             {
@@ -135,6 +137,7 @@ public static class SetupServices
             }
             psi.Arguments = $"/create /tn \"{TaskName}\" /tr \"\\\"{TargetExePath}\\\" --service\" /sc onlogon /rl HIGHEST /f";
             using var proc = Process.Start(psi);
+            string error = proc?.StandardError.ReadToEnd() ?? "";
             proc?.WaitForExit(5000);
             if (proc?.ExitCode == 0)
             {
@@ -142,7 +145,7 @@ public static class SetupServices
             }
             else
             {
-                Console.WriteLine($"[!] Failed to register Windows Startup Task (Exit Code: {proc?.ExitCode}).");
+                Console.WriteLine($"[!] Failed to register Windows Startup Task (Exit Code: {proc?.ExitCode}). {error}".Trim());
             }
         }
         catch (Exception ex)
@@ -158,36 +161,36 @@ public static class SetupServices
         try
         {
             StopRunningInstances();
-            if (IsInstalled())
-            {
-                Console.WriteLine("[Nexus] Already installed at: " + TargetExePath);
-                Console.WriteLine("Run 'nexus --start' to launch the service, or 'nexus --uninstall' to remove.");
-                return;
-            }
 
             if (!Directory.Exists(InstallDir))
             {
                 Directory.CreateDirectory(InstallDir);
             }
+
             if (!IsInstalled())
             {
                 File.Copy(CurrentExePath, TargetExePath, overwrite: true);
-
-
-                // Start the installed agent silently in the background
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = TargetExePath,
-                    Arguments = "--service",
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
+                Console.WriteLine("[Setup] Copied binary to " + TargetExePath);
+            }
+            else
+            {
+                Console.WriteLine("[Setup] Verified binary at " + TargetExePath);
             }
 
             AddPath();
             SheduleTask(isRemove: false);
+
+            // Start the installed agent silently in the background with elevation
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = TargetExePath,
+                Arguments = "--service",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
             OpenDashboard();
 
             Console.WriteLine("[SUCCESS] All done! Opening pairing dashboard...");
