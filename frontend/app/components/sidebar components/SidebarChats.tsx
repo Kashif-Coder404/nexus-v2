@@ -148,7 +148,7 @@ export default function SidebarChats() {
       onAdd={startNewChat}
       classname={{ mainCont: "my-2" }}
     >
-      <div className="max-h-full overflow-y-auto flex flex-col gap-1 pr-1">
+      <div className="max-h-[30vh] h-200  overflow-y-auto flex flex-col gap-1 pr-1">
         {isLoading ? (
           <span className="text-xs text-zinc-500 p-2">Loading chats...</span>
         ) : sessions.length === 0 ? (

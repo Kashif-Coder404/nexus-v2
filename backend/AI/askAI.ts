@@ -64,6 +64,7 @@ export const askAI = async (
         workingon: "Nexus is thinking...",
         msg: "",
         cmd: command || lastExecutedCmd || "",
+        executions,
       },
     });
     try {
@@ -86,12 +87,14 @@ export const askAI = async (
 
       workingOn =
         aiResponse.workingon || (aiResponse as any).workingOn || "Thinking...";
+      console.log(aiResponse, "<----------------- AI RESPONSE from Gemini");
       sendToUser(userId, {
         type: "ai_data",
         data: {
           workingon: workingOn,
           msg: aiResponse.msg || "",
           cmd: command || lastExecutedCmd || "",
+          executions,
         },
       });
       const actualContent = aiResponse;
@@ -146,7 +149,15 @@ export const askAI = async (
           isSuccess: commandOutput.isSuccess,
           exitCode: commandOutput.exitCode?.toString() || "",
         });
-
+        sendToUser(userId, {
+          type: "ai_data",
+          data: {
+            workingon: "Completed " + actionDesc,
+            msg: "",
+            cmd: command,
+            executions, // <-- Send the updated steps list!
+          },
+        });
         let currentError = commandOutput.terminalError || "";
 
         if (

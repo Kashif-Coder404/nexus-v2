@@ -130,7 +130,9 @@ export const geminiAICall = async ({
     // Detect Service Busy, Overloaded, Rate Limits (429), or Quota Exceeded
     const isRetryableError =
       status === 429 ||
+      status === 401 ||
       status === 403 ||
+      status === 404 ||
       status === 503 ||
       status === 500 ||
       status === 504 ||

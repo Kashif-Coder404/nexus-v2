@@ -20,11 +20,15 @@ type ChatStore = {
   setChat: (chat: Chat[]) => void;
   addChat: (chat: Chat) => void;
   clearChat: () => void;
+  liveExecutions: any[];
+  setLiveExecutions: (liveExecutions: any[]) => void;
 };
 const useChat = create<ChatStore>((set) => ({
   chat: [],
   session: "",
   workingOn: null,
+  liveExecutions: [],
+  setLiveExecutions: (liveExecutions: any[]) => set({ liveExecutions }),
   setWorkingOn: (workingOn: string | null) => set({ workingOn }),
   setSession: (session: string) => set({ session }),
   setChat: (chat: Chat[]) => set({ chat }),

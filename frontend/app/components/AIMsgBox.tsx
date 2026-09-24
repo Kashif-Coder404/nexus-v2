@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import useChat from "../store/useChat";
+import ExecutionSteps from "./ExecutionsStep";
 export interface ExecutionStep {
   steps: number;
   action: string;
@@ -302,55 +303,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
       </div>
       {executions.length > 0 && (
-        <div className="flex flex-col w-full mt-2 rounded-xl bg-brand-surface/50 border border-brand-border/40 overflow-hidden transition-all duration-300">
-          {/* Executions of the ai */}
-          <div
-            className="flex items-center gap-2 justify-between w-full p-2.5 cursor-pointer select-none"
-            ref={executionsRef}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <div className="flex items-center justify-center gap-2 font-bold">
-              <span className="text-lg font-bold text-brand-glow px-2">
-                AI Executions
-              </span>
-              <span className="text-white bg-brand rounded-full px-2 text-sm mr-2 font-mono">
-                {executions.length}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(!isOpen);
-              }}
-              disabled={executions.length === 0}
-            >
-              <ChevronDown
-                className={`text-brand-glow mr-2 transition-transform duration-300 ease-in-out ${
-                  isOpen ? "rotate-180" : ""
-                }`}
-                size={20}
-                strokeWidth={2}
-              />
-            </button>
-          </div>
-          <div
-            className={`flex flex-col gap-2 w-full transition-all duration-500 ease-in-out overflow-auto  ${
-              isOpen
-                ? "opacity-100 max-h-screen p-2 pt-0"
-                : "opacity-0 max-h-0 p-0"
-            }`}
-          >
-            {executions.map((el, idx) => {
-              return (
-                <Executions
-                  key={el.steps ?? idx}
-                  terminalData={el as ExecutionStep}
-                />
-              );
-            })}
-          </div>
-        </div>
+        <ExecutionSteps executions={executions} isWorking={false} />
       )}
     </div>
   );

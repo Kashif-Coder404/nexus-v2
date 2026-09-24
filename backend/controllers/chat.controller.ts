@@ -90,6 +90,9 @@ export const sendMessage = async (req: any, res: any) => {
     async function summarizeBackground() {
       const prevChatMessages: ChatMessageType[] | [] =
         (await getChat(userId.toString(), session, 10))?.chat || [];
+      if (prevChatMessages.length <= 10) {
+        return;
+      }
       const prevSummary: ChatMessageType[] | [] =
         (await getChat(userId, `summary_${session}`, 1))?.chat || [];
 

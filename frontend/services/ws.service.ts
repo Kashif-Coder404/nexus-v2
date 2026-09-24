@@ -29,7 +29,10 @@ const WebSocketInit = async () => {
             useDevices.getState().setOnlineDevices(deviceId, payload.online);
           }
           // Save the ipAddress sent by Local-BE on first connect (note: backend uses lowercase 'ipaddress')
-          const ip = payload.device?.ipaddress || payload.device?.ipAddress || payload.ipAddress;
+          const ip =
+            payload.device?.ipaddress ||
+            payload.device?.ipAddress ||
+            payload.ipAddress;
           if (ip) {
             useDevices.getState().setIpAddress(deviceId, ip);
           }
@@ -45,10 +48,16 @@ const WebSocketInit = async () => {
               .getState()
               .devices.filter((d) => d.id !== payload.deviceId),
           );
-      } else if (payload.type === "ai_data" && payload.data?.workingon) {
-        useChat.getState().setWorkingOn(payload.data.workingon);
+      } else if (payload.type === "ai_data") {
+        if (payload.data?.workingon) {
+          useChat.getState().setWorkingOn(payload.data.workingon);
+        }
+        if (payload.data?.executions) {
+          useChat.getState().setLiveExecutions(payload.data.executions);
+        }
       } else if (payload.type === "ai_done") {
         useChat.getState().setWorkingOn(null);
+        useChat.getState().setLiveExecutions([]);
       }
     } catch {
       // ignore parse error

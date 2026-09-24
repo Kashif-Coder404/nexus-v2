@@ -7,11 +7,13 @@ import useChat from "../store/useChat";
 import { Bot } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import { useRouter } from "next/navigation";
+import ExecutionSteps from "./ExecutionsStep";
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const workingOn = useChat((state) => state.workingOn);
   const user = useUserCredentials.getState().user;
+  const liveExecutions = useChat((state) => state.liveExecutions);
   const router = useRouter();
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,11 +63,18 @@ const ChatUI = () => {
           })
         )}
         {workingOn && (
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-surface/80 border border-brand-border/50 shadow-[0_0_20px_rgba(168,85,247,0.25)] text-brand-glow max-w-fit animate-pulse">
-            <Bot className="h-5 w-5 text-brand-hover animate-spin" />
-            <span className="text-sm font-mono text-brand-glow">
-              {workingOn}
-            </span>
+          <div className="flex flex-col items-start w-full max-w-2xl px-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Bot className="h-8 w-8 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
+              <span className="text-xs font-semibold text-zinc-300">
+                Nexus AI
+              </span>
+            </div>
+            <ExecutionSteps
+              executions={liveExecutions}
+              isWorking={true}
+              currentWorkingOn={workingOn}
+            />
           </div>
         )}
         <div ref={messagesEndRef} />
