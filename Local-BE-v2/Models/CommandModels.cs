@@ -31,6 +31,8 @@ public class RunCommandDto
     public ExecutionTypes ExecutionType { get; set; } = ExecutionTypes.Wait;
     public VerifyType VerifyType { get; set; } = VerifyType.None;
     public OutputMode OutputMode { get; set; } = OutputMode.Final;
+    public bool IsDaemon { get; set; } = false;
+    public string? TaskId { get; set; }
 }
 
 public class CommandResponse
@@ -44,6 +46,8 @@ public class CommandResponse
     public string? VerifiedStatus { get; set; }
     public int? ExitCode { get; set; }
     public string? ImageBase64 { get; set; }
+    public bool IsBackground { get; set; } = false;
+    public string? TaskId { get; set; }
 }
 
 public class AppProcess(string name, int pid, string title)

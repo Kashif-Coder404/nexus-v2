@@ -15,6 +15,8 @@ export interface InBuiltParam {
   verifyType?: "none" | "window" | "pid";
   outputMode?: "final" | "live" | "event";
   timeout?: number; // Timeout in seconds
+  isDaemon?: boolean;
+  taskId?: string;
 }
 
 export type MatchKeyType = keyof ActionTypes;

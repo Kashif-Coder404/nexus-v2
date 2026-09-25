@@ -1,13 +1,32 @@
 namespace Nexus.Agent.Services;
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
+using System.Text;
 using System.Text.Json;
 using Nexus.Agent.Models;
 
 
 public static class ExecuteServices
 {
+
+    public static readonly ConcurrentDictionary<string, Process> ActiveTasks = new();
+
+    private static async Task OnTaskFinishedAsync(string taskId, int pid, int exitCode, string output)
+    {
+        ActiveTasks.TryRemove(taskId, out _);
+        var payload = new
+        {
+            type = "task_finished",
+            taskId,
+            pid,
+            exitCode,
+            terminalOutput = output.Trim()
+        };
+        await WebSocketClientService.BroadcastEventAsync(payload);
+        Console.WriteLine($"[ExecuteServices] Task {taskId} (PID: {pid}) finished with exit code {exitCode}.");
+    }
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         IncludeFields = true,
@@ -184,6 +203,7 @@ public static class ExecuteServices
                 Arguments = $"-NoProfile -NonInteractive -Command \"{body.Command}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                RedirectStandardInput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
@@ -192,24 +212,78 @@ public static class ExecuteServices
             try
             {
                 process.Start();
-                var outputTask = process.StandardOutput.ReadToEndAsync(cts.Token);
-                var errorTask = process.StandardError.ReadToEndAsync(cts.Token);
+                var outputBuilder = new StringBuilder();
+                var errorBuilder = new StringBuilder();
+                string? currentTaskId = null;
+
+                process.OutputDataReceived += (s, e) =>
+                {
+                    if (e.Data != null)
+                    {
+                        outputBuilder.AppendLine(e.Data);
+                        if (currentTaskId != null && ActiveTasks.ContainsKey(currentTaskId))
+                        {
+                            _ = WebSocketClientService.BroadcastEventAsync(new
+                            {
+                                type = "cmd_chunk",
+                                taskId = currentTaskId,
+                                chunk = e.Data + "\n"
+                            });
+                        }
+                    }
+                };
+                process.ErrorDataReceived += (s, e) =>
+                {
+                    if (e.Data != null)
+                    {
+                        errorBuilder.AppendLine(e.Data);
+                        if (currentTaskId != null && ActiveTasks.ContainsKey(currentTaskId))
+                        {
+                            _ = WebSocketClientService.BroadcastEventAsync(new
+                            {
+                                type = "cmd_chunk",
+                                taskId = currentTaskId,
+                                chunk = e.Data + "\n"
+                            });
+                        }
+                    }
+                };
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
 
                 // Wait for command to finish (or timeout)
-                await process.WaitForExitAsync(cts.Token);
-
-                string output = await outputTask;
-                string error = await errorTask;
-
-                return new CommandResponse
+                var exitTask = process.WaitForExitAsync(cts.Token);
+                var thresholdTask = Task.Delay(1500);
+                var winner = await Task.WhenAny(exitTask, thresholdTask);
+                if (winner == exitTask)
                 {
-                    Cmd = body.Command,
-                    Msg = process.ExitCode == 0 ? "Command executed successfully." : "Command failed.",
-                    TerminalOutput = output.Trim(),
-                    TerminalError = error.Trim(),
-                    IsSuccess = process.ExitCode == 0,
-                    ExitCode = process.ExitCode
-                };
+                    return new CommandResponse
+                    {
+                        Cmd = body.Command,
+                        Msg = process.ExitCode == 0 ? "Command executed successfully." : "Command failed.",
+                        TerminalOutput = outputBuilder.ToString().Trim(),
+                        TerminalError = errorBuilder.ToString().Trim(),
+                        IsSuccess = process.ExitCode == 0,
+                        ExitCode = process.ExitCode
+                    };
+                }
+                else
+                {
+                    string TaskId = body.TaskId ?? $"task-{process.Id}";
+                    currentTaskId = TaskId;
+                    ActiveTasks.TryAdd(TaskId, process);
+                    _ = exitTask.ContinueWith(async _ => await OnTaskFinishedAsync(TaskId, process.Id, process.ExitCode, outputBuilder.ToString()));
+                    return new CommandResponse
+                    {
+                        Cmd = body.Command,
+                        Msg = $"Process running in background (PID: {process.Id}).",
+                        Pid = process.Id.ToString(),
+                        TaskId = TaskId,
+                        IsBackground = true,
+                        IsSuccess = true,
+                        TerminalOutput = outputBuilder.ToString().Trim()
+                    };
+                }
             }
             catch (OperationCanceledException)
             {

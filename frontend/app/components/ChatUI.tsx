@@ -12,8 +12,23 @@ const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const workingOn = useChat((state) => state.workingOn);
+  // const workingOn = "Testing ui..."; //for ui fixes
   const user = useUserCredentials.getState().user;
   const liveExecutions = useChat((state) => state.liveExecutions);
+  const [liveSeconds, setLiveSeconds] = React.useState(0);
+
+  useEffect(() => {
+    if (!workingOn) {
+      setLiveSeconds(0);
+      return;
+    }
+    setLiveSeconds(1);
+    const interval = setInterval(() => {
+      setLiveSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [!!workingOn]);
+
   const router = useRouter();
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,6 +89,7 @@ const ChatUI = () => {
               executions={liveExecutions}
               isWorking={true}
               currentWorkingOn={workingOn}
+              workedSeconds={liveSeconds}
             />
           </div>
         )}

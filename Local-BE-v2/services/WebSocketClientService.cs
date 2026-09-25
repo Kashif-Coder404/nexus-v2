@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 public class WebSocketClientService : BackgroundService
 {
 #if DEBUG
-    private readonly string _backendurl =  "ws://localhost:3100";
+    private readonly string _backendurl = "ws://localhost:3100";
 #else
     private readonly string _backendurl =  "wss://nexus-v2-e38m.onrender.com";
 #endif
@@ -290,7 +290,13 @@ public class WebSocketClientService : BackgroundService
             }
         }
     }
-
+    public static async Task BroadcastEventAsync(object payload, CancellationToken ct = default)
+    {
+        if (_activeWs != null && _activeWs.State == WebSocketState.Open)
+        {
+            await SendJsonAsync(_activeWs, payload, ct);
+        }
+    }
     private static readonly string ConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nexus");
     private static readonly string TokenFilePath = Path.Combine(ConfigDir, "deviceToken.json");
     private static async Task<string?> LoadDeviceTokenAsync()

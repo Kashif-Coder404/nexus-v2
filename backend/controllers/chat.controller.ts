@@ -62,8 +62,15 @@ export const sendMessage = async (req: any, res: any) => {
       })
       .catch((err) => console.error("[TITLE GENERATION ERROR]:", err));
     // const model: ModelType = { provider: "gemini", name: "gemini-3.5-flash" };
-    const { cmd, msg, terminalOutput, terminalError, executions, imageBase64 } =
-      await askAI(userId, session, content, behaviour, model);
+    const {
+      cmd,
+      msg,
+      terminalOutput,
+      terminalError,
+      executions,
+      imageBase64,
+      workedSeconds,
+    } = await askAI(userId, session, content, behaviour, model);
     sendToUser(userId, {
       type: "ai_done",
       data: {
@@ -84,6 +91,7 @@ export const sendMessage = async (req: any, res: any) => {
         terminalError: terminalError || "",
         executions: executions,
         imageBase64: imageBase64 || "",
+        workedSeconds: workedSeconds,
       },
     });
 

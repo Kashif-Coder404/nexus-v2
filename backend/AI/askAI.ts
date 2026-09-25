@@ -21,6 +21,8 @@ type CommandExecution = {
   terminalError: string;
   isSuccess: boolean;
   exitCode?: string;
+  duration?: string;
+  cwd?: string;
 };
 export const askAI = async (
   userId: string,
@@ -40,6 +42,7 @@ export const askAI = async (
   let isSuccessState = false;
   let workingOn = "";
   let executions: CommandExecution[] = [];
+  const overallStart = Date.now();
   const prevChat: ChatMessageType[] =
     (await getChat(userId, session, 10))?.chat || [];
   const summaryChat: ChatMessageType[] =
@@ -130,11 +133,17 @@ export const askAI = async (
             cmd: command,
           },
         });
+        const stepStart = Date.now();
         const commandOutput: CommandParserResponseType = await commandParser(
           userId,
           parsedCMD,
           ChatMsgs,
         );
+        const stepDuration = ((Date.now() - stepStart) / 1000).toFixed(1) + "s";
+        const currentCwd =
+          (typeof parsedCMD.param === "object" &&
+            (parsedCMD.param as any)?.cwd) ||
+          process.cwd();
         capturedImage = commandOutput.imageBase64 || "";
         terminalOutput += commandOutput.terminalOutput
           ? commandOutput.terminalOutput + "\n"
@@ -148,6 +157,8 @@ export const askAI = async (
           terminalOutput: commandOutput.terminalOutput || "",
           isSuccess: commandOutput.isSuccess,
           exitCode: commandOutput.exitCode?.toString() || "",
+          duration: stepDuration,
+          cwd: currentCwd,
         });
         sendToUser(userId, {
           type: "ai_data",
@@ -158,6 +169,7 @@ export const askAI = async (
             executions, // <-- Send the updated steps list!
           },
         });
+
         let currentError = commandOutput.terminalError || "";
 
         if (
@@ -214,7 +226,10 @@ export const askAI = async (
     }
     retries++;
   }
-
+  const totalWorkedSeconds = Math.max(
+    1,
+    Math.round((Date.now() - overallStart) / 1000),
+  );
   const finalTurnSave: ChatMessageType[] = [
     { role: "user", content: userMessage },
     {
@@ -226,6 +241,7 @@ export const askAI = async (
         terminalOutput: terminalOutput || "",
         executions: executions || [],
         imageBase64: capturedImage || "",
+        workedSeconds: totalWorkedSeconds,
       }),
     },
   ];
@@ -243,6 +259,7 @@ export const askAI = async (
     terminalError: terminalError || "",
     imageBase64: capturedImage || "",
     executions: executions || [],
+    workedSeconds: totalWorkedSeconds,
   };
 };
 function cmd_explainer(action: string, param: any) {

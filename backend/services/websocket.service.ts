@@ -139,103 +139,135 @@ const initWebsocket = (server: Server) => {
         const data = event.toString();
         const parsedData = JSON.parse(data);
 
-        if (parsedData.type === "PairingInit") {
-          ws.pairingCode = parsedData.code;
-        } else if (parsedData.type === "auth" && parsedData.token) {
-          await connectDevice(
-            ws,
-            parsedData.token,
-            parsedData.ipAddress || parsedData.ipaddress || ipHeader,
-            parsedData.service,
-          );
-        } else if (
-          parsedData.type === "get_devices" &&
-          ws.isAuthenticated &&
-          ws.userId
-        ) {
-          await sendDeviceStatus(ws, ws.userId);
-        } else if (
-          parsedData.type === "device_status" &&
-          ws.isAuthenticated &&
-          ws.deviceId
-        ) {
-          // Broadcast to the user's frontend web client
-          ws.service = parsedData.service;
-          if (parsedData.ipAddress) {
-            ws.ipAddress = parsedData.ipAddress;
+        const { type } = parsedData;
+
+        switch (type) {
+          case "PairingInit": {
+            ws.pairingCode = parsedData.code;
+            break;
           }
-          sendToUser(ws.userId!, {
-            type: "device_status",
-            device: {
-              deviceName: ws.deviceName,
-              id: ws.deviceId,
-              ipAddress: ws.ipAddress,
-            },
-            online: true,
-            service: parsedData.service,
-          });
-        } else if (parsedData.type === "cmd_response") {
-          if (ws.isAuthenticated) {
-            const { requestId, cmdResponse } = parsedData;
-            const requestHandler = pendingRequests.get(requestId);
-            if (requestHandler) {
-              if (requestHandler.timer) {
-                clearTimeout(requestHandler.timer);
+
+          case "auth": {
+            if (parsedData.token) {
+              await connectDevice(
+                ws,
+                parsedData.token,
+                parsedData.ipAddress || parsedData.ipaddress || ipHeader,
+                parsedData.service,
+              );
+            }
+            break;
+          }
+
+          case "get_devices": {
+            if (ws.isAuthenticated && ws.userId) {
+              await sendDeviceStatus(ws, ws.userId);
+            }
+            break;
+          }
+
+          case "device_status": {
+            if (ws.isAuthenticated && ws.deviceId) {
+              // Broadcast to the user's frontend web client
+              ws.service = parsedData.service;
+              if (parsedData.ipAddress) {
+                ws.ipAddress = parsedData.ipAddress;
               }
-              requestHandler.resolve(cmdResponse);
-              pendingRequests.delete(requestId);
-            }
-          }
-        } else if (parsedData.type === "revoke-device" && ws.isAuthenticated) {
-          let targetDeviceId = parsedData.deviceId;
-
-          if (parsedData.deviceToken) {
-            const actualToken = parsedData.deviceToken.startsWith("Bearer ")
-              ? parsedData.deviceToken.slice(7)
-              : parsedData.deviceToken;
-            const decodedToken = verifyToken(actualToken) as JwtPayload;
-            if (!decodedToken || !decodedToken.success || !decodedToken.token) {
-              sendJson(ws, {
-                type: "PairingFailed",
-                message: "Invalid token",
+              sendToUser(ws.userId!, {
+                type: "device_status",
+                device: {
+                  deviceName: ws.deviceName,
+                  id: ws.deviceId,
+                  ipAddress: ws.ipAddress,
+                },
+                online: true,
+                service: parsedData.service,
               });
-              return;
             }
-            const tokenUserId =
-              (decodedToken.token?.userId as string) ||
-              ((decodedToken.token as any)?.id as string);
-            if (tokenUserId !== ws.userId) {
+            break;
+          }
+
+          case "cmd_response": {
+            if (ws.isAuthenticated) {
+              const { requestId, cmdResponse } = parsedData;
+              const requestHandler = pendingRequests.get(requestId);
+              if (requestHandler) {
+                if (requestHandler.timer) {
+                  clearTimeout(requestHandler.timer);
+                }
+                requestHandler.resolve(cmdResponse);
+                pendingRequests.delete(requestId);
+              }
+            }
+            break;
+          }
+
+
+          case "revoke-device": {
+            if (!ws.isAuthenticated) break;
+            let targetDeviceId = parsedData.deviceId;
+
+            if (parsedData.deviceToken) {
+              const actualToken = parsedData.deviceToken.startsWith("Bearer ")
+                ? parsedData.deviceToken.slice(7)
+                : parsedData.deviceToken;
+              const decodedToken = verifyToken(actualToken) as JwtPayload;
+              if (
+                !decodedToken ||
+                !decodedToken.success ||
+                !decodedToken.token
+              ) {
+                sendJson(ws, {
+                  type: "PairingFailed",
+                  message: "Invalid token",
+                });
+                break;
+              }
+              const tokenUserId =
+                (decodedToken.token?.userId as string) ||
+                ((decodedToken.token as any)?.id as string);
+              if (tokenUserId !== ws.userId) {
+                sendJson(ws, {
+                  type: "PairingFailed",
+                  message: "You cannot revoke another user's device",
+                });
+                break;
+              }
+              targetDeviceId =
+                (decodedToken.token?.deviceId as string) ||
+                ((decodedToken.token as any)?.deviceId as string);
+            }
+
+            // If no specific deviceId provided and sender is an authenticated companion device, target itself
+            if (
+              !targetDeviceId &&
+              ws.deviceId &&
+              ws.deviceId !== "web_client"
+            ) {
+              targetDeviceId = ws.deviceId;
+            }
+
+            if (!targetDeviceId) {
               sendJson(ws, {
-                type: "PairingFailed",
-                message: "You cannot revoke another user's device",
+                type: "Error",
+                message: "Device ID required to revoke",
               });
-              return;
+              break;
             }
-            targetDeviceId =
-              (decodedToken.token?.deviceId as string) ||
-              ((decodedToken.token as any)?.deviceId as string);
-          }
 
-          // If no specific deviceId provided and sender is an authenticated companion device, target itself
-          if (!targetDeviceId && ws.deviceId && ws.deviceId !== "web_client") {
-            targetDeviceId = ws.deviceId;
-          }
-
-          if (!targetDeviceId) {
+            const result = await revokeDevice(ws.userId!, targetDeviceId);
             sendJson(ws, {
-              type: "Error",
-              message: "Device ID required to revoke",
+              type: "RevokeResponse",
+              success: result.success,
+              message: result.message,
+              deviceId: targetDeviceId,
             });
-            return;
+            break;
           }
 
-          const result = await revokeDevice(ws.userId!, targetDeviceId);
-          sendJson(ws, {
-            type: "RevokeResponse",
-            success: result.success,
-            message: result.message,
-            deviceId: targetDeviceId,
-          });
+          default:
+            console.log(`[WS] Unhandled event type: ${type}`);
+            break;
         }
       } catch (err: any) {
         console.error("[WS] Message parsing error:", err.message);
@@ -407,7 +439,8 @@ export const revokeDevice = async (
     {
       $pull: {
         devices: {
-          $or: orConditions.length > 0 ? orConditions : [{ _id: targetDeviceId }],
+          $or:
+            orConditions.length > 0 ? orConditions : [{ _id: targetDeviceId }],
         },
       },
     },
@@ -422,7 +455,8 @@ export const revokeDevice = async (
   if (wss) {
     for (const client of wss.clients as Set<CustomWebSocket>) {
       if (
-        (client.deviceId === targetDeviceId || (client as any).deviceToken === deviceToken) &&
+        (client.deviceId === targetDeviceId ||
+          (client as any).deviceToken === deviceToken) &&
         client.userId?.toString() === userId?.toString()
       ) {
         sendJson(client, {
@@ -465,7 +499,9 @@ export const revokeSelfHandler = async (req: any, res: any) => {
         message: "Unauthorized: Invalid or expired token",
       });
     }
-    const userId = (decodedToken.token.userId || decodedToken.token.id)?.toString();
+    const userId = (
+      decodedToken.token.userId || decodedToken.token.id
+    )?.toString();
     const deviceId = decodedToken.token.deviceId?.toString();
     if (!userId) {
       return res.status(400).json({

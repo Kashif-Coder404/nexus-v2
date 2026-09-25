@@ -27,7 +27,10 @@ export interface ExecutionStep {
   isSuccess: boolean;
   terminalOutput?: string;
   terminalError?: string;
+  duration?: string;
+  cwd?: string;
 }
+
 export interface AiData {
   executions?: ExecutionStep[];
   imageBase64?: string;
@@ -303,7 +306,11 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
       </div>
       {executions.length > 0 && (
-        <ExecutionSteps executions={executions} isWorking={false} />
+        <ExecutionSteps
+          executions={executions}
+          isWorking={false}
+          workedSeconds={normalized.workedSeconds}
+        />
       )}
     </div>
   );

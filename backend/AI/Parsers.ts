@@ -146,8 +146,7 @@ export const commandParser = async (
   };
   const commandHandlerDict = {
     search: async () => {
-      const { expected_name } =
-        (cmd.param as ParametersType<"search">) || {};
+      const { expected_name } = (cmd.param as ParametersType<"search">) || {};
       if (!expected_name) {
         finalResponse.msg = "Missing parameters: expected_name is required";
         finalResponse.terminalError = "Missing parameters";
@@ -309,8 +308,12 @@ export const commandParser = async (
       ) {
         const inBuilt = cmd.param as InBuiltParam;
         timeoutMs = inBuilt.timeout ? Number(inBuilt.timeout) * 1000 : 30000;
+        const sanitizedCmd = (inBuilt.command || "").replace(
+          /\[([^\]]+)\]\(([^)]+)\)/g,
+          "$2",
+        );
         commandPayload = {
-          Command: inBuilt.command,
+          Command: sanitizedCmd,
           ExecutionType: inBuilt.executionType
             ? inBuilt.executionType.charAt(0).toUpperCase() +
               inBuilt.executionType.slice(1).toLowerCase()
@@ -326,10 +329,11 @@ export const commandParser = async (
           TimeoutSeconds: inBuilt.timeout || Math.round(timeoutMs / 1000),
         };
       } else {
-        const rawCmd =
+        const rawCmd = (
           typeof cmd.param === "string"
             ? cmd.param
-            : JSON.stringify(cmd.param || "");
+            : JSON.stringify(cmd.param || "")
+        ).replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$2");
         timeoutMs =
           cmd.timeout && !isNaN(Number(cmd.timeout))
             ? Number(cmd.timeout)
@@ -349,12 +353,7 @@ export const commandParser = async (
           commandPayload,
           timeoutMs,
         );
-        finalResponse.cmd =
-          typeof cmd.param === "object" &&
-          cmd.param !== null &&
-          "command" in cmd.param
-            ? (cmd.param as InBuiltParam).command
-            : returningCmd;
+        finalResponse.cmd = commandPayload.Command;
         finalResponse.msg = executionResponse?.msg || "";
         finalResponse.terminalOutput = executionResponse?.terminalOutput || "";
         finalResponse.terminalError = executionResponse?.terminalError || "";
