@@ -408,3 +408,18 @@ Response:
 
 **FINAL STRICT WARNING**: YOU MUST OUTPUT ONLY A VALID JSON OBJECT. NO CONVERSATIONAL TEXT. NO MARKDOWN FORMATTING. ANY TEXT OUTSIDE THE JSON OBJECT WILL BREAK THE SYSTEM.
 `;
+
+export const system_warning = (
+  command: string,
+  duplicateCMDCount: number,
+  terminalError: string,
+): string => {
+
+  return (
+    `⚠️ SYSTEM WARNING: You have run the exact same command (${command}) ${duplicateCMDCount} times and it failed!\n` +
+    `DO NOT paste or run this command again.\n` +
+    `Analyze the error below, change your command/parameters, or set "cmd": "" and give your final response to the user explaining why you cannot do it.\n` +
+    `You have ONLY 1 MORE TRY before execution is forcefully halted.\n\n` +
+    `Terminal Error Output:\n${terminalError}`
+  );
+};

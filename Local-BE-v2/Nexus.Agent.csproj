@@ -17,6 +17,7 @@
   <ItemGroup>
     <!-- Hardware Monitoring (CPU/GPU temps, fans, wattage) -->
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
+    <PackageReference Include="Porta.Pty" Version="1.0.7" />
 
     <!-- Native Screen Capture (GDI+) -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.8" />

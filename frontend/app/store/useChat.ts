@@ -36,7 +36,8 @@ const useChat = create<ChatStore>((set) => ({
   setSession: (session: string) => set({ session }),
   setChat: (chat: Chat[]) => set({ chat }),
   addChat: (chat: Chat) => set((state) => ({ chat: [...state.chat, chat] })),
-  clearChat: () => set({ chat: [] }),
+  clearChat: () =>
+    set({ chat: [], session: "", workingOn: null, liveExecutions: [] }),
   liveTerminal: "",
   appendLiveTerminal: (chunk: string) =>
     set((state) => ({ liveTerminal: state.liveTerminal + chunk })),

@@ -109,6 +109,7 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
         });
         if (data.sessionId) {
           setSession(data.sessionId);
+          router.replace(`/chat/${data.sessionId}`);
         }
       } else {
         addChat({

@@ -34,6 +34,7 @@ export type ModelType = {
 export type AIProviderParams = {
   chatMessages: ChatMessageType[];
   session: string;
+  userId?: string;
   instructions?: string;
   isJson?: boolean;
   isLiveModel?: boolean;
@@ -171,6 +172,7 @@ export const callAI = async (
         chatMessages,
         model: (params.model as string) || "gemini-3.7-flash",
         instructionString: instructions,
+        userId: params.userId,
       });
       const actualContent = res.content || {};
 

@@ -9,7 +9,10 @@ import {
 import { callAI, ModelType } from "./CallAI.js";
 import { sendToUser } from "../services/websocket.service.js";
 import { behaviourPrompt } from "./instructions/behaviour.instructions.js";
-import { instructions } from "./instructions/main.Instructions.js";
+import {
+  instructions,
+  system_warning,
+} from "./instructions/main.Instructions.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
 
 type CommandExecution = {
@@ -42,6 +45,10 @@ export const askAI = async (
   let isSuccessState = false;
   let workingOn = "";
   let executions: CommandExecution[] = [];
+  let lastRawCmd: string = "";
+  let duplicateCMDCount: number = 0;
+  let commandRunningMsgs: ChatMessageType[] = [];
+
   const overallStart = Date.now();
   const prevChat: ChatMessageType[] =
     (await getChat(userId, session, 10))?.chat || [];
@@ -55,7 +62,6 @@ export const askAI = async (
       content: userMessage,
     },
   ];
-  let commandRunningMsgs: ChatMessageType[] = [];
 
   //Execution loops
   while (retries <= 15) {
@@ -71,9 +77,8 @@ export const askAI = async (
       },
     });
     try {
-      // let currentMainInstructions: string =
-      //   behaviourPrompt(behaviour) + "\n" + instructions;
       aiResponse = await callAI(model.provider, {
+        userId: userId,
         chatMessages: ChatMsgs,
         session: session,
         instructions: instructions,
@@ -119,6 +124,15 @@ export const askAI = async (
         command = "";
       }
       if (command) {
+        if (lastRawCmd === command) {
+          duplicateCMDCount++;
+        } else {
+          duplicateCMDCount = 0;
+        }
+        if (duplicateCMDCount >= 3) {
+          break;
+        }
+        lastRawCmd = command;
         lastExecutedCmd = command;
         const parsedCMD: CommandTypes = JSON.parse(command);
         let actionDesc: string = cmd_explainer(
@@ -189,11 +203,20 @@ export const askAI = async (
         command = commandOutput.cmd || commandOutput.msg || "";
         isSuccessState = commandOutput.isSuccess;
         success = commandOutput.isSuccess;
+        let aiTerminalError = terminalError;
+        if (duplicateCMDCount >= 1) {
+          aiTerminalError =
+            system_warning(
+              lastExecutedCmd || "",
+              duplicateCMDCount,
+              terminalError || "",
+            ) + "\n\n";
+        }
         const feedbackContent: any = {
           status: isSuccessState ? "success" : "failed",
           command_executed: command || "",
           terminal_output: terminalOutput || "No output",
-          terminal_error: terminalError || "",
+          terminal_error: aiTerminalError || "",
         };
         sendToUser(userId, {
           type: "ai_data",

@@ -57,33 +57,8 @@ export default function SidebarChats() {
   };
 
   const loadSession = async (sessionId: string) => {
-    if (!token) return;
-    try {
-      setIsLoading(true);
-      const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL ||
-        "https://nexus-v2-e38m.onrender.com";
-      const res = await fetch(`${backendUrl}/api/chat/history`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "x-session-id": sessionId,
-        },
-        body: JSON.stringify({ sessionId }),
-      });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data?.chat)) {
-        setSession(sessionId);
-        setChat(data.data.chat);
-        router.push("/chat");
-        if (isSidebarOpen) toggleSidebar();
-      }
-    } catch (err: any) {
-      console.error("[LOAD SESSION ERROR]:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    router.push(`/chat/${sessionId}`);
+    if (isSidebarOpen) toggleSidebar();
   };
 
   const startNewChat = () => {
@@ -96,9 +71,7 @@ export default function SidebarChats() {
     if (!token || !sessionId) return;
     try {
       setIsLoading(true);
-      const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL ||
-        "https://nexus-v2-e38m.onrender.com";
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
       const res = await fetch(`${backendUrl}/api/chat/delete-chat-session`, {
         method: "POST",
         headers: {

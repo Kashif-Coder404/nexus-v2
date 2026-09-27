@@ -32,9 +32,14 @@ import Ansi from "ansi-to-react";
 // Normalizes ANSI codes ensuring raw tags like [36m are formatted with standard ESC (\u001b)
 const formatAnsi = (str?: string) => {
   if (!str) return "";
-  return str.replace(/\[([0-9;]+m)/g, (match, code, offset, full) => {
-    return offset > 0 && full[offset - 1] === "\u001b" ? match : `\u001b[${code}`;
-  });
+  return (
+    str
+      // 1. Strip OSC window title noise (\x1b]0;...\x07 and ]0;...)
+      .replace(/\x1b\]0;[^\x07\x1b]*(\x07|\x1b\\?)/g, "")
+      .replace(/\]0;[^\r\n]*/g, "")
+      // 2. Collapse 3+ consecutive blank lines down to max 1 blank line
+      .replace(/(\r?\n){3,}/g, "\n\n")
+  );
 };
 
 interface CommandLogMessage {
@@ -74,28 +79,34 @@ const PRESET_COMMANDS = [
   {
     label: "Fast CLI (< 1.5s)",
     description: "Runs instantly and returns output synchronously",
-    command: 'powershell -c "Write-Output \'Instant command output from Local-BE\'; exit 0"',
+    command:
+      "powershell -c \"Write-Output 'Instant command output from Local-BE'; exit 0\"",
     isDaemon: false,
     timeout: 0,
   },
   {
     label: "Long Finite Task (4s)",
-    description: "Promoted to TaskManager at 1.5s, finishes cleanly with completion trigger",
-    command: 'powershell -c "Write-Output \'Step 1/3: Starting build...\'; Start-Sleep 2; Write-Output \'Step 2/3: Compiling assets...\'; Start-Sleep 2; Write-Output \'Step 3/3: Build Complete!\'; exit 0"',
+    description:
+      "Promoted to TaskManager at 1.5s, finishes cleanly with completion trigger",
+    command:
+      "powershell -c \"Write-Output 'Step 1/3: Starting build...'; Start-Sleep 2; Write-Output 'Step 2/3: Compiling assets...'; Start-Sleep 2; Write-Output 'Step 3/3: Build Complete!'; exit 0\"",
     isDaemon: false,
     timeout: 0,
   },
   {
     label: "Background Daemon (20s)",
     description: "Returns in <100ms, streams ticks live in background",
-    command: 'powershell -c "$i=0; while($i -lt 20){ $i++; Write-Output \"Daemon heartbeat tick $i\"; Start-Sleep 1 }"',
+    command:
+      'powershell -c "$i=0; while($i -lt 20){ $i++; Write-Output \"Daemon heartbeat tick $i\"; Start-Sleep 1 }"',
     isDaemon: true,
     timeout: 0,
   },
   {
     label: "Crash Simulation (Exit 42)",
-    description: "Exits with non-zero code to test failure/crash notification layout",
-    command: 'powershell -c "Write-Output \'Executing critical process...\'; Start-Sleep 2; Write-Output \'Fatal exception occurred!\'; exit 42"',
+    description:
+      "Exits with non-zero code to test failure/crash notification layout",
+    command:
+      "powershell -c \"Write-Output 'Executing critical process...'; Start-Sleep 2; Write-Output 'Fatal exception occurred!'; exit 42\"",
     isDaemon: true,
     timeout: 0,
   },
@@ -108,7 +119,9 @@ export default function WorkbenchPage() {
   const [inputCmd, setInputCmd] = useState("");
   const [isDaemon, setIsDaemon] = useState(false);
   const [timeoutSec, setTimeoutSec] = useState(0);
-  const [schemaMode, setSchemaMode] = useState<"simple" | "ai_schema">("simple");
+  const [schemaMode, setSchemaMode] = useState<"simple" | "ai_schema">(
+    "simple",
+  );
   const [rawSchema, setRawSchema] = useState(
     JSON.stringify(
       {
@@ -117,8 +130,8 @@ export default function WorkbenchPage() {
         isDaemon: false,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 
   // Tasks drawer state
@@ -135,14 +148,16 @@ export default function WorkbenchPage() {
 
   // Safe list of active tasks - immune to null/undefined entries
   const activeTasksList = useMemo(() => {
-    return Object.values(tasks).filter(
-      (t): t is ActiveTaskInfo => Boolean(t && t.taskId)
+    return Object.values(tasks).filter((t): t is ActiveTaskInfo =>
+      Boolean(t && t.taskId),
     );
   }, [tasks]);
 
   // Selected task safe lookup
   const selectedTask = useMemo(() => {
-    return selectedTaskId && tasks[selectedTaskId] ? tasks[selectedTaskId] : null;
+    return selectedTaskId && tasks[selectedTaskId]
+      ? tasks[selectedTaskId]
+      : null;
   }, [selectedTaskId, tasks]);
 
   // Check Local-BE health
@@ -174,15 +189,16 @@ export default function WorkbenchPage() {
     const interval = setInterval(async () => {
       for (const task of runningTasks) {
         try {
-          const res = await fetch(`${localBeUrl}/api/tasks/${task.taskId}/logs?lines=150`);
+          const res = await fetch(
+            `${localBeUrl}/api/tasks/${task.taskId}/logs?lines=150`,
+          );
           if (res.ok) {
             const data = await res.json();
             const isFinished = !data.msg.includes("still running");
             const finalExit = data.exitCode;
 
             if (isFinished) {
-              const newStatus =
-                finalExit === 0 ? "completed" : "failed";
+              const newStatus = finalExit === 0 ? "completed" : "failed";
 
               // 1. Update task in registry
               setTasks((prev) => {
@@ -203,7 +219,7 @@ export default function WorkbenchPage() {
               // 2. Add an unprompted Completion Card to the chat feed (simulating AI being notified of task end!)
               setMessages((prev) => {
                 const alreadyNotified = prev.some(
-                  (m) => m.id === `completion-${task.taskId}`
+                  (m) => m.id === `completion-${task.taskId}`,
                 );
                 if (alreadyNotified) return prev;
 
@@ -221,7 +237,9 @@ export default function WorkbenchPage() {
                         : `Background task '${task.taskId}' failed with exit code ${finalExit}.`,
                     terminalOutput: data.terminalOutput || "",
                     terminalError:
-                      newStatus === "failed" ? `Process exited with code ${finalExit}` : "",
+                      newStatus === "failed"
+                        ? `Process exited with code ${finalExit}`
+                        : "",
                     isSuccess: newStatus === "completed",
                     pid: task.pid,
                     exitCode: finalExit,
@@ -263,7 +281,7 @@ export default function WorkbenchPage() {
   const handleExecute = async (
     cmdText: string,
     asDaemon: boolean,
-    timeoutVal: number
+    timeoutVal: number,
   ) => {
     if (!cmdText.trim()) return;
 
@@ -318,11 +336,16 @@ export default function WorkbenchPage() {
       };
 
       setMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, isPending: false } : m)).concat(assistantMsg)
+        prev
+          .map((m) => (m.id === msgId ? { ...m, isPending: false } : m))
+          .concat(assistantMsg),
       );
 
       // If task was promoted to background or is daemon, add to tasks registry
-      if (data.taskId && (data.msg?.includes("background") || asDaemon || elapsed > 1400)) {
+      if (
+        data.taskId &&
+        (data.msg?.includes("background") || asDaemon || elapsed > 1400)
+      ) {
         const newTask: ActiveTaskInfo = {
           taskId: data.taskId,
           pid: data.pid ? String(data.pid) : "0",
@@ -351,7 +374,9 @@ export default function WorkbenchPage() {
         },
       };
       setMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, isPending: false } : m)).concat(errorMsg)
+        prev
+          .map((m) => (m.id === msgId ? { ...m, isPending: false } : m))
+          .concat(errorMsg),
       );
     }
   };
@@ -359,7 +384,9 @@ export default function WorkbenchPage() {
   // Peek single task logs on demand
   const handlePeekTask = async (taskId: string) => {
     try {
-      const res = await fetch(`${localBeUrl}/api/tasks/${taskId}/logs?lines=50`);
+      const res = await fetch(
+        `${localBeUrl}/api/tasks/${taskId}/logs?lines=50`,
+      );
       if (res.ok) {
         const data = await res.json();
         const isFinished = !data.msg.includes("still running");
@@ -371,7 +398,11 @@ export default function WorkbenchPage() {
             [taskId]: {
               ...t,
               logs: data.terminalOutput || t.logs,
-              status: isFinished ? (data.exitCode === 0 ? "completed" : "failed") : "running",
+              status: isFinished
+                ? data.exitCode === 0
+                  ? "completed"
+                  : "failed"
+                : "running",
               exitCode: data.exitCode,
             },
           };
@@ -390,7 +421,14 @@ export default function WorkbenchPage() {
         setTasks((prev) => {
           const t = prev[taskId];
           if (!t) return prev;
-          return { ...t, status: "killed", completedAt: new Date().toLocaleTimeString() };
+          return {
+            ...prev,
+            [taskId]: {
+              ...t,
+              status: "killed",
+              completedAt: new Date().toLocaleTimeString(),
+            },
+          };
         });
 
         // Add notice to chat feed
@@ -426,18 +464,21 @@ export default function WorkbenchPage() {
   // Send Standard Input (stdin) to Running Task
   const handleSendStdin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTaskId || !taskStdin.trim()) return;
+    if (!selectedTaskId) return;
 
     const inputToSend = taskStdin;
     setTaskStdin("");
     setIsSendingStdin(true);
 
     try {
-      const res = await fetch(`${localBeUrl}/api/tasks/${selectedTaskId}/stdin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: inputToSend }),
-      });
+      const res = await fetch(
+        `${localBeUrl}/api/tasks/${selectedTaskId}/stdin`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: inputToSend }),
+        },
+      );
 
       if (res.ok) {
         // Refresh logs after 300ms so the user sees the output reaction
@@ -478,8 +519,8 @@ export default function WorkbenchPage() {
                   isBeOnline === true
                     ? "bg-emerald-400 animate-pulse"
                     : isBeOnline === false
-                    ? "bg-rose-400"
-                    : "bg-zinc-500"
+                      ? "bg-rose-400"
+                      : "bg-zinc-500"
                 }`}
               />
               <span className="text-zinc-300">
@@ -511,7 +552,9 @@ export default function WorkbenchPage() {
           {PRESET_COMMANDS.map((preset, idx) => (
             <button
               key={idx}
-              onClick={() => handleExecute(preset.command, preset.isDaemon, preset.timeout)}
+              onClick={() =>
+                handleExecute(preset.command, preset.isDaemon, preset.timeout)
+              }
               className="shrink-0 px-2.5 py-1 rounded-md bg-[#140d24]/80 border border-[#4c227b]/40 hover:border-[#a855f7]/60 hover:bg-[#a855f7]/15 transition-all text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
               title={preset.description}
             >
@@ -528,10 +571,12 @@ export default function WorkbenchPage() {
               <div className="h-12 w-12 rounded-2xl bg-[#140d24] border border-[#4c227b]/50 flex items-center justify-center text-[#a855f7] shadow-[0_0_25px_rgba(168,85,247,0.2)]">
                 <Server className="h-6 w-6" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Direct Local-BE Test Harness</h2>
+              <h2 className="text-lg font-semibold text-white">
+                Direct Local-BE Test Harness
+              </h2>
               <p className="text-xs text-zinc-400 max-w-md">
-                Test commands, long-running builds, and background daemons directly against your
-                local companion agent (Port 4100).
+                Test commands, long-running builds, and background daemons
+                directly against your local companion agent (Port 4100).
               </p>
               <div className="text-[11px] text-zinc-500 font-mono">
                 Click any preset above or type a PowerShell command below.
@@ -569,7 +614,9 @@ export default function WorkbenchPage() {
                                 Daemon
                               </span>
                             )}
-                            <span className="text-[10px] text-zinc-500">{msg.timestamp}</span>
+                            <span className="text-[10px] text-zinc-500">
+                              {msg.timestamp}
+                            </span>
                           </div>
                         </div>
                         <div className="font-mono text-xs text-zinc-200 bg-[#080711]/60 p-2 rounded-lg border border-[#4c227b]/20">
@@ -609,7 +656,10 @@ export default function WorkbenchPage() {
                                     : "Background Task Terminated / Failed"}
                                 </span>
                                 <span className="text-[10px] font-mono text-zinc-400">
-                                  {msg.response.taskId} {msg.response.pid ? `(PID: ${msg.response.pid})` : ""}
+                                  {msg.response.taskId}{" "}
+                                  {msg.response.pid
+                                    ? `(PID: ${msg.response.pid})`
+                                    : ""}
                                 </span>
                               </div>
                             </div>
@@ -625,7 +675,9 @@ export default function WorkbenchPage() {
                             </span>
                           </div>
 
-                          <p className="text-xs text-zinc-200">{msg.response.msg}</p>
+                          <p className="text-xs text-zinc-200">
+                            {msg.response.msg}
+                          </p>
 
                           {/* Quick Actions & Final Logs */}
                           <div className="flex items-center justify-between pt-1">
@@ -646,7 +698,7 @@ export default function WorkbenchPage() {
                               onClick={() =>
                                 handleCopyLogs(
                                   msg.response!.taskId || "task",
-                                  msg.response!.terminalOutput
+                                  msg.response!.terminalOutput,
                                 )
                               }
                               className="p-1.5 rounded hover:bg-[#140d24] text-zinc-400 hover:text-white transition-colors"
@@ -704,10 +756,10 @@ export default function WorkbenchPage() {
                                 taskStatus === "completed"
                                   ? "bg-emerald-950/20 border-emerald-500/40"
                                   : taskStatus === "failed"
-                                  ? "bg-rose-950/20 border-rose-500/40"
-                                  : taskStatus === "killed"
-                                  ? "bg-amber-950/20 border-amber-500/40"
-                                  : "bg-[#080711]/90 border-[#4c227b]/50 shadow-inner"
+                                    ? "bg-rose-950/20 border-rose-500/40"
+                                    : taskStatus === "killed"
+                                      ? "bg-amber-950/20 border-amber-500/40"
+                                      : "bg-[#080711]/90 border-[#4c227b]/50 shadow-inner"
                               }`}
                             >
                               <div className="flex items-center justify-between">
@@ -735,10 +787,10 @@ export default function WorkbenchPage() {
                                           taskStatus === "running"
                                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                                             : taskStatus === "completed"
-                                            ? "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30"
-                                            : taskStatus === "killed"
-                                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                              ? "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30"
+                                              : taskStatus === "killed"
+                                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                                         }`}
                                       >
                                         {taskStatus}
@@ -754,27 +806,30 @@ export default function WorkbenchPage() {
 
                                 <div className="flex items-center gap-1.5">
                                   <button
-                                    onClick={() => handlePeekTask(msg.response!.taskId!)}
+                                    onClick={() =>
+                                      handlePeekTask(msg.response!.taskId!)
+                                    }
                                     className="px-2.5 py-1 rounded bg-[#140d24] border border-[#4c227b]/40 hover:border-[#a855f7] text-[11px] text-[#d8b4fe] flex items-center gap-1 cursor-pointer transition-colors"
                                   >
                                     <Eye className="h-3 w-3" />
                                     Peek Logs
                                   </button>
 
-                                  {taskStatus === "running" && msg.response.pid && (
-                                    <button
-                                      onClick={() =>
-                                        handleKillTask(
-                                          msg.response!.taskId!,
-                                          msg.response!.pid!
-                                        )
-                                      }
-                                      className="px-2.5 py-1 rounded bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-[11px] text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
-                                    >
-                                      <Square className="h-3 w-3" />
-                                      Kill
-                                    </button>
-                                  )}
+                                  {taskStatus === "running" &&
+                                    msg.response.pid && (
+                                      <button
+                                        onClick={() =>
+                                          handleKillTask(
+                                            msg.response!.taskId!,
+                                            msg.response!.pid!,
+                                          )
+                                        }
+                                        className="px-2.5 py-1 rounded bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-[11px] text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+                                      >
+                                        <Square className="h-3 w-3" />
+                                        Kill
+                                      </button>
+                                    )}
                                 </div>
                               </div>
                             </div>
@@ -786,7 +841,10 @@ export default function WorkbenchPage() {
                               <div className="text-[10px] text-zinc-500 pb-1 mb-1 border-b border-[#4c227b]/20 flex items-center justify-between font-sans">
                                 <span className="flex items-center gap-1.5 font-mono">
                                   <Terminal className="h-3 w-3 text-[#a855f7]" />
-                                  Stdout / Stream Output {taskStatus === "running" ? "(Live Streaming...)" : ""}
+                                  Stdout / Stream Output{" "}
+                                  {taskStatus === "running"
+                                    ? "(Live Streaming...)"
+                                    : ""}
                                 </span>
                                 {taskStatus === "running" && (
                                   <span className="flex items-center gap-1 text-emerald-400 text-[9px] font-mono font-bold">
@@ -980,8 +1038,8 @@ export default function WorkbenchPage() {
                       t.status === "running"
                         ? "bg-emerald-400 animate-pulse"
                         : t.status === "completed"
-                        ? "bg-zinc-400"
-                        : "bg-rose-400"
+                          ? "bg-zinc-400"
+                          : "bg-rose-400"
                     }`}
                   />
                   {t.taskId}
@@ -1003,8 +1061,8 @@ export default function WorkbenchPage() {
                         selectedTask.status === "running"
                           ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                           : selectedTask.status === "completed"
-                          ? "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30"
-                          : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                            ? "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30"
+                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                       }`}
                     >
                       {selectedTask.status}
@@ -1017,7 +1075,9 @@ export default function WorkbenchPage() {
 
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() => handleCopyLogs(selectedTask.taskId, selectedTask.logs)}
+                    onClick={() =>
+                      handleCopyLogs(selectedTask.taskId, selectedTask.logs)
+                    }
                     className="p-1.5 rounded hover:bg-[#4c227b]/30 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                     title="Copy Logs"
                   >
@@ -1030,7 +1090,9 @@ export default function WorkbenchPage() {
 
                   {selectedTask.status === "running" && (
                     <button
-                      onClick={() => handleKillTask(selectedTask.taskId, selectedTask.pid)}
+                      onClick={() =>
+                        handleKillTask(selectedTask.taskId, selectedTask.pid)
+                      }
                       className="px-2 py-1 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <Square className="h-2.5 w-2.5" />
@@ -1045,13 +1107,16 @@ export default function WorkbenchPage() {
                 <div className="text-zinc-500 text-[10px] pb-2 border-b border-[#4c227b]/20 mb-2 flex items-center justify-between">
                   <span>
                     [Nexus Terminal Stream] Started: {selectedTask.startedAt}
-                    {selectedTask.completedAt ? ` | Finished: ${selectedTask.completedAt}` : ""}
+                    {selectedTask.completedAt
+                      ? ` | Finished: ${selectedTask.completedAt}`
+                      : ""}
                   </span>
-                  {selectedTask.exitCode !== undefined && selectedTask.exitCode !== null && (
-                    <span className="font-bold text-zinc-300">
-                      Exit Code: {selectedTask.exitCode}
-                    </span>
-                  )}
+                  {selectedTask.exitCode !== undefined &&
+                    selectedTask.exitCode !== null && (
+                      <span className="font-bold text-zinc-300">
+                        Exit Code: {selectedTask.exitCode}
+                      </span>
+                    )}
                 </div>
                 <div className="whitespace-pre-wrap leading-relaxed select-text">
                   {selectedTask.logs ? (

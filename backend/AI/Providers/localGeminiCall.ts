@@ -2,20 +2,26 @@ import axios from "axios";
 import { instructions } from "../instructions/main.Instructions.js";
 import type { ChatMessageType } from "../Types.ts";
 import { GEMINI_WEB_2_URL } from "../../EnvVariables.js";
+import { sendToUser } from "../../services/websocket.service.js";
 export type LocalGeminiModelsTypes =
   | "gemini-3.7-flash"
   | "gemini-3.1-pro"
   | "gemini-3.6-flash"
   | "gemini-3.5-flash-thinking";
 
+export type GeminiServerState = "idle" | "booting" | "ready" | "error";
+export let geminiServerState: GeminiServerState = "idle";
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)); // hold the line function
 export const localGeminiAICall = async ({
   chatMessages,
   model = "gemini-3.7-flash",
   instructionString = instructions,
+  userId,
 }: {
   chatMessages: ChatMessageType[];
   model?: string;
   instructionString?: string;
+  userId?: string;
 }): Promise<{
   content: {
     cmd: string;
@@ -24,7 +30,10 @@ export const localGeminiAICall = async ({
   };
   success: boolean;
 }> => {
-  const baseUrl = (GEMINI_WEB_2_URL || "http://127.0.0.1:8081").replace(/\/+$/, "");
+  const baseUrl = (GEMINI_WEB_2_URL || "http://127.0.0.1:8081").replace(
+    /\/+$/,
+    "",
+  );
   const localApiUrl = `${baseUrl}/v1/chat/completions`;
 
   // Build OpenAI-compatible messages array
@@ -39,9 +48,38 @@ export const localGeminiAICall = async ({
         typeof m.content === "string" ? m.content : JSON.stringify(m.content),
     })),
   ];
-
+  let response: any = null;
+  let ticker: NodeJS.Timeout | null = null;
+  let coldStart: NodeJS.Timeout | null = null;
+  let estimatedSeconds: number = 45;
   try {
-    const response = await axios.post(
+    coldStart = setTimeout(() => {
+      geminiServerState = "booting";
+      if (userId) {
+        sendToUser(userId, {
+          type: "ai_data",
+          data: {
+            workingon: `Waking up AI server (~${estimatedSeconds}s remaining)...`,
+            msg: "",
+            cmd: "",
+          },
+        });
+      }
+      ticker = setInterval(() => {
+        estimatedSeconds = Math.max(5, estimatedSeconds - 1);
+        if (userId) {
+          sendToUser(userId, {
+            type: "ai_data",
+            data: {
+              workingon: `Waking up AI server (~${estimatedSeconds}s remaining)...`,
+              msg: "",
+              cmd: "",
+            },
+          });
+        }
+      }, 1000);
+    }, 10000);
+    response = await axios.post(
       localApiUrl,
       {
         model: model || "gemini-3.7-flash",
@@ -49,53 +87,60 @@ export const localGeminiAICall = async ({
         temperature: 0.2,
       },
       {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 180000, // 3 minutes timeout for heavy local queries
+        headers: { "Content-Type": "application/json" },
+        timeout: 120000,
       },
     );
-
-    let rawText = response.data?.choices?.[0]?.message?.content || "";
-
-    // 1. Strip thinking tags <thought>...</thought> if thinking model was used
-    rawText = rawText.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
-
-    // 2. Strip Markdown code fences if model returned ```json ... ```
-    const codeBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (codeBlockMatch) {
-      rawText = codeBlockMatch[1].trim();
-    }
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      // Fallback if not pure JSON
-      parsed = {
-        cmd: "",
-        msg: rawText,
-        workingon: "Thinking...",
-      };
-    }
-
-    return {
-      success: true,
-      content: {
-        cmd: parsed.cmd || "",
-        msg: parsed.msg || rawText,
-        workingon: parsed.workingon || "Executing...",
-      },
-    };
+    geminiServerState = "ready";
   } catch (error: any) {
-    console.error("[LOCAL GEMINI ERROR]:", error?.message || error);
+    geminiServerState = "error";
     return {
       success: false,
       content: {
         cmd: "",
-        msg: `Local Gemini Web2API Error: ${error?.message || "Failed to reach " + baseUrl}. Is the Web2API service running?`,
+        msg: `Gemini Web2API error: ${error?.message || "Server unreachable"}`,
         workingon: "",
       },
     };
+  } finally {
+    if (coldStart) {
+      clearTimeout(coldStart);
+    }
+    if (ticker) {
+      clearInterval(ticker);
+    }
   }
+
+  // Parse the successful response
+  let rawText = response?.data?.choices?.[0]?.message?.content || "";
+
+  // 1. Strip thinking tags <thought>...</thought> if thinking model was used
+  rawText = rawText.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
+
+  // 2. Strip Markdown code fences if model returned ```json ... ```
+  const codeBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    rawText = codeBlockMatch[1].trim();
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    // Fallback if not pure JSON
+    parsed = {
+      cmd: "",
+      msg: rawText,
+      workingon: "Thinking...",
+    };
+  }
+
+  return {
+    success: true,
+    content: {
+      cmd: parsed.cmd || "",
+      msg: parsed.msg || rawText,
+      workingon: parsed.workingon || "Executing...",
+    },
+  };
 };

@@ -387,14 +387,20 @@ app.MapPost("/api/tasks/{taskId}/stdin", async (string taskId, TaskInput body) =
 
 app.MapPost("/kill/{pid:int}", (int pid) =>
 {
+    bool killed = ExecuteServices.KillTask(pid.ToString());
     if (ProcessLauncher.ActiveProcess.TryRemove(pid, out var proc))
     {
         try { proc.Kill(entireProcessTree: true); } catch { }
         proc.Dispose();
+        killed = true;
+    }
+    if (killed)
+    {
         return Results.Ok(new { success = true, message = $"Process {pid} terminated." });
     }
     return Results.NotFound(new { success = false, message = $"PID {pid} not found in active processes." });
 });
+
 
 app.MapGet("/system-info", () => Results.Content(SystemInfoService.GetSystemInfoJson(), "application/json"));
 app.MapGet("/capture-screen", () =>

@@ -89,12 +89,25 @@ public class WebSocketClientService : BackgroundService
             }
         }
     }
+    private static readonly SemaphoreSlim _sendLock = new(1, 1);
     private static async Task SendJsonAsync(ClientWebSocket ws, object payload, CancellationToken ct)
     {
         if (ws.State != WebSocketState.Open) return;
         string jsonStr = JsonSerializer.Serialize(payload, _jsonOptions);
         byte[] bytes = Encoding.UTF8.GetBytes(jsonStr);
-        await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, ct);
+        try
+        {
+            await _sendLock.WaitAsync(ct);
+            if (ws.State == WebSocketState.Open)
+            {
+                await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, ct);
+            }
+        }
+        catch { }
+        finally
+        {
+            try { _sendLock.Release(); } catch { }
+        }
     }
     private static async Task ReceiveLoopAsync(ClientWebSocket ws, CancellationToken ct)
     {
@@ -159,7 +172,7 @@ public class WebSocketClientService : BackgroundService
                     bool killed = false;
                     if (!string.IsNullOrEmpty(targetTaskId) && ExecuteServices.ActiveTasks.TryRemove(targetTaskId, out var taskProc))
                     {
-                        try { taskProc.Kill(entireProcessTree: true); } catch { }
+                        try { taskProc.Kill(); } catch { }
                         taskProc.Dispose();
                         killed = true;
                         Console.WriteLine($"[WS] 🛑 Killed background task by TaskId: {targetTaskId}");

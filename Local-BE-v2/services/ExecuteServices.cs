@@ -1,15 +1,13 @@
 namespace Nexus.Agent.Services;
 
 using System.Collections.Concurrent;
-using System.Data;
-using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using Nexus.Agent.Models;
+using Porta.Pty;
 
 public static class ExecuteServices
 {
-    public static readonly ConcurrentDictionary<string, Process> ActiveTasks = new();
+    public static readonly ConcurrentDictionary<string, IPtyConnection> ActiveTasks = new();
     public static readonly ConcurrentDictionary<string, ConcurrentQueue<string>> TaskLogBuffers = new();
     public static readonly ConcurrentDictionary<string, int> TaskExitCodes = new();
 
@@ -33,6 +31,8 @@ public static class ExecuteServices
         string fullScript = $@"
 $ProgressPreference = 'SilentlyContinue';
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;
+Remove-Item Alias:echo -Force -ErrorAction SilentlyContinue;
+function echo {{ Write-Output ($args -join ' ') }};
 function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt) {{ [Console]::Out.Write($Prompt + ': ') }}; Microsoft.PowerShell.Utility\Read-Host }}
 {body.Command}
 ";
@@ -40,138 +40,106 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
         byte[] cmdBytes = Encoding.Unicode.GetBytes(fullScript);
         string encodedCmd = Convert.ToBase64String(cmdBytes);
 
-        var psi = new ProcessStartInfo
+        var options = new PtyOptions
         {
-            FileName = "powershell.exe",
-            Arguments = $"-NoProfile -EncodedCommand {encodedCmd}",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            RedirectStandardInput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
+            App = "powershell.exe",
+            CommandLine = ["-NoProfile", "-EncodedCommand", encodedCmd],
+            Cwd = Directory.GetCurrentDirectory(),
+            Cols = 120,
+            Rows = 30,
+            Environment = new Dictionary<string, string>
+            {
+                ["PYTHONUNBUFFERED"] = "1",
+                ["FORCE_COLOR"] = "1",
+                ["GIT_FLUSH"] = "1",
+                ["CLICOLOR_FORCE"] = "1",
+                ["TERM"] = "xterm-256color",
+                ["COLORTERM"] = "truecolor"
+            }
         };
 
-        // Universal Unbuffered & Rich Terminal Environment Variables:
-        // Guarantees Python, Node.js, and CLI tools never block-buffer in 4KB chunks and retain ANSI colors
-        psi.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
-        psi.EnvironmentVariables["FORCE_COLOR"] = "1";
-        psi.EnvironmentVariables["GIT_FLUSH"] = "1";
-        psi.EnvironmentVariables["CLICOLOR_FORCE"] = "1";
-        psi.EnvironmentVariables["TERM"] = "xterm-256color";
-        psi.EnvironmentVariables["COLORTERM"] = "truecolor";
-
-
-        var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var outputBuilder = new StringBuilder();
-        var errorBuilder = new StringBuilder();
         string currentTaskId = body.TaskId ?? "";
+        IPtyConnection? pty = null;
 
         try
         {
-            process.Start();
-            int pid = process.Id;
+            pty = await PtyProvider.SpawnAsync(options, CancellationToken.None);
+            int pid = pty.Pid;
             currentTaskId = body.TaskId ?? $"task-{pid}";
-            ActiveTasks.TryAdd(currentTaskId, process);
-            ProcessLauncher.ActiveProcess.TryAdd(pid, process);
+            ActiveTasks.TryAdd(currentTaskId, pty);
             TaskLogBuffers.TryAdd(currentTaskId, new ConcurrentQueue<string>());
-            // Asynchronous chunk-based stream reader: captures raw text & prompts immediately without waiting for \n
-            void StartStreamReader(StreamReader reader, StringBuilder builder, bool isError)
+
+            var exitTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            pty.ProcessExited += (s, e) => exitTcs.TrySetResult(e.ExitCode);
+
+            // Asynchronous chunk-based stream reader: captures raw VT100 / ANSI text, progress bars, and prompts immediately
+            var streamTask = Task.Run(async () =>
             {
-                _ = Task.Run(async () =>
+                byte[] buffer = new byte[1024];
+                try
                 {
-                    char[] charBuf = new char[512];
-                    try
+                    using var stream = pty.ReaderStream;
+                    while (true)
                     {
-                        while (!process.HasExited || !reader.EndOfStream)
+                        int read = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (read == 0) break;
+
+                        string chunk = Encoding.UTF8.GetString(buffer, 0, read);
+                        Console.Write(chunk);
+                        outputBuilder.Append(chunk);
+
+                        var queue = TaskLogBuffers.GetOrAdd(currentTaskId, _ => new ConcurrentQueue<string>());
+                        queue.Enqueue(chunk);
+                        while (queue.Count > 200) queue.TryDequeue(out _);
+
+                        _ = WebSocketClientService.BroadcastEventAsync(new
                         {
-                            int read = await reader.ReadAsync(charBuf, 0, charBuf.Length);
-                            if (read == 0) break;
-
-                            string chunk = new string(charBuf, 0, read);
-                            if (isError) Console.Write($"Live Error: {chunk}");
-                            else Console.Write($"Live Data: {chunk}");
-
-                            builder.Append(chunk);
-                            var queue = TaskLogBuffers.GetOrAdd(currentTaskId, _ => new ConcurrentQueue<string>());
-                            queue.Enqueue(chunk);
-                            while (queue.Count > 200) queue.TryDequeue(out _);
-
-                            _ = WebSocketClientService.BroadcastEventAsync(new
-                            {
-                                type = "cmd_chunk",
-                                taskId = currentTaskId,
-                                pid,
-                                chunk
-                            });
-                        }
+                            type = "cmd_chunk",
+                            taskId = currentTaskId,
+                            pid,
+                            chunk
+                        });
                     }
-                    catch { }
-                });
-            }
+                }
+                catch { }
+            });
 
-            StartStreamReader(process.StandardOutput, outputBuilder, isError: false);
-            StartStreamReader(process.StandardError, errorBuilder, isError: true);
             if (body.IsDaemon)
             {
-                return TaskManager("daemon", body.Command, process, currentTaskId, outputBuilder, errorBuilder);
+                return TaskManager("daemon", body.Command, pty, currentTaskId, outputBuilder, exitTcs);
             }
 
-            Task exitTask = process.WaitForExitAsync();
-            Task threshold = Task.Delay(1500);
-            Task winner = await Task.WhenAny(exitTask, threshold);
+            // 1.5s threshold race (<1.5s returns synchronously to AI; >1.5s promotes to background task)
+            Task winner = await Task.WhenAny(exitTcs.Task, Task.Delay(1500));
 
-            // Wait for completion: If TimeoutSeconds > 0 wait with timeout; otherwise wait indefinitely
-            if (winner == exitTask)
+            if (winner == exitTcs.Task)
             {
-                int exitCode = process.ExitCode;
+                int exitCode = await exitTcs.Task;
+                await Task.Delay(150);
                 ActiveTasks.TryRemove(currentTaskId, out _);
-                ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
-                process.Dispose();
+                pty.Dispose();
 
-                //early return to not add in task manager
                 return new CommandResponse
                 {
                     Cmd = body.Command,
                     Msg = exitCode == 0 ? "Command executed successfully." : "Command failed.",
                     TerminalOutput = outputBuilder.ToString().Trim(),
-                    TerminalError = errorBuilder.ToString().Trim(),
+                    TerminalError = "",
                     IsSuccess = exitCode == 0,
                     ExitCode = exitCode,
                     Pid = pid.ToString(),
                     TaskId = currentTaskId
                 };
             }
-            return TaskManager("event", body.Command, process, currentTaskId, outputBuilder, errorBuilder);
-        }
-        catch (OperationCanceledException)
-        {
-            try { process.Kill(entireProcessTree: true); } catch { }
-            int pid = 0;
-            try { pid = process.Id; } catch { }
-            ActiveTasks.TryRemove(currentTaskId, out _);
-            if (pid > 0) ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
-            process.Dispose();
 
-            return new CommandResponse
-            {
-                Cmd = body.Command,
-                Msg = "Command timed out.",
-                TerminalOutput = outputBuilder.ToString().Trim(),
-                TerminalError = $"Execution exceeded timeout of {body.TimeoutSeconds} seconds. Process was killed.",
-                IsSuccess = false,
-                ExitCode = -1,
-                Pid = pid > 0 ? pid.ToString() : null,
-                TaskId = currentTaskId
-            };
+            return TaskManager("event", body.Command, pty, currentTaskId, outputBuilder, exitTcs);
         }
         catch (Exception ex)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
-            int pid = 0;
-            try { pid = process.Id; } catch { }
+            try { pty?.Kill(); } catch { }
+            pty?.Dispose();
             ActiveTasks.TryRemove(currentTaskId, out _);
-            if (pid > 0) ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
-            process.Dispose();
 
             return new CommandResponse
             {
@@ -181,16 +149,17 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                 TerminalError = ex.Message,
                 IsSuccess = false,
                 ExitCode = 1,
-                Pid = pid > 0 ? pid.ToString() : null,
+                Pid = pty?.Pid.ToString(),
                 TaskId = currentTaskId
             };
         }
     }
-    public static CommandResponse TaskManager(string Work, string command, Process process, string taskId, StringBuilder outputBuider, StringBuilder errorBuilder)
+
+    public static CommandResponse TaskManager(string Work, string command, IPtyConnection pty, string taskId, StringBuilder outputBuilder, TaskCompletionSource<int> exitTcs)
     {
-        int pid = process.Id;
-        ActiveTasks.TryAdd(taskId, process);
-        ProcessLauncher.ActiveProcess.TryAdd(pid, process);
+        int pid = pty.Pid;
+        ActiveTasks.TryAdd(taskId, pty);
+
         _ = WebSocketClientService.BroadcastEventAsync(new
         {
             type = "task_promoted",
@@ -198,45 +167,34 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             pid,
             cmd = command
         });
-        if (Work == "event")
-        {
-            //Make the process trigger full , means on process exit ----> aware the frontend , basically finite command;
-            //Call the taskWatcher here to get code more meaningful
-            //Example : npm run install, git clone , winget install, etc
 
-            _ = Task.Run(async () => await TaskWatcher(process, taskId, pid, outputBuider, errorBuilder, isDaemon: false));
-        }
-        else
-        {
-            //Not trigger full , means on process exit ----> still aware the frontend (but it get triggered only when the error happens) and run infinitely;
-            //Call the taskWatcher here to get code more meaningful
-            //Exapmle: npm run dev , ping, etc .
-            _ = Task.Run(async () => await TaskWatcher(process, taskId, pid, outputBuider, errorBuilder, isDaemon: true));
-        }
+        bool isDaemon = Work != "event";
+        _ = Task.Run(async () => await TaskWatcher(pty, taskId, pid, outputBuilder, exitTcs, isDaemon));
+
         return new CommandResponse
         {
             Cmd = command,
-            Msg = Work == "event"
-                ? $"Task '{taskId}' is running in the background (PID: {pid}). Live logs are streaming in the Tasks tab."
-                : $"Daemon service '{taskId}' started in the background (PID: {pid}). Monitoring in the Tasks tab.",
-            TerminalOutput = outputBuider.ToString().Trim(),
-            TerminalError = errorBuilder.ToString().Trim(),
+            Msg = isDaemon
+                ? $"Daemon service '{taskId}' started in the background (PID: {pid}). Monitoring in the Tasks tab."
+                : $"Task '{taskId}' is running in the background (PID: {pid}). Live logs are streaming in the Tasks tab.",
+            TerminalOutput = outputBuilder.ToString().Trim(),
+            TerminalError = "",
             IsSuccess = true,
             ExitCode = null,
             Pid = pid.ToString(),
             TaskId = taskId
         };
     }
-    public static async Task TaskWatcher(Process process, string currentTaskId, int pid, StringBuilder outputBuilder, StringBuilder errorBuilder, bool isDaemon)
+
+    public static async Task TaskWatcher(IPtyConnection pty, string currentTaskId, int pid, StringBuilder outputBuilder, TaskCompletionSource<int> exitTcs, bool isDaemon)
     {
         try
         {
-            await process.WaitForExitAsync();
+            int finalExit = await exitTcs.Task;
             await Task.Delay(100);
-            int finalExit = process.ExitCode;
             TaskExitCodes[currentTaskId] = finalExit;
             ActiveTasks.TryRemove(currentTaskId, out _);
-            ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
+
             if (isDaemon)
             {
                 await WebSocketClientService.BroadcastEventAsync(new
@@ -247,7 +205,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                     exitCode = finalExit,
                     crashed = finalExit != 0,
                     terminalOutput = outputBuilder.ToString().Trim(),
-                    terminalError = errorBuilder.ToString().Trim()
+                    terminalError = ""
                 });
             }
             else
@@ -259,30 +217,28 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                     pid,
                     exitCode = finalExit,
                     terminalOutput = outputBuilder.ToString().Trim(),
-                    terminalError = errorBuilder.ToString().Trim()
+                    terminalError = ""
                 });
             }
         }
         finally
         {
-            process.Dispose();
+            pty.Dispose();
         }
     }
+
     public static CommandResponse PeekTask(string taskId, int limit = 50)
     {
         bool isRunning = false;
         int? exitCode = null;
         string? pid = null;
-        if (ActiveTasks.TryGetValue(taskId, out var proc))
+
+        if (ActiveTasks.TryGetValue(taskId, out var pty))
         {
             try
             {
-                pid = proc.Id.ToString();
-                isRunning = !proc.HasExited;
-                if (!isRunning)
-                {
-                    exitCode = proc.ExitCode;
-                }
+                pid = pty.Pid.ToString();
+                isRunning = true;
             }
             catch
             {
@@ -294,12 +250,14 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             exitCode = cachedExit;
             isRunning = false;
         }
+
         string combinedOutput = "";
         if (TaskLogBuffers.TryGetValue(taskId, out var buffer))
         {
             var lastLines = buffer.TakeLast(limit).ToArray();
             combinedOutput = string.Join("", lastLines);
         }
+
         return new CommandResponse
         {
             TaskId = taskId,
@@ -309,18 +267,20 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             ExitCode = exitCode,
             Pid = pid
         };
-
-
     }
 
     public static async Task SendTaskInput(string taskId, string input)
     {
-        if (ActiveTasks.TryGetValue(taskId, out var process) && !process.HasExited)
+        if (ActiveTasks.TryGetValue(taskId, out var pty))
         {
             try
             {
-                await process.StandardInput.WriteLineAsync(input);
-                await process.StandardInput.BaseStream.FlushAsync();
+                string payload = (input != null && input.StartsWith("\x1b"))
+                    ? input
+                    : (input ?? "").TrimEnd('\r', '\n') + "\r\n";
+                byte[] bytes = Encoding.UTF8.GetBytes(payload);
+                await pty.WriterStream.WriteAsync(bytes, 0, bytes.Length);
+                await pty.WriterStream.FlushAsync();
             }
             catch (Exception ex)
             {
@@ -332,4 +292,49 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             throw new InvalidOperationException($"Task {taskId} is not running.");
         }
     }
+    public static bool KillTask(string taskIdOrPid)
+    {
+        // 1. Check if TaskId matches
+        if (ActiveTasks.TryRemove(taskIdOrPid, out var pty))
+        {
+            int pid = pty.Pid;
+            try { pty.Kill(); } catch { }
+            try
+            {
+                var p = System.Diagnostics.Process.GetProcessById(pid);
+                p.Kill(entireProcessTree: true);
+                p.Dispose();
+            }
+            catch { }
+            pty.Dispose();
+            return true;
+        }
+
+        // 2. Check if PID matches
+        if (int.TryParse(taskIdOrPid, out int targetPid))
+        {
+            foreach (var kvp in ActiveTasks)
+            {
+                if (kvp.Value.Pid == targetPid)
+                {
+                    ActiveTasks.TryRemove(kvp.Key, out _);
+                    try { kvp.Value.Kill(); } catch { }
+                    kvp.Value.Dispose();
+                    break;
+                }
+            }
+
+            try
+            {
+                var p = System.Diagnostics.Process.GetProcessById(targetPid);
+                p.Kill(entireProcessTree: true);
+                p.Dispose();
+                return true;
+            }
+            catch { }
+        }
+
+        return false;
+    }
+
 }

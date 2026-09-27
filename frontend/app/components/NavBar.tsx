@@ -60,13 +60,18 @@ export default function NavBar() {
         <nav className={style.navLinks}>
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href && pathname !== "/auth/login";
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.label}
                 href={item.href}
                 className={`${style.navLinkItem} ${
-                  isActive
+                  isActive ||
+                  (pathname === "/" &&
+                    item.label.toLowerCase().includes("home"))
                     ? `bg-brand/20 text-white border-brand-border/60 shadow-sm shadow-brand/20`
                     : ""
                 }`}
