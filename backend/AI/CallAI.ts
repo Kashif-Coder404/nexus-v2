@@ -165,7 +165,8 @@ export const callAI = async (
     try {
       // Dynamic import so it compiles smoothly even when local file is gitignored
       // @ts-ignore
-      const { localGeminiAICall } = await import("./Providers/localGeminiCall.js");
+      const { localGeminiAICall } =
+        await import("./Providers/localGeminiCall.js");
       const res = await localGeminiAICall({
         chatMessages,
         model: (params.model as string) || "gemini-3.7-flash",
@@ -173,22 +174,40 @@ export const callAI = async (
       });
       const actualContent = res.content || {};
 
-      return {
-        cmd: actualContent.cmd || "",
-        msg: actualContent.msg || "",
-        workingon: actualContent.workingon || "",
-        success: res.success,
-        rawContent: actualContent,
-      };
+      if (res.success) {
+        return {
+          cmd: actualContent.cmd || "",
+          msg: actualContent.msg || "",
+          workingon: actualContent.workingon || "",
+          success: res.success,
+          rawContent: actualContent,
+        };
+      }
+      const fallbackModel =
+        params.model === "gemini-3.1-pro"
+          ? "gemini-3.7-flash"
+          : (params.model as any) || "gemini-3.7-flash";
+
+      console.warn(
+        `[LOCAL GEMINI WARNING] Request was unsuccessful (${actualContent.msg || "unknown"}). Falling back to official Gemini API...`,
+      );
+      return await callAI("gemini", {
+        ...params,
+        model: fallbackModel,
+      });
     } catch (err: any) {
       console.error("[LOCAL GEMINI ROUTING ERROR]:", err);
-      return {
-        cmd: "",
-        msg: `Local Gemini Web2API unavailable: ${err.message || err}`,
-        workingon: "",
-        success: false,
-        rawContent: null,
-      };
+      console.warn(
+        "[LOCAL GEMINI] Falling back to official Gemini API due to error...",
+      );
+      const fallbackModel =
+        params.model === "gemini-3.1-pro"
+          ? "gemini-3.7-flash"
+          : (params.model as any) || "gemini-3.7-flash";
+      return await callAI("gemini", {
+        ...params,
+        model: fallbackModel,
+      });
     }
   }
 

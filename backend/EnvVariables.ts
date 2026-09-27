@@ -13,9 +13,9 @@ const GROQ_KEY_BGMI_15 = process.env.GROQ_KEY_BGMI_15;
 const OPEN_CODE = process.env.OPEN_CODE;
 const GEMINI_API_Main_Acc = process.env.GEMINI_API_Main_Acc;
 const GEMINI_API_Don_Acc = process.env.GEMINI_API_Don_Acc;
+const GEMINI_WEB_2_URL = process.env.GEMINI_WEB_2_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_ROUTER_API = process.env.TOKEN_ROUTER_API;
-
 export {
   API_FOR_AUTHENTICATION,
   MONGO_URI,
@@ -24,6 +24,7 @@ export {
   OPEN_CODE,
   GEMINI_API_Main_Acc,
   GEMINI_API_Don_Acc,
+  GEMINI_WEB_2_URL,
   JWT_SECRET,
   TOKEN_ROUTER_API,
 };

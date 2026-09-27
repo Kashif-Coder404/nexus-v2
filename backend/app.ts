@@ -5,6 +5,7 @@ import deviceRoutes from "./routes/device.routes.js";
 import cors from "cors";
 import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.routes.js";
+import testCmdRoutes from "./routes/TestCMD.routes.js";
 import { userAuthentication } from "./middlewares/auth/authUserLogin.js";
 import {
   startParingHandler,
@@ -66,4 +67,5 @@ app.use("/api/devices", userAuthentication, deviceRoutes);
 app.post("/api/device/revoke-self", revokeSelfHandler);
 app.delete("/api/device/revoke-self", revokeSelfHandler);
 app.delete("/api/device/:deviceId", userAuthentication, revokeDeviceHandler);
+app.use("/api/test-cmd", userAuthentication, testCmdRoutes);
 export default app;

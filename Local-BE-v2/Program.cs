@@ -13,7 +13,9 @@ using System.Runtime.InteropServices;
 
 
 // 2. FIRST: If running from Downloads / outside install dir, run the installer popup!
+
 #if !DEBUG
+
 [DllImport("kernel32.dll")]
 static extern bool FreeConsole();
 
@@ -363,6 +365,24 @@ app.MapPost("/test-cmd", async (RunCommandDto body) =>
 {
     var response = await ExecuteServices.RunAsync(body);
     return Results.Ok(response);
+});
+
+app.MapGet("/api/tasks/{taskId}/logs", (string taskId, int lines = 50) =>
+{
+    var response = ExecuteServices.PeekTask(taskId, lines);
+    return Results.Ok(response);
+});
+app.MapPost("/api/tasks/{taskId}/stdin", async (string taskId, TaskInput body) =>
+{
+    try
+    {
+        await ExecuteServices.SendTaskInput(taskId, body.Input);
+        return Results.Ok(new { success = true, taskId, message = "Input sent successfully." });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { success = false, message = ex.Message });
+    }
 });
 
 app.MapPost("/kill/{pid:int}", (int pid) =>

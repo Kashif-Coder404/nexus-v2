@@ -1,36 +1,9 @@
 namespace Nexus.Agent.Models;
 
-using System.Text.Json.Serialization;
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ExecutionTypes
-{
-    Wait,
-    Background,
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum VerifyType
-{
-    None,
-    Window,
-    Pid,
-}
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum OutputMode
-{
-    Final,
-    Live,
-    Event //Extra when the command tooks too long to response or something installing...
-}
-
 public class RunCommandDto
 {
     public string Command { get; set; } = "";
-    public int TimeoutSeconds { get; set; } = 30;
-    public ExecutionTypes ExecutionType { get; set; } = ExecutionTypes.Wait;
-    public VerifyType VerifyType { get; set; } = VerifyType.None;
-    public OutputMode OutputMode { get; set; } = OutputMode.Final;
+    public int TimeoutSeconds { get; set; } = 0;
     public bool IsDaemon { get; set; } = false;
     public string? TaskId { get; set; }
 }
@@ -57,4 +30,7 @@ public class AppProcess(string name, int pid, string title)
     public string Title { get; } = title;
 }
 
-
+public class TaskInput
+{
+    public string Input { get; set; } = string.Empty;
+}

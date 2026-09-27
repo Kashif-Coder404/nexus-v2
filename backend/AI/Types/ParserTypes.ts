@@ -11,11 +11,7 @@ export type BaseCommandType<
 };
 export interface InBuiltParam {
   command: string;
-  executionType?: "wait" | "background";
-  verifyType?: "none" | "window" | "pid";
-  outputMode?: "final" | "live" | "event";
   timeout?: number; // Timeout in seconds
-  isDaemon?: boolean;
   taskId?: string;
 }
 

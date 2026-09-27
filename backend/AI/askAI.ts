@@ -151,7 +151,8 @@ export const askAI = async (
         executions.push({
           steps: executions.length + 1,
           action: parsedCMD.action,
-          cmd: command,
+          cmd:
+            commandOutput.cmd || (parsedCMD.param as any)?.command || command,
           msg: aiResponse?.msg || "",
           terminalError: commandOutput.terminalError || "",
           terminalOutput: commandOutput.terminalOutput || "",

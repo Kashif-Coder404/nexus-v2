@@ -7,5 +7,4 @@ const router = express.Router();
 
 router.post("/rename", renameDeviceHandler);
 router.get("/get", getDevicesHandler);
-
 export default router;

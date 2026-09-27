@@ -29,6 +29,21 @@ public class WebSocketClientService : BackgroundService
                 Console.WriteLine("[WS] Connecting to Cloud Backend...");
                 await ws.ConnectAsync(new Uri(_backendurl), stoppingToken);
                 DeviceStateManager.IsConnectedToBackend = true;
+                var heartBeatTask = Task.Run(async () =>
+                {
+                    while (!stoppingToken.IsCancellationRequested && ws.State == WebSocketState.Open)
+                    {
+                        try
+                        {
+                            await Task.Delay(25000, stoppingToken);
+                            if (ws.State == WebSocketState.Open)
+                            {
+                                await SendJsonAsync(ws, new { type = "ping", service = DeviceStateManager.IsServiceEnabled }, stoppingToken);
+                            }
+                        }
+                        catch { break; }
+                    }
+                }, stoppingToken);
 
                 string? token = await LoadDeviceTokenAsync();
                 if (!string.IsNullOrEmpty(token))
@@ -98,7 +113,6 @@ public class WebSocketClientService : BackgroundService
 
             string raw = Encoding.UTF8.GetString(ms.ToArray());
             if (string.IsNullOrWhiteSpace(raw)) continue;
-
             try
             {
                 var json = JsonNode.Parse(raw);
@@ -136,6 +150,41 @@ public class WebSocketClientService : BackgroundService
                     await SaveDeviceTokenAsync("");
                     string freshCode = DeviceStateManager.GenerateNewPairingCode();
                     await SendJsonAsync(ws, new { type = "PairingInit", code = freshCode }, ct);
+                }
+                else if (type == "kill_task")
+                {
+                    string? targetTaskId = json?["taskId"]?.GetValue<string>();
+                    int? targetPid = json?["pid"]?.GetValue<int>();
+
+                    bool killed = false;
+                    if (!string.IsNullOrEmpty(targetTaskId) && ExecuteServices.ActiveTasks.TryRemove(targetTaskId, out var taskProc))
+                    {
+                        try { taskProc.Kill(entireProcessTree: true); } catch { }
+                        taskProc.Dispose();
+                        killed = true;
+                        Console.WriteLine($"[WS] 🛑 Killed background task by TaskId: {targetTaskId}");
+                    }
+                    if (targetPid.HasValue && ProcessLauncher.ActiveProcess.TryRemove(targetPid.Value, out var pProc))
+                    {
+                        try { pProc.Kill(entireProcessTree: true); } catch { }
+                        pProc.Dispose();
+                        killed = true;
+                        Console.WriteLine($"[WS] 🛑 Killed background task by PID: {targetPid.Value}");
+                    }
+                    if (targetPid.HasValue && !killed)
+                    {
+                        try
+                        {
+                            var proc = System.Diagnostics.Process.GetProcessById(targetPid.Value);
+                            proc.Kill(entireProcessTree: true);
+                            proc.Dispose();
+                            Console.WriteLine($"[WS] 🛑 Killed OS process tree by PID: {targetPid.Value}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[WS] Note: Process {targetPid.Value} already exited ({ex.Message})");
+                        }
+                    }
                 }
 
                 // Command Processing...
@@ -244,6 +293,13 @@ public class WebSocketClientService : BackgroundService
                                 IsSuccess = appResults.Count > 0,
                                 ExitCode = 0
                             };
+                            break;
+                        case "peek_task":
+                        case "task_logs":
+                            var peekParam = cmdNode["param"];
+                            string targetTaskId = peekParam?["taskId"]?.GetValue<string>() ?? peekParam?["task_id"]?.GetValue<string>() ?? "";
+                            int limit = peekParam?["last_lines"]?.GetValue<int>() ?? 50;
+                            response = ExecuteServices.PeekTask(targetTaskId, limit);
                             break;
                         case "in_built":
                         default:

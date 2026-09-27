@@ -1,306 +1,335 @@
 namespace Nexus.Agent.Services;
 
 using System.Collections.Concurrent;
+using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using Nexus.Agent.Models;
 
-
 public static class ExecuteServices
 {
-
     public static readonly ConcurrentDictionary<string, Process> ActiveTasks = new();
+    public static readonly ConcurrentDictionary<string, ConcurrentQueue<string>> TaskLogBuffers = new();
+    public static readonly ConcurrentDictionary<string, int> TaskExitCodes = new();
 
-    private static async Task OnTaskFinishedAsync(string taskId, int pid, int exitCode, string output)
-    {
-        ActiveTasks.TryRemove(taskId, out _);
-        var payload = new
-        {
-            type = "task_finished",
-            taskId,
-            pid,
-            exitCode,
-            terminalOutput = output.Trim()
-        };
-        await WebSocketClientService.BroadcastEventAsync(payload);
-        Console.WriteLine($"[ExecuteServices] Task {taskId} (PID: {pid}) finished with exit code {exitCode}.");
-    }
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        IncludeFields = true,
-        WriteIndented = true
-    };
     public static async Task<CommandResponse> RunAsync(RunCommandDto body)
     {
-        int timeoutSec = body.TimeoutSeconds > 0 ? body.TimeoutSeconds : 30;
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
-        // 1. Persona 1: GUI Apps, Folders, & URLs (Wait + Window + Event)
-
-        if (body.ExecutionType == ExecutionTypes.Wait &&
-            body.VerifyType == VerifyType.Window &&
-            body.OutputMode == OutputMode.Event)
+        if (string.IsNullOrWhiteSpace(body.Command))
         {
-            if (body.Command.TrimStart().StartsWith("explorer", StringComparison.OrdinalIgnoreCase))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(body.Command, @"['""]([^'""]+)['""]");
-                if (match.Success)
-                {
-                    string targetPath = match.Groups[1].Value.Trim();
-                    if (Path.IsPathRooted(targetPath) && !Directory.Exists(targetPath) && !File.Exists(targetPath))
-                    {
-                        return new CommandResponse
-                        {
-                            Cmd = body.Command,
-                            Msg = $"Cannot open folder. Path does not exist: {targetPath}",
-                            TerminalOutput = "",
-                            TerminalError = $"DirectoryNotFoundException: The path '{targetPath}' was not found on this system.",
-                            IsSuccess = false,
-                            ExitCode = 1
-                        };
-                    }
-                }
-            }
-            var apppsi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -Command \"{body.Command}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            var ignored = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "powershell", "cmd", "conhost", "OpenConsole"
-            };
-            var detectedList = await ProcessLauncher.LaunchAndDetectAsync(apppsi, maxAttempts: 14, ignoredNames: ignored); //14 -> safe side
-            bool appFound = detectedList.Count > 0;
-            string terminalOutput = appFound
-                ? JsonSerializer.Serialize(detectedList, _jsonOptions)
-                : "No new application process detected.";
-
-
             return new CommandResponse
             {
-                Cmd = body.Command,
-                Msg = appFound ? $"Started {detectedList.Count} process(es) successfully." : "Fialed to launch application. Process not Found!",
-                TerminalOutput = terminalOutput,
-                TerminalError = appFound ? "" : "Application executable failed to start or was not found.",
-                IsSuccess = appFound,
-                ExitCode = appFound ? 0 : 1
+                Cmd = "",
+                Msg = "Command cannot be empty.",
+                IsSuccess = false,
+                ExitCode = 1
             };
         }
-        else if (body.ExecutionType == ExecutionTypes.Background &&
-                    body.VerifyType == VerifyType.Window &&
-                    body.OutputMode == OutputMode.Live)
+
+        // Prefix script with environment configuration:
+        // 1. $ProgressPreference = 'SilentlyContinue' suppresses noisy CLIXML progress bars from stderr.
+        // 2. $OutputEncoding = UTF-8 ensures full character fidelity.
+        // 3. Read-Host shim forwards console prompts to stdout so they stream immediately.
+        string fullScript = $@"
+$ProgressPreference = 'SilentlyContinue';
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;
+function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt) {{ [Console]::Out.Write($Prompt + ': ') }}; Microsoft.PowerShell.Utility\Read-Host }}
+{body.Command}
+";
+
+        byte[] cmdBytes = Encoding.Unicode.GetBytes(fullScript);
+        string encodedCmd = Convert.ToBase64String(cmdBytes);
+
+        var psi = new ProcessStartInfo
         {
-            var apppsi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoExit -ExecutionPolicy Bypass -Command \"& {{{body.Command}}} \"",
-                UseShellExecute = true,
-                CreateNoWindow = false,
-            };
-            var detectedList = await ProcessLauncher.LaunchAndDetectAsync(apppsi, maxAttempts: 6);
-            string terminalOutput = detectedList.Count > 0
-                    ? JsonSerializer.Serialize(detectedList, _jsonOptions)
-                    : "Terminal Window Launched";
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -EncodedCommand {encodedCmd}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
 
-            return new CommandResponse
-            {
-                Cmd = body.Command,
-                Msg = detectedList.Count > 0
-                    ? $"Started {detectedList.Count} process(es) successfully."
-                    : "Terminal window launched.",
-                TerminalOutput = terminalOutput,
-                TerminalError = "",
-                IsSuccess = true,
-                ExitCode = 0
+        // Universal Unbuffered & Rich Terminal Environment Variables:
+        // Guarantees Python, Node.js, and CLI tools never block-buffer in 4KB chunks and retain ANSI colors
+        psi.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
+        psi.EnvironmentVariables["FORCE_COLOR"] = "1";
+        psi.EnvironmentVariables["GIT_FLUSH"] = "1";
+        psi.EnvironmentVariables["CLICOLOR_FORCE"] = "1";
+        psi.EnvironmentVariables["TERM"] = "xterm-256color";
+        psi.EnvironmentVariables["COLORTERM"] = "truecolor";
 
-            };
-        }
-        // 3. Persona 3: Silent Headless Daemon (Background + Pid + Live)
-        else if (body.ExecutionType == ExecutionTypes.Background &&
-                 body.VerifyType == VerifyType.Pid &&
-                 body.OutputMode == OutputMode.Live)
+
+        var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        var outputBuilder = new StringBuilder();
+        var errorBuilder = new StringBuilder();
+        string currentTaskId = body.TaskId ?? "";
+
+        try
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -Command \"{body.Command}\"",
-                RedirectStandardOutput = true, // Pipe stdout to our code
-                RedirectStandardError = true,  // Pipe stderr to our code
-                UseShellExecute = false,
-                CreateNoWindow = true,         // 100% silent, 0 window flicker
-            };
-
-            var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            var logBuffer = new System.Text.StringBuilder();
-            var errorBuffer = new System.Text.StringBuilder();
-
-            // Hook real-time stdout / stderr streams
-            process.OutputDataReceived += (sender, args) =>
-            {
-                if (args.Data != null)
-                {
-                    logBuffer.AppendLine(args.Data);
-                    Console.WriteLine($"[PID {process.Id}] {args.Data}");
-                }
-            };
-            process.ErrorDataReceived += (sender, args) =>
-            {
-                if (args.Data != null)
-                {
-                    errorBuffer.AppendLine(args.Data);
-                    Console.WriteLine($"[PID {process.Id}][ERROR] {args.Data}");
-                }
-            };
-
             process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            // 1-second Boot Crash Detection
-            await Task.Delay(1000);
-            if (process.HasExited)
+            int pid = process.Id;
+            currentTaskId = body.TaskId ?? $"task-{pid}";
+            ActiveTasks.TryAdd(currentTaskId, process);
+            ProcessLauncher.ActiveProcess.TryAdd(pid, process);
+            TaskLogBuffers.TryAdd(currentTaskId, new ConcurrentQueue<string>());
+            // Asynchronous chunk-based stream reader: captures raw text & prompts immediately without waiting for \n
+            void StartStreamReader(StreamReader reader, StringBuilder builder, bool isError)
             {
-                // It crashed immediately (e.g. port taken, invalid command)
+                _ = Task.Run(async () =>
+                {
+                    char[] charBuf = new char[512];
+                    try
+                    {
+                        while (!process.HasExited || !reader.EndOfStream)
+                        {
+                            int read = await reader.ReadAsync(charBuf, 0, charBuf.Length);
+                            if (read == 0) break;
+
+                            string chunk = new string(charBuf, 0, read);
+                            if (isError) Console.Write($"Live Error: {chunk}");
+                            else Console.Write($"Live Data: {chunk}");
+
+                            builder.Append(chunk);
+                            var queue = TaskLogBuffers.GetOrAdd(currentTaskId, _ => new ConcurrentQueue<string>());
+                            queue.Enqueue(chunk);
+                            while (queue.Count > 200) queue.TryDequeue(out _);
+
+                            _ = WebSocketClientService.BroadcastEventAsync(new
+                            {
+                                type = "cmd_chunk",
+                                taskId = currentTaskId,
+                                pid,
+                                chunk
+                            });
+                        }
+                    }
+                    catch { }
+                });
+            }
+
+            StartStreamReader(process.StandardOutput, outputBuilder, isError: false);
+            StartStreamReader(process.StandardError, errorBuilder, isError: true);
+            if (body.IsDaemon)
+            {
+                return TaskManager("daemon", body.Command, process, currentTaskId, outputBuilder, errorBuilder);
+            }
+
+            Task exitTask = process.WaitForExitAsync();
+            Task threshold = Task.Delay(1500);
+            Task winner = await Task.WhenAny(exitTask, threshold);
+
+            // Wait for completion: If TimeoutSeconds > 0 wait with timeout; otherwise wait indefinitely
+            if (winner == exitTask)
+            {
+                int exitCode = process.ExitCode;
+                ActiveTasks.TryRemove(currentTaskId, out _);
+                ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
+                process.Dispose();
+
+                //early return to not add in task manager
                 return new CommandResponse
                 {
                     Cmd = body.Command,
-                    Msg = "Process failed to start or exited immediately.",
-                    TerminalOutput = logBuffer.ToString().Trim(),
-                    TerminalError = errorBuffer.ToString().Trim(),
-                    IsSuccess = false,
-                    ExitCode = process.ExitCode
+                    Msg = exitCode == 0 ? "Command executed successfully." : "Command failed.",
+                    TerminalOutput = outputBuilder.ToString().Trim(),
+                    TerminalError = errorBuilder.ToString().Trim(),
+                    IsSuccess = exitCode == 0,
+                    ExitCode = exitCode,
+                    Pid = pid.ToString(),
+                    TaskId = currentTaskId
                 };
             }
-
-            // Process is healthy! Store in ActiveProcess dictionary so we can track or kill it later
-            ProcessLauncher.ActiveProcess.TryAdd(process.Id, process);
-            process.Exited += (s, e) =>
-            {
-                ProcessLauncher.ActiveProcess.TryRemove(process.Id, out _);
-                process.Dispose();
-            };
+            return TaskManager("event", body.Command, process, currentTaskId, outputBuilder, errorBuilder);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+            int pid = 0;
+            try { pid = process.Id; } catch { }
+            ActiveTasks.TryRemove(currentTaskId, out _);
+            if (pid > 0) ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
+            process.Dispose();
 
             return new CommandResponse
             {
                 Cmd = body.Command,
-                Msg = $"Background process running silently with PID {process.Id}.",
-                Pid = process.Id.ToString(),
-                TerminalOutput = logBuffer.ToString().Trim(),
-                TerminalError = "",
-                IsSuccess = true,
-                ExitCode = 0
+                Msg = "Command timed out.",
+                TerminalOutput = outputBuilder.ToString().Trim(),
+                TerminalError = $"Execution exceeded timeout of {body.TimeoutSeconds} seconds. Process was killed.",
+                IsSuccess = false,
+                ExitCode = -1,
+                Pid = pid > 0 ? pid.ToString() : null,
+                TaskId = currentTaskId
             };
-        }        // 4. Persona 4: Synchronous CLI Commands, Installs, & Clones (Wait + None + Final)
+        }
+        catch (Exception ex)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+            int pid = 0;
+            try { pid = process.Id; } catch { }
+            ActiveTasks.TryRemove(currentTaskId, out _);
+            if (pid > 0) ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
+            process.Dispose();
+
+            return new CommandResponse
+            {
+                Cmd = body.Command,
+                Msg = $"Execution error: {ex.Message}",
+                TerminalOutput = outputBuilder.ToString().Trim(),
+                TerminalError = ex.Message,
+                IsSuccess = false,
+                ExitCode = 1,
+                Pid = pid > 0 ? pid.ToString() : null,
+                TaskId = currentTaskId
+            };
+        }
+    }
+    public static CommandResponse TaskManager(string Work, string command, Process process, string taskId, StringBuilder outputBuider, StringBuilder errorBuilder)
+    {
+        int pid = process.Id;
+        ActiveTasks.TryAdd(taskId, process);
+        ProcessLauncher.ActiveProcess.TryAdd(pid, process);
+        _ = WebSocketClientService.BroadcastEventAsync(new
+        {
+            type = "task_promoted",
+            taskId,
+            pid,
+            cmd = command
+        });
+        if (Work == "event")
+        {
+            //Make the process trigger full , means on process exit ----> aware the frontend , basically finite command;
+            //Call the taskWatcher here to get code more meaningful
+            //Example : npm run install, git clone , winget install, etc
+
+            _ = Task.Run(async () => await TaskWatcher(process, taskId, pid, outputBuider, errorBuilder, isDaemon: false));
+        }
         else
         {
-            var psi = new ProcessStartInfo
+            //Not trigger full , means on process exit ----> still aware the frontend (but it get triggered only when the error happens) and run infinitely;
+            //Call the taskWatcher here to get code more meaningful
+            //Exapmle: npm run dev , ping, etc .
+            _ = Task.Run(async () => await TaskWatcher(process, taskId, pid, outputBuider, errorBuilder, isDaemon: true));
+        }
+        return new CommandResponse
+        {
+            Cmd = command,
+            Msg = Work == "event"
+                ? $"Task '{taskId}' is running in the background (PID: {pid}). Live logs are streaming in the Tasks tab."
+                : $"Daemon service '{taskId}' started in the background (PID: {pid}). Monitoring in the Tasks tab.",
+            TerminalOutput = outputBuider.ToString().Trim(),
+            TerminalError = errorBuilder.ToString().Trim(),
+            IsSuccess = true,
+            ExitCode = null,
+            Pid = pid.ToString(),
+            TaskId = taskId
+        };
+    }
+    public static async Task TaskWatcher(Process process, string currentTaskId, int pid, StringBuilder outputBuilder, StringBuilder errorBuilder, bool isDaemon)
+    {
+        try
+        {
+            await process.WaitForExitAsync();
+            await Task.Delay(100);
+            int finalExit = process.ExitCode;
+            TaskExitCodes[currentTaskId] = finalExit;
+            ActiveTasks.TryRemove(currentTaskId, out _);
+            ProcessLauncher.ActiveProcess.TryRemove(pid, out _);
+            if (isDaemon)
             {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -NonInteractive -Command \"{body.Command}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                RedirectStandardInput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-
-            using var process = new Process { StartInfo = psi };
-            try
-            {
-                process.Start();
-                var outputBuilder = new StringBuilder();
-                var errorBuilder = new StringBuilder();
-                string? currentTaskId = null;
-
-                process.OutputDataReceived += (s, e) =>
+                await WebSocketClientService.BroadcastEventAsync(new
                 {
-                    if (e.Data != null)
-                    {
-                        outputBuilder.AppendLine(e.Data);
-                        if (currentTaskId != null && ActiveTasks.ContainsKey(currentTaskId))
-                        {
-                            _ = WebSocketClientService.BroadcastEventAsync(new
-                            {
-                                type = "cmd_chunk",
-                                taskId = currentTaskId,
-                                chunk = e.Data + "\n"
-                            });
-                        }
-                    }
-                };
-                process.ErrorDataReceived += (s, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        errorBuilder.AppendLine(e.Data);
-                        if (currentTaskId != null && ActiveTasks.ContainsKey(currentTaskId))
-                        {
-                            _ = WebSocketClientService.BroadcastEventAsync(new
-                            {
-                                type = "cmd_chunk",
-                                taskId = currentTaskId,
-                                chunk = e.Data + "\n"
-                            });
-                        }
-                    }
-                };
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                // Wait for command to finish (or timeout)
-                var exitTask = process.WaitForExitAsync(cts.Token);
-                var thresholdTask = Task.Delay(1500);
-                var winner = await Task.WhenAny(exitTask, thresholdTask);
-                if (winner == exitTask)
-                {
-                    return new CommandResponse
-                    {
-                        Cmd = body.Command,
-                        Msg = process.ExitCode == 0 ? "Command executed successfully." : "Command failed.",
-                        TerminalOutput = outputBuilder.ToString().Trim(),
-                        TerminalError = errorBuilder.ToString().Trim(),
-                        IsSuccess = process.ExitCode == 0,
-                        ExitCode = process.ExitCode
-                    };
-                }
-                else
-                {
-                    string TaskId = body.TaskId ?? $"task-{process.Id}";
-                    currentTaskId = TaskId;
-                    ActiveTasks.TryAdd(TaskId, process);
-                    _ = exitTask.ContinueWith(async _ => await OnTaskFinishedAsync(TaskId, process.Id, process.ExitCode, outputBuilder.ToString()));
-                    return new CommandResponse
-                    {
-                        Cmd = body.Command,
-                        Msg = $"Process running in background (PID: {process.Id}).",
-                        Pid = process.Id.ToString(),
-                        TaskId = TaskId,
-                        IsBackground = true,
-                        IsSuccess = true,
-                        TerminalOutput = outputBuilder.ToString().Trim()
-                    };
-                }
+                    type = "daemon_stopped",
+                    taskId = currentTaskId,
+                    pid,
+                    exitCode = finalExit,
+                    crashed = finalExit != 0,
+                    terminalOutput = outputBuilder.ToString().Trim(),
+                    terminalError = errorBuilder.ToString().Trim()
+                });
             }
-            catch (OperationCanceledException)
+            else
             {
-                // Timeout exceeded! Kill process and ALL child processes
-                try { process.Kill(entireProcessTree: true); } catch { }
-
-                return new CommandResponse
+                await WebSocketClientService.BroadcastEventAsync(new
                 {
-                    Cmd = body.Command,
-                    Msg = "Command timed out.",
-                    TerminalOutput = "",
-                    TerminalError = $"Execution exceeded timeout of {timeoutSec} seconds. Process was killed.",
-                    IsSuccess = false,
-                    ExitCode = -1
-                };
+                    type = "task_finished",
+                    taskId = currentTaskId,
+                    pid,
+                    exitCode = finalExit,
+                    terminalOutput = outputBuilder.ToString().Trim(),
+                    terminalError = errorBuilder.ToString().Trim()
+                });
             }
         }
+        finally
+        {
+            process.Dispose();
+        }
+    }
+    public static CommandResponse PeekTask(string taskId, int limit = 50)
+    {
+        bool isRunning = false;
+        int? exitCode = null;
+        string? pid = null;
+        if (ActiveTasks.TryGetValue(taskId, out var proc))
+        {
+            try
+            {
+                pid = proc.Id.ToString();
+                isRunning = !proc.HasExited;
+                if (!isRunning)
+                {
+                    exitCode = proc.ExitCode;
+                }
+            }
+            catch
+            {
+                isRunning = false;
+            }
+        }
+        else if (TaskExitCodes.TryGetValue(taskId, out var cachedExit))
+        {
+            exitCode = cachedExit;
+            isRunning = false;
+        }
+        string combinedOutput = "";
+        if (TaskLogBuffers.TryGetValue(taskId, out var buffer))
+        {
+            var lastLines = buffer.TakeLast(limit).ToArray();
+            combinedOutput = string.Join("", lastLines);
+        }
+        return new CommandResponse
+        {
+            TaskId = taskId,
+            IsSuccess = true,
+            Msg = isRunning ? "Task is still running." : $"Task stopped (Exit code: {exitCode}).",
+            TerminalOutput = combinedOutput,
+            ExitCode = exitCode,
+            Pid = pid
+        };
 
+
+    }
+
+    public static async Task SendTaskInput(string taskId, string input)
+    {
+        if (ActiveTasks.TryGetValue(taskId, out var process) && !process.HasExited)
+        {
+            try
+            {
+                await process.StandardInput.WriteLineAsync(input);
+                await process.StandardInput.BaseStream.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending input to task {taskId}: {ex.Message}");
+            }
+        }
+        else
+        {
+            throw new InvalidOperationException($"Task {taskId} is not running.");
+        }
     }
 }

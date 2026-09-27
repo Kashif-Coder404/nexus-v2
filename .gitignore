@@ -70,6 +70,5 @@ run_nexus.vbs
 # Local Gemini Web2API proxy & auth
 Repo/
 *gemini-auth.json
-backend/AI/Providers/localGeminiCall.ts
 
 

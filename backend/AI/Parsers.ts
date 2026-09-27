@@ -314,19 +314,8 @@ export const commandParser = async (
         );
         commandPayload = {
           Command: sanitizedCmd,
-          ExecutionType: inBuilt.executionType
-            ? inBuilt.executionType.charAt(0).toUpperCase() +
-              inBuilt.executionType.slice(1).toLowerCase()
-            : "Wait",
-          VerifyType: inBuilt.verifyType
-            ? inBuilt.verifyType.charAt(0).toUpperCase() +
-              inBuilt.verifyType.slice(1).toLowerCase()
-            : "None",
-          OutputMode: inBuilt.outputMode
-            ? inBuilt.outputMode.charAt(0).toUpperCase() +
-              inBuilt.outputMode.slice(1).toLowerCase()
-            : "Final",
           TimeoutSeconds: inBuilt.timeout || Math.round(timeoutMs / 1000),
+          TaskId: inBuilt.taskId,
         };
       } else {
         const rawCmd = (
@@ -340,9 +329,6 @@ export const commandParser = async (
             : 30000;
         commandPayload = {
           Command: rawCmd,
-          ExecutionType: cmd.isDaemon ? "Background" : "Wait",
-          VerifyType: "None",
-          OutputMode: "Final",
           TimeoutSeconds: Math.round(timeoutMs / 1000),
         };
       }

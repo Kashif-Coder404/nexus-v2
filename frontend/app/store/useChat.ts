@@ -20,6 +20,9 @@ type ChatStore = {
   setChat: (chat: Chat[]) => void;
   addChat: (chat: Chat) => void;
   clearChat: () => void;
+  liveTerminal: string;
+  appendLiveTerminal: (text: string) => void;
+  clearLiveTerminal: () => void;
   liveExecutions: any[];
   setLiveExecutions: (liveExecutions: any[]) => void;
 };
@@ -34,5 +37,9 @@ const useChat = create<ChatStore>((set) => ({
   setChat: (chat: Chat[]) => set({ chat }),
   addChat: (chat: Chat) => set((state) => ({ chat: [...state.chat, chat] })),
   clearChat: () => set({ chat: [] }),
+  liveTerminal: "",
+  appendLiveTerminal: (chunk: string) =>
+    set((state) => ({ liveTerminal: state.liveTerminal + chunk })),
+  clearLiveTerminal: () => set({ liveTerminal: "" }),
 }));
 export default useChat;

@@ -1,0 +1,44 @@
+import { Router } from "express";
+import { sendCmdRequest } from "../services/websocket.service.js";
+
+const router = Router();
+
+const testCMD = async (req: any, res: any) => {
+  const body = req.body;
+  const userId = req.userId;
+
+  // Normalize cmd payload
+  let cmdPayload = body.cmd !== undefined ? body.cmd : body;
+
+  if (typeof cmdPayload === "string") {
+    cmdPayload = {
+      action: "in_built",
+      param: { command: cmdPayload },
+    };
+  } else if (cmdPayload.command && !cmdPayload.action) {
+    cmdPayload = {
+      action: "in_built",
+      param: cmdPayload,
+    };
+  }
+
+  const timeoutMs =
+    Number(body.timeoutMs) ||
+    (body.timeoutSeconds ? Number(body.timeoutSeconds) * 1000 : 30000);
+
+  try {
+    const result = await sendCmdRequest(userId, cmdPayload, timeoutMs);
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to execute command on local device",
+    });
+  }
+};
+
+router.post("/", testCMD);
+export default router;

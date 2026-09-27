@@ -2,6 +2,10 @@ import { useUserCredentials } from "@/app/store/useUserCredentials";
 import useChat from "@/app/store/useChat";
 import { useDevices } from "@/app/store/useDevices";
 let activeSocket: WebSocket | null = null;
+const sleep = async (time: number) => {
+  return new Promise((resolve) => setTimeout(resolve, time));
+};
+
 const WebSocketInit = async () => {
   if (typeof window === "undefined") return;
 
@@ -19,6 +23,12 @@ const WebSocketInit = async () => {
   ws.onmessage = (event) => {
     try {
       const payload = JSON.parse(event.data);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("nexus_ws_message", { detail: payload }),
+        );
+      }
 
       if (payload.type === "device_list") {
         useDevices.getState().setDevices(payload.devices);
@@ -63,8 +73,11 @@ const WebSocketInit = async () => {
       // ignore parse error
     }
   };
-  ws.onclose = () => {
+  ws.onclose = async () => {
     useChat.getState().setWorkingOn(null);
+    console.log("[WS] Reconnecting in 5s...");
+    await sleep(5000);
+    WebSocketInit();
   };
   let retryInterval: NodeJS.Timeout;
   ws.onerror = (error) => {

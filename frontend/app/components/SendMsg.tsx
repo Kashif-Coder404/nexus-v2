@@ -18,29 +18,29 @@ export type ModelType = {
   isLiveModel: boolean;
 };
 
-const StandardModels: ModelType[] = [
+const Models: ModelType[] = [
   {
-    provider: "gemini",
-    name: "gemini-3.5-flash-lite",
-    displayName: "gemini-3.5-flash-lite",
+    provider: "local_gemini",
+    name: "gemini-3.7-flash",
+    displayName: "gemini-3.7-flash",
     isLiveModel: false,
   },
   {
-    provider: "gemini",
-    name: "gemini-3.5-flash",
-    displayName: "gemini-3.5-flash",
-    isLiveModel: false,
-  },
-  {
-    provider: "gemini",
+    provider: "local_gemini",
     name: "gemini-3.6-flash",
     displayName: "gemini-3.6-flash",
     isLiveModel: false,
   },
   {
+    provider: "local_gemini",
+    name: "gemini-3.1-pro",
+    displayName: "gemini-3.1-pro",
+    isLiveModel: false,
+  },
+  {
     provider: "gemini",
-    name: "gemini-3.7-flash",
-    displayName: "gemini-3.7-flash",
+    name: "gemini-3.5-flash-lite",
+    displayName: "gemini-3.5-flash-lite",
     isLiveModel: false,
   },
   {
@@ -51,45 +51,11 @@ const StandardModels: ModelType[] = [
   },
 ];
 
-const LocalModels: ModelType[] = [
-  {
-    provider: "local_gemini",
-    name: "gemini-3.7-flash",
-    displayName: "gemini-3.7-flash (Local)",
-    isLiveModel: false,
-  },
-  {
-    provider: "local_gemini",
-    name: "gemini-3.6-flash",
-    displayName: "gemini-3.6-flash (Local)",
-    isLiveModel: false,
-  },
-  {
-    provider: "local_gemini",
-    name: "gemini-3.1-pro",
-    displayName: "gemini-3.1-pro (Local Pro)",
-    isLiveModel: false,
-  },
-];
-
-const SendMsg = () => {
+const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
   const [msg, setMsg] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [isLocalHost, setIsLocalHost] = useState<boolean>(false);
-  const [model, setModel] = useState<ModelType>(StandardModels[0]);
+  const [model, setModel] = useState<ModelType>(Models[0]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isLocal =
-        window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1";
-      setIsLocalHost(isLocal);
-    }
-  }, []);
-
-  const availableModels = isLocalHost
-    ? [...LocalModels, ...StandardModels]
-    : StandardModels;
   const token = useUserCredentials((state) => state.token);
   const session = useChat((state) => state.session);
   const addChat = useChat((state) => state.addChat);
@@ -108,8 +74,7 @@ const SendMsg = () => {
     setMsg("");
     setIsSending(true);
 
-    const cloudbackendUrl = "https://nexus-v2-e38m.onrender.com";
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || cloudbackendUrl;
+    const backendUrl = sendingUrl || process.env.NEXT_PUBLIC_BACKEND_URL;
 
     try {
       const res = await fetch(`${backendUrl}/api/chat/message`, {
@@ -186,7 +151,7 @@ const SendMsg = () => {
             className={`absolute bottom-full left-0 mb-2 w-64 bg-brand-surface/95 border border-brand-border/60 rounded-xl overflow-hidden shadow-2xl backdrop-blur-xl z-50 ${isModelSelectOpen ? "opacity-100 visible" : "opacity-0 invisible transition-all duration-200"}`}
           >
             <div className="p-1">
-              {availableModels.map((m) => {
+              {Models.map((m) => {
                 const isSelected =
                   model.name === m.name && model.provider === m.provider;
                 return (

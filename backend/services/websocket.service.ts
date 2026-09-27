@@ -15,6 +15,7 @@ export interface CustomWebSocket extends WebSocket {
   pairingCode?: string;
   service?: boolean;
   ipAddress?: string;
+  watchdogTimer?: boolean;
 }
 // Practice Promise for ws await function!
 const pendingRequests = new Map();
@@ -33,7 +34,28 @@ type JwtPayload = {
   };
   success: boolean;
 };
-
+function resetWatchdog(ws: CustomWebSocket) {
+  if (ws.deviceId === "web_client" && (ws as any).watchdogTimer) {
+    clearTimeout((ws as any).watchdogTimer);
+    (ws as any).watchdogTimer = null;
+    return;
+  }
+  if ((ws as any).watchdogTimer) {
+    clearTimeout((ws as any).watchdogTimer);
+  }
+  ws.isAlive = true;
+  (ws as any).watchdogTimer = setTimeout(() => {
+    ws.isAlive = false;
+    if (ws.userId && ws.deviceId) {
+      sendToUser(ws.userId, {
+        type: "device_status",
+        device: { deviceName: ws.deviceName, id: ws.deviceId },
+        online: false,
+      });
+    }
+    ws.terminate();
+  }, 40000);
+}
 const connectDevice = async (
   ws: CustomWebSocket,
   token: string,
@@ -99,6 +121,10 @@ const connectDevice = async (
   console.log(
     `[WS] Authenticated ${decodedDeviceId ? `device ${decodedDeviceId}` : "web client"} for user ${decodedUserId}`,
   );
+  if (ws.deviceId === "web_client" && (ws as any).watchdogTimer) {
+    clearTimeout((ws as any).watchdogTimer);
+    (ws as any).watchdogTimer = null;
+  }
   if (decodedDeviceId) {
     sendToUser(decodedUserId, {
       type: "device_status",
@@ -133,6 +159,7 @@ const initWebsocket = (server: Server) => {
     if (authHeader) {
       await connectDevice(ws, authHeader, ipHeader as string);
     }
+    resetWatchdog(ws);
 
     ws.on("message", async (event: any) => {
       try {
@@ -142,6 +169,14 @@ const initWebsocket = (server: Server) => {
         const { type } = parsedData;
 
         switch (type) {
+          case "ping": {
+            resetWatchdog(ws);
+            if (typeof parsedData.service === "boolean") {
+              ws.service = parsedData.service;
+            }
+            sendJson(ws, { type: "pong" });
+            break;
+          }
           case "PairingInit": {
             ws.pairingCode = parsedData.code;
             break;
@@ -201,8 +236,28 @@ const initWebsocket = (server: Server) => {
             }
             break;
           }
-
-
+          case "cmd_chunk": {
+            if (ws.isAuthenticated && ws.userId) {
+              sendToUser(ws.userId, {
+                type: "cmd_chunk",
+                taskId: parsedData.taskId,
+                chunk: parsedData.chunk,
+              });
+            }
+            break;
+          }
+          case "task_finished": {
+            if (ws.isAuthenticated && ws.userId) {
+              sendToUser(ws.userId, {
+                type: "task_finished",
+                taskId: parsedData.taskId,
+                pid: parsedData.pid,
+                exitCode: parsedData.exitCode,
+                terminalOutput: parsedData.terminalOutput,
+              });
+            }
+            break;
+          }
           case "revoke-device": {
             if (!ws.isAuthenticated) break;
             let targetDeviceId = parsedData.deviceId;
@@ -280,6 +335,9 @@ const initWebsocket = (server: Server) => {
       console.log(
         `[WS] Client disconnected (user: ${ws.userId || "unauthenticated"}, device: ${ws.deviceId || "none"})`,
       );
+      if ((ws as any).watchdogTimer) {
+        clearTimeout((ws as any).watchdogTimer);
+      }
       if (
         ws.isAuthenticated &&
         ws.userId &&
@@ -300,17 +358,17 @@ const initWebsocket = (server: Server) => {
   });
 };
 //Client check pinging...
-setInterval(() => {
-  if (!wss) return;
-  wss.clients.forEach((client: CustomWebSocket) => {
-    if (client.deviceId === "web_client") return; // skip browser clients
-    if (client.isAlive === false) {
-      return client.terminate();
-    }
-    client.isAlive = false; // assume dead until pong proves otherwise
-    client.ping(); // triggers Local-BE auto-pong
-  });
-}, 30000);
+// setInterval(() => {
+//   if (!wss) return;
+//   wss.clients.forEach((client: CustomWebSocket) => {
+//     if (client.deviceId === "web_client") return; // skip browser clients
+//     if (client.isAlive === false) {
+//       return client.terminate();
+//     }
+//     client.isAlive = false; // assume dead until pong proves otherwise
+//     client.ping(); // triggers Local-BE auto-pong
+//   });
+// }, 30000);
 
 const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
   const userDoc = await UserModel.findById(userId);
