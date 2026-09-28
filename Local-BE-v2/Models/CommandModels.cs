@@ -33,4 +33,5 @@ public class AppProcess(string name, int pid, string title)
 public class TaskInput
 {
     public string Input { get; set; } = string.Empty;
+    public bool IsRaw { get; set; } = false;
 }

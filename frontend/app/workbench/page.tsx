@@ -28,6 +28,16 @@ import {
   BellRing,
 } from "lucide-react";
 import Ansi from "ansi-to-react";
+import dynamic from "next/dynamic";
+
+const XTerminal = dynamic(() => import("@/app/components/XTerminal"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center text-xs font-mono text-zinc-500 py-12">
+      Initializing VS Code Terminal...
+    </div>
+  ),
+});
 
 // Normalizes ANSI codes ensuring raw tags like [36m are formatted with standard ESC (\u001b)
 const formatAnsi = (str?: string) => {
@@ -142,6 +152,7 @@ export default function WorkbenchPage() {
   const [autoScrollTerminal, setAutoScrollTerminal] = useState(true);
   const [taskStdin, setTaskStdin] = useState("");
   const [isSendingStdin, setIsSendingStdin] = useState(false);
+  const [terminalViewMode, setTerminalViewMode] = useState<"interactive" | "raw">("interactive");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -265,7 +276,7 @@ export default function WorkbenchPage() {
           }
         } catch {}
       }
-    }, 1000);
+    }, 350);
 
     return () => clearInterval(interval);
   }, [activeTasksList, localBeUrl]);
@@ -488,6 +499,21 @@ export default function WorkbenchPage() {
       console.error("Failed to send stdin:", err);
     } finally {
       setIsSendingStdin(false);
+    }
+  };
+
+  // Send Raw Keystroke (Arrows, Enter, Ctrl+C)
+  const sendRawKeystroke = async (keystroke: string) => {
+    if (!selectedTaskId) return;
+    try {
+      await fetch(`${localBeUrl}/api/tasks/${selectedTaskId}/stdin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: keystroke, isRaw: true }),
+      });
+      setTimeout(() => handlePeekTask(selectedTaskId), 200);
+    } catch (err) {
+      console.error("Failed to send raw keystroke:", err);
     }
   };
 
@@ -1074,6 +1100,32 @@ export default function WorkbenchPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center gap-1 bg-[#090d16] p-0.5 rounded border border-[#4c227b]/30 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => setTerminalViewMode("interactive")}
+                      className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
+                        terminalViewMode === "interactive"
+                          ? "bg-[#a855f7]/30 text-white font-semibold"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      VS Code Terminal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTerminalViewMode("raw")}
+                      className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
+                        terminalViewMode === "raw"
+                          ? "bg-[#a855f7]/30 text-white font-semibold"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      Raw Logs
+                    </button>
+                  </div>
+
                   <button
                     onClick={() =>
                       handleCopyLogs(selectedTask.taskId, selectedTask.logs)
@@ -1103,8 +1155,8 @@ export default function WorkbenchPage() {
               </div>
 
               {/* Terminal Viewport */}
-              <div className="flex-1 p-3 bg-[#080711] overflow-y-auto font-mono text-xs text-zinc-300 space-y-1">
-                <div className="text-zinc-500 text-[10px] pb-2 border-b border-[#4c227b]/20 mb-2 flex items-center justify-between">
+              <div className="flex-1 p-3 bg-[#080711] overflow-hidden flex flex-col font-mono text-xs text-zinc-300">
+                <div className="text-zinc-500 text-[10px] pb-2 border-b border-[#4c227b]/20 mb-2 flex items-center justify-between shrink-0">
                   <span>
                     [Nexus Terminal Stream] Started: {selectedTask.startedAt}
                     {selectedTask.completedAt
@@ -1118,14 +1170,27 @@ export default function WorkbenchPage() {
                       </span>
                     )}
                 </div>
-                <div className="whitespace-pre-wrap leading-relaxed select-text">
-                  {selectedTask.logs ? (
-                    <Ansi linkify>{formatAnsi(selectedTask.logs)}</Ansi>
-                  ) : (
-                    "Waiting for task logs..."
-                  )}
-                </div>
-                <div ref={terminalEndRef} />
+
+                {terminalViewMode === "interactive" ? (
+                  <div className="flex-1 w-full h-full min-h-[300px] overflow-hidden">
+                    <XTerminal
+                      key={selectedTask.taskId}
+                      taskId={selectedTask.taskId}
+                      localBeUrl={localBeUrl}
+                      logs={selectedTask.logs}
+                      isCompleted={selectedTask.status !== "running"}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text space-y-1">
+                    {selectedTask.logs ? (
+                      <Ansi linkify>{formatAnsi(selectedTask.logs)}</Ansi>
+                    ) : (
+                      "Waiting for task logs..."
+                    )}
+                    <div ref={terminalEndRef} />
+                  </div>
+                )}
               </div>
 
               {/* Interactive Stdin Bar (Only shown when task is running) */}
@@ -1141,13 +1206,65 @@ export default function WorkbenchPage() {
                     type="text"
                     value={taskStdin}
                     onChange={(e) => setTaskStdin(e.target.value)}
-                    placeholder="Type response / keystroke (e.g. 'y', project name) and hit Enter..."
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        sendRawKeystroke("\x1b[A");
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        sendRawKeystroke("\x1b[B");
+                      } else if (e.key === "ArrowLeft") {
+                        e.preventDefault();
+                        sendRawKeystroke("\x1b[D");
+                      } else if (e.key === "ArrowRight") {
+                        e.preventDefault();
+                        sendRawKeystroke("\x1b[C");
+                      }
+                    }}
+                    placeholder="Type or use keyboard arrows ↑ / ↓ ... (or click terminal)"
                     disabled={isSendingStdin}
                     className="flex-1 bg-transparent text-xs font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none"
                   />
+
+                  {/* Quick Arrow & Action Buttons */}
+                  <div className="flex items-center gap-1 border-l border-[#4c227b]/30 pl-2">
+                    <button
+                      type="button"
+                      onClick={() => sendRawKeystroke("\x1b[A")}
+                      className="px-1.5 py-0.5 rounded bg-[#140d24] hover:bg-[#a855f7]/30 border border-[#4c227b]/40 text-zinc-300 hover:text-white text-[11px] font-mono cursor-pointer transition-colors"
+                      title="Up Arrow (↑)"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendRawKeystroke("\x1b[B")}
+                      className="px-1.5 py-0.5 rounded bg-[#140d24] hover:bg-[#a855f7]/30 border border-[#4c227b]/40 text-zinc-300 hover:text-white text-[11px] font-mono cursor-pointer transition-colors"
+                      title="Down Arrow (↓)"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendRawKeystroke("\r")}
+                      className="px-1.5 py-0.5 rounded bg-[#140d24] hover:bg-[#a855f7]/30 border border-[#4c227b]/40 text-zinc-300 hover:text-white text-[10px] font-mono cursor-pointer transition-colors"
+                      title="Enter (↵)"
+                    >
+                      ↵
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendRawKeystroke("\x03")}
+                      className="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-[10px] font-mono cursor-pointer transition-colors"
+                      title="Abort (Ctrl+C)"
+                    >
+                      ^C
+                    </button>
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={!taskStdin.trim() || isSendingStdin}
+                    disabled={isSendingStdin}
                     className="px-2.5 py-1 rounded bg-[#a855f7]/20 border border-[#a855f7]/40 hover:bg-[#a855f7]/30 text-[#d8b4fe] text-[11px] font-mono font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Send className="h-3 w-3" />

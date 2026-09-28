@@ -2,15 +2,28 @@ namespace Nexus.Agent.Services;
 
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.RegularExpressions;
 using Nexus.Agent.Models;
 using Porta.Pty;
 
 public static class ExecuteServices
 {
+    public const int threshold = 5000;
     public static readonly ConcurrentDictionary<string, IPtyConnection> ActiveTasks = new();
     public static readonly ConcurrentDictionary<string, ConcurrentQueue<string>> TaskLogBuffers = new();
     public static readonly ConcurrentDictionary<string, int> TaskExitCodes = new();
-
+    private static readonly Regex OscTitleRegex = new(@"(?:\x1b\]|\u001b\]|\])0;[^\x07\x1b\r\n]*(?:\x07|\x1b\\)?", RegexOptions.Compiled);
+    private static readonly Regex ConsecutiveNewlinesRegex = new(
+        @"(\r?\n){3,}",
+        RegexOptions.Compiled
+    );
+    public static string SanitizeTerminalOutput(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return string.Empty;
+        return ConsecutiveNewlinesRegex
+            .Replace(OscTitleRegex.Replace(raw, ""), "\r\n")
+            .Trim();
+    }
     public static async Task<CommandResponse> RunAsync(RunCommandDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Command))
@@ -30,6 +43,7 @@ public static class ExecuteServices
         // 3. Read-Host shim forwards console prompts to stdout so they stream immediately.
         string fullScript = $@"
 $ProgressPreference = 'SilentlyContinue';
+Set-PSReadLineOption -BellStyle None -ErrorAction SilentlyContinue;
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;
 Remove-Item Alias:echo -Force -ErrorAction SilentlyContinue;
 function echo {{ Write-Output ($args -join ' ') }};
@@ -86,6 +100,8 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                         if (read == 0) break;
 
                         string chunk = Encoding.UTF8.GetString(buffer, 0, read);
+                        // 1. Strip OSC window title noise and ASCII BEL (\x07) to completely extinguish Windows system chimes
+                        chunk = OscTitleRegex.Replace(chunk, string.Empty).Replace("\x07", string.Empty);
                         Console.Write(chunk);
                         outputBuilder.Append(chunk);
 
@@ -111,7 +127,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             }
 
             // 1.5s threshold race (<1.5s returns synchronously to AI; >1.5s promotes to background task)
-            Task winner = await Task.WhenAny(exitTcs.Task, Task.Delay(1500));
+            Task winner = await Task.WhenAny(exitTcs.Task, Task.Delay(threshold));
 
             if (winner == exitTcs.Task)
             {
@@ -124,7 +140,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                 {
                     Cmd = body.Command,
                     Msg = exitCode == 0 ? "Command executed successfully." : "Command failed.",
-                    TerminalOutput = outputBuilder.ToString().Trim(),
+                    TerminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
                     TerminalError = "",
                     IsSuccess = exitCode == 0,
                     ExitCode = exitCode,
@@ -145,7 +161,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             {
                 Cmd = body.Command,
                 Msg = $"Execution error: {ex.Message}",
-                TerminalOutput = outputBuilder.ToString().Trim(),
+                TerminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
                 TerminalError = ex.Message,
                 IsSuccess = false,
                 ExitCode = 1,
@@ -177,7 +193,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             Msg = isDaemon
                 ? $"Daemon service '{taskId}' started in the background (PID: {pid}). Monitoring in the Tasks tab."
                 : $"Task '{taskId}' is running in the background (PID: {pid}). Live logs are streaming in the Tasks tab.",
-            TerminalOutput = outputBuilder.ToString().Trim(),
+            TerminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
             TerminalError = "",
             IsSuccess = true,
             ExitCode = null,
@@ -204,7 +220,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                     pid,
                     exitCode = finalExit,
                     crashed = finalExit != 0,
-                    terminalOutput = outputBuilder.ToString().Trim(),
+                    terminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
                     terminalError = ""
                 });
             }
@@ -216,7 +232,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                     taskId = currentTaskId,
                     pid,
                     exitCode = finalExit,
-                    terminalOutput = outputBuilder.ToString().Trim(),
+                    terminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
                     terminalError = ""
                 });
             }
@@ -263,21 +279,24 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             TaskId = taskId,
             IsSuccess = true,
             Msg = isRunning ? "Task is still running." : $"Task stopped (Exit code: {exitCode}).",
-            TerminalOutput = combinedOutput,
+            TerminalOutput = SanitizeTerminalOutput(combinedOutput),
             ExitCode = exitCode,
             Pid = pid
         };
     }
 
-    public static async Task SendTaskInput(string taskId, string input)
+    public static async Task SendTaskInput(string taskId, string input, bool isRaw = false)
     {
         if (ActiveTasks.TryGetValue(taskId, out var pty))
         {
             try
             {
-                string payload = (input != null && input.StartsWith("\x1b"))
-                    ? input
-                    : (input ?? "").TrimEnd('\r', '\n') + "\r\n";
+                string payload = isRaw
+                    ? (input ?? string.Empty)
+                    : ((input != null && input.StartsWith("\x1b"))
+                        ? input
+                        : (input ?? "").TrimEnd('\r', '\n') + "\r\n");
+
                 byte[] bytes = Encoding.UTF8.GetBytes(payload);
                 await pty.WriterStream.WriteAsync(bytes, 0, bytes.Length);
                 await pty.WriterStream.FlushAsync();

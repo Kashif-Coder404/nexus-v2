@@ -376,7 +376,7 @@ app.MapPost("/api/tasks/{taskId}/stdin", async (string taskId, TaskInput body) =
 {
     try
     {
-        await ExecuteServices.SendTaskInput(taskId, body.Input);
+        await ExecuteServices.SendTaskInput(taskId, body.Input, body.IsRaw);
         return Results.Ok(new { success = true, taskId, message = "Input sent successfully." });
     }
     catch (Exception ex)
