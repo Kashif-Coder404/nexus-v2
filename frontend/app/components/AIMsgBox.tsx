@@ -2,19 +2,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import {
-  Bot,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Copy,
-  LucideFolderOutput,
-  RobotArm,
-  Shell,
-  Terminal,
-  TerminalIcon,
-  TerminalSquare,
-} from "lucide-react";
+import { Bot } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import useChat from "../store/useChat";
 import ExecutionSteps from "./ExecutionsStep";
@@ -67,23 +55,82 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
     typeof parsedData.data === "object"
       ? parsedData.data
       : parsedData || {};
-  const rawImage: string | undefined = normalized.imageBase64;
+  // Safely extract content and handle legacy stringified or object records
+  let rawContent = normalized.content;
+  let parsedContentObj: any = null;
+
+  if (
+    typeof rawContent === "string" &&
+    (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))
+  ) {
+    try {
+      parsedContentObj = JSON.parse(rawContent);
+    } catch {
+      parsedContentObj = null;
+    }
+  } else if (rawContent && typeof rawContent === "object") {
+    parsedContentObj = rawContent;
+  }
+
+  // Extract display message as a guaranteed string
+  let messageText = "";
+  if (parsedContentObj && typeof parsedContentObj === "object") {
+    const candidate =
+      parsedContentObj.lastAIMsg ??
+      parsedContentObj.content ??
+      parsedContentObj.msg ??
+      parsedContentObj.message ??
+      parsedContentObj.text;
+    if (typeof candidate === "string") {
+      messageText = candidate;
+    } else if (candidate !== undefined && candidate !== null) {
+      messageText =
+        typeof candidate === "object"
+          ? JSON.stringify(candidate, null, 2)
+          : String(candidate);
+    } else {
+      messageText = JSON.stringify(parsedContentObj, null, 2);
+    }
+  } else if (typeof rawContent === "string") {
+    messageText = rawContent;
+  }
+
+  // Fallbacks if messageText is still empty
+  if (!messageText) {
+    const fallback =
+      normalized.lastAIMsg ??
+      normalized.msg ??
+      normalized.message ??
+      normalized.text ??
+      (typeof data === "string" ? data : "");
+    if (typeof fallback === "string") {
+      messageText = fallback;
+    } else if (fallback && typeof fallback === "object") {
+      messageText = JSON.stringify(fallback, null, 2);
+    } else {
+      messageText = String(fallback || "");
+    }
+  }
+
+  const lastAIMsg: string = messageText;
+
+  // Extract executions safely, checking both top-level and legacy inner object
+  const executions: ExecutionStep[] = Array.isArray(normalized.executions)
+    ? normalized.executions
+    : Array.isArray(parsedContentObj?.executions)
+    ? parsedContentObj.executions
+    : [];
+
+  const rawImage: string | undefined =
+    normalized.imageBase64 || parsedContentObj?.imageBase64;
   const imageSrc = rawImage
     ? rawImage.startsWith("data:")
       ? rawImage
       : `data:image/png;base64,${rawImage}`
     : null;
-  const lastAIMsg: string =
-    normalized.content ||
-    normalized.lastAIMsg ||
-    normalized.msg ||
-    normalized.message ||
-    (typeof data === "string" && !normalized.lastAIMsg ? data : "") ||
-    "";
 
-  const executions: ExecutionStep[] = Array.isArray(normalized.executions)
-    ? normalized.executions
-    : [];
+  const workedSeconds: number | undefined =
+    normalized.workedSeconds ?? parsedContentObj?.workedSeconds;
 
   // Scroll to the message when it first appears
   useEffect(() => {
@@ -121,13 +168,15 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
         ref={msgRef}
         className="p-3.5 rounded-xl rounded-tl-none text-xl  text-start  font-normal leading-relaxed break-words [overflow-wrap:anywhere]"
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastAIMsg}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {String(lastAIMsg || "")}
+        </ReactMarkdown>
       </div>
       {executions.length > 0 && (
         <ExecutionSteps
           executions={executions}
           isWorking={false}
-          workedSeconds={normalized.workedSeconds}
+          workedSeconds={workedSeconds}
         />
       )}
     </div>

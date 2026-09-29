@@ -10,12 +10,19 @@ interface UserMsgBoxProps {
 const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
   const userMsgRef = useRef<HTMLDivElement>(null);
 
+  const displayMsg =
+    typeof message === "string"
+      ? message
+      : typeof message === "object"
+      ? JSON.stringify(message, null, 2)
+      : String(message || "");
+
   useEffect(() => {
     userMsgRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
     });
-  }, [message]);
+  }, [displayMsg]);
 
   return (
     <div
@@ -44,7 +51,7 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
         )}
       </div>
       <div className="p-3.5 rounded-xl rounded-tr-none text-xl bg-brand-border  text-end w-fit shadow-md font-normal leading-relaxed wrap-anywhere">
-        {message}
+        {displayMsg}
       </div>
     </div>
   );
