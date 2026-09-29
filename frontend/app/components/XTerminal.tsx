@@ -31,7 +31,6 @@ export default function XTerminal({
       cursorBlink: !isCompleted,
       disableStdin: isCompleted,
       convertEol: true,
-      bellStyle: "none", // Silences the annoying system bell / admin chime
       fontFamily:
         'Menlo, Monaco, "Cascadia Code", "Fira Code", Consolas, monospace',
       fontSize: 12,

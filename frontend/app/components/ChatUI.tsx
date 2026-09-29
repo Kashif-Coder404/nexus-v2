@@ -73,7 +73,7 @@ const ChatUI = () => {
                 />
               );
             } else {
-              return <AIMsgBox key={index} data={chMsg.content} />;
+              return <AIMsgBox key={index} data={chMsg} />;
             }
           })
         )}

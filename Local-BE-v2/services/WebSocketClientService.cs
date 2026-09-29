@@ -126,6 +126,8 @@ public class WebSocketClientService : BackgroundService
 
             string raw = Encoding.UTF8.GetString(ms.ToArray());
             if (string.IsNullOrWhiteSpace(raw)) continue;
+            string? requestId = null;
+            string rawCmd = "";
             try
             {
                 var json = JsonNode.Parse(raw);
@@ -211,9 +213,9 @@ public class WebSocketClientService : BackgroundService
                     catch { }
                 }
                 string action = cmdNode?["action"]?.GetValue<string>()?.ToLowerInvariant() ?? "";
-                string rawCmd = cmdNode?.ToJsonString() ?? "";
+                rawCmd = cmdNode?.ToJsonString() ?? "";
                 CommandResponse? response = null;
-                string? requestId = json?["requestId"]?.GetValue<string>();
+                requestId = json?["requestId"]?.GetValue<string>();
 
                 if (string.IsNullOrEmpty(requestId) || cmdNode == null) continue;
 
@@ -355,7 +357,23 @@ public class WebSocketClientService : BackgroundService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[WS] Error processing message: {ex.Message}");
+                Console.WriteLine($"[WS] Error processing message: {ex}");
+                if (!string.IsNullOrEmpty(requestId))
+                {
+                    _ = SendJsonAsync(ws, new
+                    {
+                        type = "cmd_response",
+                        requestId,
+                        cmdResponse = new CommandResponse
+                        {
+                            Cmd = rawCmd,
+                            Msg = $"Local agent error: {ex.Message}",
+                            TerminalError = ex.Message,
+                            IsSuccess = false,
+                            ExitCode = 1
+                        }
+                    }, ct);
+                }
             }
         }
     }

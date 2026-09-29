@@ -14,11 +14,15 @@ import {
   system_warning,
 } from "./instructions/main.Instructions.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
+import { buildAiContext } from "./Helper/context.summarize.js";
+import { SessionModel } from "../db/schema/session-schema.js";
 
-type CommandExecution = {
+export type CommandExecutionType = {
   steps: number;
-  action: string;
-  cmd: string;
+  cmd: {
+    action?: string;
+    param?: any;
+  };
   msg: string;
   terminalOutput: string;
   terminalError: string;
@@ -40,20 +44,29 @@ export const askAI = async (
   let lastExecutedCmd: string = "";
   let terminalOutput = "";
   let terminalError = "";
+  let lastStepError = "";
   let capturedImage = "";
   let success = false;
   let isSuccessState = false;
   let workingOn = "";
-  let executions: CommandExecution[] = [];
+  let executions: CommandExecutionType[] = [];
   let lastRawCmd: string = "";
   let duplicateCMDCount: number = 0;
   let commandRunningMsgs: ChatMessageType[] = [];
 
   const overallStart = Date.now();
-  const prevChat: ChatMessageType[] =
+  const rawPrevChat: ChatMessageType[] =
     (await getChat(userId, session, 10))?.chat || [];
-  const summaryChat: ChatMessageType[] =
-    (await getChat(userId, `summary_${session}`, 1))?.chat || [];
+  const prevChat = buildAiContext(rawPrevChat);
+  let summaryChat: ChatMessageType[] = [];
+  const summarySessionDoc: any = await SessionModel.findOne({
+    userId,
+    title: `summary_chat_${session}`,
+  });
+  if (summarySessionDoc) {
+    summaryChat =
+      (await getChat(userId, summarySessionDoc._id.toString(), 1))?.chat || [];
+  }
   let chatHistory: ChatMessageType[] = [
     ...summaryChat,
     ...prevChat,
@@ -95,7 +108,6 @@ export const askAI = async (
 
       workingOn =
         aiResponse.workingon || (aiResponse as any).workingOn || "Thinking...";
-      console.log(aiResponse, "<----------------- AI RESPONSE from Gemini");
       sendToUser(userId, {
         type: "ai_data",
         data: {
@@ -164,9 +176,10 @@ export const askAI = async (
           : "";
         executions.push({
           steps: executions.length + 1,
-          action: parsedCMD.action,
-          cmd:
-            commandOutput.cmd || (parsedCMD.param as any)?.command || command,
+          cmd: {
+            action: parsedCMD.action,
+            param: parsedCMD.param,
+          },
           msg: aiResponse?.msg || "",
           terminalError: commandOutput.terminalError || "",
           terminalOutput: commandOutput.terminalOutput || "",
@@ -199,11 +212,11 @@ export const askAI = async (
               ? `EXIT CODE: ${commandOutput.exitCode}`
               : "";
         }
-        terminalError += currentError ? currentError + "\n" : "";
+        lastStepError = currentError;
         command = commandOutput.cmd || commandOutput.msg || "";
         isSuccessState = commandOutput.isSuccess;
         success = commandOutput.isSuccess;
-        let aiTerminalError = terminalError;
+        let aiTerminalError = currentError;
         if (duplicateCMDCount >= 1) {
           aiTerminalError =
             system_warning(
@@ -254,33 +267,29 @@ export const askAI = async (
     1,
     Math.round((Date.now() - overallStart) / 1000),
   );
-  const finalTurnSave: ChatMessageType[] = [
-    { role: "user", content: userMessage },
-    {
-      role: "assistant",
-      content: JSON.stringify({
-        cmd: lastExecutedCmd || "",
-        msg: aiResponse?.msg || "API CALL NO OUTPUT AS A MESSAGE!",
-        terminalError: terminalError || "",
-        terminalOutput: terminalOutput || "",
-        executions: executions || [],
-        imageBase64: capturedImage || "",
-        workedSeconds: totalWorkedSeconds,
-      }),
-    },
-  ];
-  await setChat(userId, session, finalTurnSave);
   const finalMsg =
     aiResponse?.msg ||
     (retries >= 15
       ? "Maximum try reached!"
       : "AI service encountered an issue. Please try again.");
 
+  const finalTurnSave: ChatMessageType[] = [
+    { role: "user", content: userMessage },
+    {
+      role: "assistant",
+      content: finalMsg,
+      executions: executions || [],
+      imageBase64: capturedImage,
+      workedSeconds: totalWorkedSeconds,
+    },
+  ];
+  await setChat(userId, session, finalTurnSave);
+
   return {
     cmd: lastExecutedCmd || "",
     msg: finalMsg,
     terminalOutput: terminalOutput || "",
-    terminalError: terminalError || "",
+    terminalError: isSuccessState ? "" : lastStepError || terminalError || "",
     imageBase64: capturedImage || "",
     executions: executions || [],
     workedSeconds: totalWorkedSeconds,

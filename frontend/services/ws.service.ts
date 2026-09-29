@@ -68,6 +68,10 @@ const WebSocketInit = async () => {
       } else if (payload.type === "ai_done") {
         useChat.getState().setWorkingOn(null);
         useChat.getState().setLiveExecutions([]);
+      } else if (payload.type === "cmd_chunk") {
+        if (payload.chunk) {
+          useChat.getState().appendLiveTerminal(payload.chunk);
+        }
       }
     } catch {
       // ignore parse error

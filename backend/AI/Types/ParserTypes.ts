@@ -13,6 +13,7 @@ export interface InBuiltParam {
   command: string;
   timeout?: number; // Timeout in seconds
   taskId?: string;
+  isDaemon?: boolean;
 }
 
 export type MatchKeyType = keyof ActionTypes;
@@ -63,4 +64,6 @@ export type CommandParserResponseType = {
   isSuccess: boolean;
   exitCode?: number;
   imageBase64?: string;
+  taskId?: string;
+  pid?: string;
 };

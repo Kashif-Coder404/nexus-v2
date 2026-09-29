@@ -8,6 +8,9 @@ type UserMsg = {
 type AiMsg = {
   role: "assistant";
   content: any;
+  executions?: any[];
+  imageBase64?: string;
+  workedSeconds?: number;
   timestamp?: string | Date;
 };
 type Chat = UserMsg | AiMsg;

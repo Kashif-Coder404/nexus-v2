@@ -19,24 +19,11 @@ interface Props {
 }
 function getCommand(cmd: any): string {
   if (!cmd) return "";
-  if (typeof cmd === "string") {
-    try {
-      const parsed = JSON.parse(cmd);
-      if (parsed && typeof parsed === "object") {
-        if (parsed.param?.command) return parsed.param.command;
-        if (typeof parsed.param === "string") return parsed.param;
-        if (parsed.command) return parsed.command;
-      }
-    } catch {
-      // Plain string command (e.g. "dir" or powershell command)
-      return cmd;
-    }
-    return cmd;
-  }
   if (typeof cmd === "object") {
     if (cmd.param?.command) return cmd.param.command;
     if (typeof cmd.param === "string") return cmd.param;
     if (cmd.command) return cmd.command;
+    if (cmd.param) return JSON.stringify(cmd.param);
   }
   return String(cmd);
 }
@@ -110,7 +97,7 @@ export default function ExecutionSteps({
                       <AlertCircle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
                     )}
                     <span className="font-mono text-zinc-200 truncate">
-                      {step.action}
+                      {(step.cmd as any)?.action || step.action || "cmd"}
                     </span>
                     {step.msg && (
                       <span className="text-[11px] text-zinc-400 truncate">

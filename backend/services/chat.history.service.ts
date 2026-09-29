@@ -1,25 +1,26 @@
-import { responseEncoding } from "axios";
 import { ChatMessageType } from "../AI/Types.js";
 import { ChatModel } from "../db/schema/chat-schema.js";
 import { SessionModel } from "../db/schema/session-schema.js";
-import { timeStamp } from "node:console";
 const getChat = async (
   userId: string,
   session: string,
   lastMsgCount: number = 10,
-): Promise<{ success: boolean; chat: ChatMessageType[] | null }> => {
+): Promise<{ success: boolean; chat: ChatMessageType[] | [] }> => {
   try {
     const chatHistory: any = await ChatModel.findOne(
       { userId: userId, sessionId: session },
-      { chatMessage: { $slice: -lastMsgCount } },
+      { chatMessages: { $slice: -lastMsgCount } },
     );
     if (!chatHistory) {
-      return { success: false, chat: null };
+      return { success: false, chat: [] };
     }
-    const chat = chatHistory?.chatMessage.map((msg: any) => {
+    const chat = chatHistory?.chatMessages.map((msg: any) => {
       return {
         role: msg.role,
         content: msg.content,
+        executions: msg.executions || [],
+        imageBase64: msg.imageBase64 || "",
+        workedSeconds: msg.workedSeconds || 0,
         timestamp:
           msg.timestamp || chatHistory.updatedAt || chatHistory.createdAt,
       };
@@ -30,20 +31,13 @@ const getChat = async (
     };
   } catch (error: any) {
     console.error("[CHAT HISTORY SERVICE] Error getting history:", error);
-    return { success: false, chat: null };
+    return { success: false, chat: [] };
   }
 };
 const getChatHandler = async (req: any, res: any) => {
   try {
     const { lastMsgCount = 10 } = req.query;
     const result: any = await getChat(req.userId, req.sessionId, lastMsgCount);
-    // if (!result.success) {
-    //   return res.status(401).json({
-    //     success: false,
-    //     message: "Unauthorized: Chat is not Found!",
-    //     data: null,
-    //   });
-    // }
     return res.status(200).json({
       success: true,
       message: "Chat History",
@@ -71,7 +65,7 @@ const setChat = async (
       },
       {
         $push: {
-          chatMessage: itemsToPush,
+          chatMessages: itemsToPush,
         },
         $set: { updatedAt: new Date() },
       },
@@ -183,7 +177,10 @@ const delete_Chat_Session_Handler = async (req: any, res: any) => {
 
 const getUserSessionsHandler = async (req: any, res: any) => {
   try {
-    const sessions = await SessionModel.find({ userId: req.userId }).sort({
+    const sessions = await SessionModel.find({
+      userId: req.userId,
+      title: { $not: /^summary_chat_/ },
+    }).sort({
       updatedAt: -1,
       _id: -1,
     });

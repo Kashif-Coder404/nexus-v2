@@ -6,7 +6,10 @@ import {
   accessMemory,
 } from "../services/memory.service.js";
 import { search, search_app } from "../services/search.service.js";
-import { sendCmdRequest } from "../services/websocket.service.js";
+import {
+  sendCmdRequest,
+  waitForTaskCompletion,
+} from "../services/websocket.service.js";
 import getSystemInfo from "../tools/getSystemInfo.js";
 import { imageSet, summarizeBase64Image } from "./Helper/image.summarizer.js";
 import { ChatMessageType } from "./Types.js";
@@ -74,6 +77,31 @@ export function extractJSON(text: string): any {
 
   return null;
 }
+
+export const unwrapper = (cmd: string): string => {
+  let unwrapped = (cmd || "")
+    .replace(/^powershell(?:\.exe)?.*?(?:-Command|-c)\s+/i, "")
+    .trim();
+  return (unwrapped.startsWith('"') && unwrapped.endsWith('"')) ||
+    (unwrapped.startsWith("'") && unwrapped.endsWith("'"))
+    ? unwrapped.slice(1, -1)
+    : unwrapped;
+};
+
+export const cleanTerminalOutput = (raw: string): string => {
+  if (!raw || typeof raw !== "string") return "";
+  return raw
+    .replace(/[\u001b\x1b]\[\d+;\d+[Hhf]/g, "\n")
+    .replace(/[\u001b\x1b]\[[0-9;?]*[a-zA-Z]/g, "")
+    .replace(/[\u001b\x1b]\([a-zA-Z]/g, "")
+    .replace(/[\u001b\x1b][=>]/g, "")
+    .replace(/(?:\x1b\]|\u001b\]|\])0;[^\x07\x1b\r\n]*(?:\x07|\x1b\\)?/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
 export function parseAIResponse(data: any): string {
   let responseText = "";
   if (typeof data === "string") {
@@ -308,21 +336,24 @@ export const commandParser = async (
       ) {
         const inBuilt = cmd.param as InBuiltParam;
         timeoutMs = inBuilt.timeout ? Number(inBuilt.timeout) * 1000 : 30000;
-        const sanitizedCmd = (inBuilt.command || "").replace(
+        const cleanCmd = (inBuilt.command || "").replace(
           /\[([^\]]+)\]\(([^)]+)\)/g,
           "$2",
         );
+        const sanitizedCmd = unwrapper(cleanCmd);
         commandPayload = {
           Command: sanitizedCmd,
           TimeoutSeconds: inBuilt.timeout || Math.round(timeoutMs / 1000),
           TaskId: inBuilt.taskId,
+          IsDaemon: Boolean(inBuilt.isDaemon || cmd.isDaemon),
         };
       } else {
-        const rawCmd = (
+        const raw = (
           typeof cmd.param === "string"
             ? cmd.param
             : JSON.stringify(cmd.param || "")
         ).replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$2");
+        const rawCmd = unwrapper(raw);
         timeoutMs =
           cmd.timeout && !isNaN(Number(cmd.timeout))
             ? Number(cmd.timeout)
@@ -330,6 +361,7 @@ export const commandParser = async (
         commandPayload = {
           Command: rawCmd,
           TimeoutSeconds: Math.round(timeoutMs / 1000),
+          IsDaemon: Boolean(cmd.isDaemon),
         };
       }
 
@@ -345,6 +377,22 @@ export const commandParser = async (
         finalResponse.terminalError = executionResponse?.terminalError || "";
         finalResponse.exitCode = executionResponse?.exitCode;
         finalResponse.isSuccess = Boolean(executionResponse?.isSuccess);
+
+        // If the task was promoted to background (>5s) and is NOT a daemon, await its completion
+        if (
+          executionResponse?.exitCode === null &&
+          executionResponse?.taskId &&
+          !commandPayload.IsDaemon
+        ) {
+          const completed = await waitForTaskCompletion(
+            executionResponse.taskId,
+            timeoutMs,
+          );
+          finalResponse.terminalOutput = completed.terminalOutput;
+          finalResponse.terminalError = completed.terminalError;
+          finalResponse.exitCode = completed.exitCode;
+          finalResponse.isSuccess = completed.exitCode === 0;
+        }
       } catch (err: any) {
         finalResponse.cmd = returningCmd;
         finalResponse.msg = "Local backend connection error";
@@ -383,5 +431,11 @@ export const commandParser = async (
   if (commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]) {
     await commandHandlerDict[matchedKey as keyof typeof commandHandlerDict]();
   }
+  finalResponse.terminalOutput = cleanTerminalOutput(
+    finalResponse.terminalOutput,
+  );
+  finalResponse.terminalError = cleanTerminalOutput(
+    finalResponse.terminalError,
+  );
   return finalResponse;
 };

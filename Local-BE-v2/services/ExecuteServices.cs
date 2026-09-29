@@ -13,6 +13,10 @@ public static class ExecuteServices
     public static readonly ConcurrentDictionary<string, ConcurrentQueue<string>> TaskLogBuffers = new();
     public static readonly ConcurrentDictionary<string, int> TaskExitCodes = new();
     private static readonly Regex OscTitleRegex = new(@"(?:\x1b\]|\u001b\]|\])0;[^\x07\x1b\r\n]*(?:\x07|\x1b\\)?", RegexOptions.Compiled);
+    private static readonly Regex CursorPositionRegex = new(@"[\u001b\x1b]\[\d+;\d+[Hhf]", RegexOptions.Compiled);
+    private static readonly Regex AnsiCsiRegex = new(@"[\u001b\x1b]\[[0-9;?]*[a-zA-Z]", RegexOptions.Compiled);
+    private static readonly Regex VtCharsetRegex = new(@"[\u001b\x1b]\([a-zA-Z]", RegexOptions.Compiled);
+    private static readonly Regex VtMiscRegex = new(@"[\u001b\x1b][=>]", RegexOptions.Compiled);
     private static readonly Regex ConsecutiveNewlinesRegex = new(
         @"(\r?\n){3,}",
         RegexOptions.Compiled
@@ -20,10 +24,23 @@ public static class ExecuteServices
     public static string SanitizeTerminalOutput(string raw)
     {
         if (string.IsNullOrEmpty(raw)) return string.Empty;
-        return ConsecutiveNewlinesRegex
-            .Replace(OscTitleRegex.Replace(raw, ""), "\r\n")
-            .Trim();
+        try
+        {
+            string cleaned = CursorPositionRegex?.Replace(raw, "\r\n") ?? raw;
+            cleaned = AnsiCsiRegex?.Replace(cleaned, string.Empty) ?? cleaned;
+            cleaned = VtCharsetRegex?.Replace(cleaned, string.Empty) ?? cleaned;
+            cleaned = VtMiscRegex?.Replace(cleaned, string.Empty) ?? cleaned;
+            cleaned = OscTitleRegex?.Replace(cleaned, string.Empty) ?? cleaned;
+            cleaned = cleaned.Replace("\x07", string.Empty);
+            cleaned = ConsecutiveNewlinesRegex?.Replace(cleaned, "\r\n") ?? cleaned;
+            return cleaned.Trim();
+        }
+        catch
+        {
+            return raw.Trim();
+        }
     }
+
     public static async Task<CommandResponse> RunAsync(RunCommandDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Command))
@@ -161,7 +178,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
             {
                 Cmd = body.Command,
                 Msg = $"Execution error: {ex.Message}",
-                TerminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
+                TerminalOutput = outputBuilder.ToString(),
                 TerminalError = ex.Message,
                 IsSuccess = false,
                 ExitCode = 1,
@@ -355,5 +372,8 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
 
         return false;
     }
-
+    public static async Task StartApplication()
+    {
+        //Start application here ....
+    }
 }

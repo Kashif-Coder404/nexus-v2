@@ -19,6 +19,14 @@ export interface CustomWebSocket extends WebSocket {
 }
 // Practice Promise for ws await function!
 const pendingRequests = new Map();
+const pendingTasks = new Map<
+  string,
+  {
+    resolve: (value: any) => void;
+    reject: (reason?: any) => void;
+    timer: NodeJS.Timeout;
+  }
+>();
 
 //Main
 let wss: WebSocketServer;
@@ -255,6 +263,16 @@ const initWebsocket = (server: Server) => {
                 exitCode: parsedData.exitCode,
                 terminalOutput: parsedData.terminalOutput,
               });
+            }
+            if (parsedData.taskId && pendingTasks.has(parsedData.taskId)) {
+              const handler = pendingTasks.get(parsedData.taskId)!;
+              clearTimeout(handler.timer);
+              handler.resolve({
+                exitCode: parsedData.exitCode,
+                terminalOutput: parsedData.terminalOutput,
+                terminalError: parsedData.terminalError || "",
+              });
+              pendingTasks.delete(parsedData.taskId);
             }
             break;
           }
@@ -680,5 +698,27 @@ const startParingHandler = async (req: any, res: any) => {
     data: null,
   });
 };
+
+export function waitForTaskCompletion(
+  taskId: string,
+  timeoutMs: number = 300000,
+): Promise<{
+  exitCode: number;
+  terminalOutput: string;
+  terminalError: string;
+}> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pendingTasks.delete(taskId);
+      resolve({
+        exitCode: 1,
+        terminalOutput: "",
+        terminalError: `Task ${taskId} timed out after ${Math.round(timeoutMs / 1000)}s`,
+      });
+    }, timeoutMs);
+
+    pendingTasks.set(taskId, { resolve, reject, timer });
+  });
+}
 
 export { initWebsocket, sendToUser, startParingHandler, sendCmdRequest };

@@ -1,8 +1,6 @@
 import { callAI } from "../CallAI.js";
 import { summarizeInstructions } from "../instructions/para.summary.instructions.js";
-import { geminiAICall } from "../Providers/geminiAI.js";
-import { callNvidia } from "../Providers/nvidiaAPICall.js";
-import { CallNvidiaReturnType, ChatMessageType } from "../Types.js";
+import { ChatMessageType } from "../Types/ChatTypes.js";
 
 export const summarizerCall = async (
   chatHistory: ChatMessageType[] = [],
@@ -13,8 +11,26 @@ export const summarizerCall = async (
   }
 
   // Format history messages into a clean text block
+  // Format history messages with their executed actions
   const formattedHistory = chatHistory
-    .map((msg) => `${msg.role}: ${msg.content}`)
+    .map((msg) => {
+      let actionsSummary = "";
+      if (
+        msg.role === "assistant" &&
+        msg.executions &&
+        msg.executions.length > 0
+      ) {
+        const actions = msg.executions
+          .map((e: any) => {
+            const cmdName = e.cmd?.action || "cmd";
+            const intention = e.msg ? ` (${e.msg})` : "";
+            return `${cmdName}${intention}`;
+          })
+          .join(", ");
+        actionsSummary = ` [Actions Taken: ${actions}]`;
+      }
+      return `${msg.role}: ${msg.content}${actionsSummary}`;
+    })
     .join("\n");
 
   const SummaryMessages = [
@@ -25,31 +41,6 @@ export const summarizerCall = async (
   ];
 
   try {
-    const nvidiaSummary: CallNvidiaReturnType = await callNvidia(
-      "",
-      SummaryMessages,
-      session,
-      "",
-      "",
-      summarizeInstructions,
-      false,
-    );
-    if (!nvidiaSummary.success || nvidiaSummary.aiMsg.includes("Invalid")) {
-      throw new Error("Nvidia Failed To summarize, Trying Gemini...");
-    }
-    return {
-      content: nvidiaSummary.aiMsg,
-      success: true,
-    };
-  } catch (error) {
-    console.error(`[SUMMARY ERROR] ${error}`);
-    // const geminiSummaryResponse = await geminiAICall({
-    //   chatMessages: SummaryMessages,
-    //   retryCount: 0,
-    //   model: "gemini-3.1-flash-live-preview",
-    //   instructionString: summarizeInstructions,
-    //   isJson: false,
-    // });
     const geminiSummaryResponse = await callAI("gemini", {
       chatMessages: SummaryMessages,
       session: session,
@@ -58,6 +49,7 @@ export const summarizerCall = async (
       isLiveModel: true,
       model: "gemini-3.1-flash-live-preview",
     });
+
     if (!geminiSummaryResponse.success) {
       return {
         content: "",
@@ -67,6 +59,12 @@ export const summarizerCall = async (
     return {
       content: geminiSummaryResponse.msg,
       success: true,
+    };
+  } catch (error) {
+    console.error(`[SUMMARY ERROR] ${error}`);
+    return {
+      content: "",
+      success: false,
     };
   }
 };

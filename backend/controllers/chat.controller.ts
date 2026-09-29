@@ -97,17 +97,32 @@ export const sendMessage = async (req: any, res: any) => {
 
     async function summarizeBackground() {
       const prevChatMessages: ChatMessageType[] | [] =
-        (await getChat(userId.toString(), session, 10))?.chat || [];
-      if (prevChatMessages.length <= 10) {
+        (await getChat(userId.toString(), session, 20))?.chat || [];
+      if (prevChatMessages.length < 10) {
         return;
       }
-      const prevSummary: ChatMessageType[] | [] =
-        (await getChat(userId, `summary_${session}`, 1))?.chat || [];
+
+      const summaryTitle = `summary_chat_${session}`;
+      let summarySessionDoc: any = await SessionModel.findOne({
+        userId,
+        title: summaryTitle,
+      });
+
+      const prevSummary: ChatMessageType[] | [] = summarySessionDoc
+        ? (await getChat(userId, summarySessionDoc._id.toString(), 1))?.chat ||
+          []
+        : [];
 
       const allContextToSummarize = [...prevSummary, ...prevChatMessages];
       const summaryResult = await summarize(allContextToSummarize, session);
       if (summaryResult.length > 0) {
-        await setChat(userId.toString(), `summary_${session}`, {
+        if (!summarySessionDoc) {
+          summarySessionDoc = await SessionModel.create({
+            userId,
+            title: summaryTitle,
+          });
+        }
+        await setChat(userId.toString(), summarySessionDoc._id.toString(), {
           role: "assistant",
           content: summaryResult,
         });
@@ -129,50 +144,5 @@ export const sendMessage = async (req: any, res: any) => {
       message: error.message || "An unexpected error occurred",
       data: null,
     });
-  }
-};
-
-export const chatRouteChecker = async (req: any, res: any) => {
-  const { message, session } = req.body;
-
-  if (!message || !session) {
-    res.status(400).json({
-      success: false,
-      message: "Message and session are required",
-      data: null,
-    });
-    return;
-  }
-
-  //Temporary Returning message;
-
-  try {
-    let resMsg = "Hello!";
-    let incomingMsg = message.trim().toLowerCase();
-    if (incomingMsg === "hello" || incomingMsg === "hi") {
-      resMsg = "Hello! How can I help you today !";
-    } else if (incomingMsg.includes("open")) {
-      if (incomingMsg.includes("vscode")) {
-        resMsg = "Opening the vscode for you!";
-      }
-    }
-    res.status(200).json({
-      success: true,
-      message: "Message processed successfully",
-      data: {
-        lastAIMsg: resMsg,
-        lastCMD: "",
-        terminal: "",
-        terminalError: "",
-      },
-    });
-    return;
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      message: err.message || String(err),
-      data: null,
-    });
-    return;
   }
 };
