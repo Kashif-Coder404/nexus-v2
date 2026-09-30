@@ -27,9 +27,9 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 100, scale: 1 }}
+      initial={{ opacity: 0, x: 28, scale: 0.96 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       ref={userMsgRef}
       className="flex flex-col items-end w-full max-w-120 sm:max-w-xl p-2 ml-auto"
     >
