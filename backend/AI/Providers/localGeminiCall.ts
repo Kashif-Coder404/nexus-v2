@@ -34,6 +34,7 @@ export const localGeminiAICall = async ({
     /\/+$/,
     "",
   );
+  console.log("[Local Gemini URL]: ", baseUrl);
   const localApiUrl = `${baseUrl}/v1/chat/completions`;
 
   // Build OpenAI-compatible messages array

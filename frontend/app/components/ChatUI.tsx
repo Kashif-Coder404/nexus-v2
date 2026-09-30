@@ -73,7 +73,13 @@ const ChatUI = () => {
                 />
               );
             } else {
-              return <AIMsgBox key={index} data={chMsg} />;
+              return (
+                <AIMsgBox
+                  key={index}
+                  data={chMsg}
+                  isLatest={index === chat.length - 1}
+                />
+              );
             }
           })
         )}

@@ -29,8 +29,34 @@ export interface AiData {
   terminal?: string;
   terminalError?: string;
 }
+function useTypewriter(text: string, speed = 12, isNew = false) {
+  const [displayedText, setDisplayedText] = useState(isNew ? "" : text);
 
-const AIMsgBox = ({ data }: { data: AiData | any }) => {
+  useEffect(() => {
+    if (!isNew) {
+      setDisplayedText(text);
+      return;
+    }
+    let index = 0;
+    const interval = setInterval(() => {
+      index += 3; // reveals 3 characters at a time for smooth reading
+      setDisplayedText(text.slice(0, index));
+      if (index >= text.length) clearInterval(interval);
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, isNew, speed]);
+
+  return displayedText;
+}
+
+const AIMsgBox = ({
+  data,
+  isLatest = false,
+}: {
+  data: AiData | any;
+  isLatest?: boolean;
+}) => {
   const msgRef = useRef<HTMLDivElement>(null);
   const executionsRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -113,13 +139,15 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
   }
 
   const lastAIMsg: string = messageText;
-
+  const isRecent =
+    !data.timestamp || Date.now() - new Date(data.timestamp).getTime() < 15000;
+  const displayedContent = useTypewriter(lastAIMsg, 12, isLatest && isRecent);
   // Extract executions safely, checking both top-level and legacy inner object
   const executions: ExecutionStep[] = Array.isArray(normalized.executions)
     ? normalized.executions
     : Array.isArray(parsedContentObj?.executions)
-    ? parsedContentObj.executions
-    : [];
+      ? parsedContentObj.executions
+      : [];
 
   const rawImage: string | undefined =
     normalized.imageBase64 || parsedContentObj?.imageBase64;
@@ -169,7 +197,7 @@ const AIMsgBox = ({ data }: { data: AiData | any }) => {
         className="p-3.5 rounded-xl rounded-tl-none text-xl  text-start  font-normal leading-relaxed break-words [overflow-wrap:anywhere]"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {String(lastAIMsg || "")}
+          {String(displayedContent)}
         </ReactMarkdown>
       </div>
       {executions.length > 0 && (

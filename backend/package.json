@@ -13,8 +13,12 @@
     "start": "node dist/server.js",
     "frontend": "cd ../frontend && npm run dev",
     "app": "cd ../nexus-app && npm run start",
-    "local-be": "cd ../local-be && npm run dev",
-    "all": "concurrently -n \"BE,FE,LBE\" \"npm run dev:server\" \"npm run frontend\" \"npm run local-be\"",
+    "local-be": "cd ../local-be-v2 && dotnet watch -- --service",
+    "frontend:seperate": "start cmd /k \"cd /d D:/coding/projects/next/nexus_v2/frontend && npm run dev\"",
+    "backend:seperate" : "start cmd /k \"cd D:/coding/Projects/Next/nexus_v2/backend && npm run dev:server\"",
+    "LocalBE:seperate" : "powershell -Command \"Start-Process cmd -ArgumentList '/k cd D:/coding/Projects/Next/nexus_v2/local-be-v2 && dotnet watch -- --service' -Verb RunAs\"",
+    "all": "concurrently -n \"BE,FE\" \"npm run dev:server\" \"npm run frontend\"",
+    "all:seperate" : "npm run frontend:seperate && npm run backend:seperate && npm run LocalBE:seperate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import { User } from "lucide-react";
+import { motion } from "motion/react";
 
 interface UserMsgBoxProps {
   message: string;
@@ -14,8 +15,8 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
     typeof message === "string"
       ? message
       : typeof message === "object"
-      ? JSON.stringify(message, null, 2)
-      : String(message || "");
+        ? JSON.stringify(message, null, 2)
+        : String(message || "");
 
   useEffect(() => {
     userMsgRef.current?.scrollIntoView({
@@ -25,24 +26,13 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
   }, [displayMsg]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 14, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 1, ease: "easeOut" }}
       ref={userMsgRef}
       className="flex flex-col items-end w-full max-w-120 sm:max-w-xl p-2 ml-auto"
     >
-      {/* User Header */}
-
-      {/* <div className="flex items-center gap-2 mb-2 flex-row">
-        {timestamp && (
-          <span className="text-xs text-zinc-500 font-mono mr-1">
-            {timestamp}
-          </span>
-        )}
-        <User className="h-6 w-6 text-brand-glow" />
-
-        <span className="text-sm font-semibold text-white">You</span>
-      </div> */}
-
-      {/* User Message Bubble */}
       <div className="pb-2">
         {timestamp && (
           <span className="text-xs text-white/60 font-mono mr-1">
@@ -50,10 +40,10 @@ const UserMsgBox: React.FC<UserMsgBoxProps> = ({ message, timestamp }) => {
           </span>
         )}
       </div>
-      <div className="p-3.5 rounded-xl rounded-tr-none text-xl bg-brand-border  text-end w-fit shadow-md font-normal leading-relaxed wrap-anywhere">
+      <div className="p-3.5 rounded-xl rounded-tr-none text-xl bg-brand-border w-fit shadow-md font-normal leading-relaxed wrap-anywhere">
         {displayMsg}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
