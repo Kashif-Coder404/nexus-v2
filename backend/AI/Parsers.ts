@@ -376,19 +376,41 @@ export const commandParser = async (
         finalResponse.exitCode = executionResponse?.exitCode;
         finalResponse.isSuccess = Boolean(executionResponse?.isSuccess);
         if (executionResponse?.exitCode === null && executionResponse?.taskId) {
-          // 1. Tell the user right now via WebSocket (middle message + unlock UI)
-          sendToUser(userId, {
-            type: "background_running",
-            taskId: executionResponse.taskId,
-            msg: `I am currently running "${commandPayload.Command}" in the background. Please wait a short moment...`,
-          });
-          // 2. Hold the line! (Waits until websocket.service.ts wakes it up)
-          const completed: any = await waitForTaskCompletion(
-            executionResponse.taskId,
-          );
-          finalResponse.terminalOutput = completed.terminalOutput;
-          finalResponse.exitCode = completed.exitCode;
-          finalResponse.isSuccess = completed.exitCode === 0;
+          const isDaemon =
+            Boolean(commandPayload.IsDaemon) ||
+            /\bping\s+.*-t\b/i.test(commandPayload.Command) ||
+            /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(dev|start|serve)\b/i.test(
+              commandPayload.Command,
+            ) ||
+            /\b(uvicorn|flask\s+run|nodemon|live-server|http-server)\b/i.test(
+              commandPayload.Command,
+            ) ||
+            /\bpython(\d+)?(\.exe)?\s+.*(server|app|main)\.py\b/i.test(
+              commandPayload.Command,
+            );
+
+          if (isDaemon) {
+            finalResponse.terminalOutput =
+              executionResponse.terminalOutput ||
+              `Started background daemon "${commandPayload.Command}" (Task ID: ${executionResponse.taskId})`;
+            finalResponse.exitCode = 0;
+            finalResponse.isSuccess = true;
+            finalResponse.msg = `Started background daemon "${commandPayload.Command}"`;
+          } else {
+            // 1. Tell the user right now via WebSocket (middle message + unlock UI)
+            sendToUser(userId, {
+              type: "background_running",
+              taskId: executionResponse.taskId,
+              msg: `I am currently running "${commandPayload.Command}" in the background. Please wait a short moment...`,
+            });
+            // 2. Hold the line! (Waits until websocket.service.ts wakes it up)
+            const completed: any = await waitForTaskCompletion(
+              executionResponse.taskId,
+            );
+            finalResponse.terminalOutput = completed.terminalOutput;
+            finalResponse.exitCode = completed.exitCode;
+            finalResponse.isSuccess = completed.exitCode === 0;
+          }
         }
       } catch (err: any) {
         finalResponse.cmd = returningCmd;
