@@ -19,6 +19,13 @@ export interface CustomWebSocket extends WebSocket {
 }
 // Practice Promise for ws await function!
 const pendingRequests = new Map();
+export interface ActiveBackgroundTask {
+  userId: string;
+  sessionId: string;
+  command: string;
+  model?: any;
+}
+export const activeBackgroundTasks = new Map<string, ActiveBackgroundTask>();
 const pendingTasks = new Map<
   string,
   {
@@ -259,23 +266,20 @@ const initWebsocket = (server: Server) => {
               sendToUser(ws.userId, {
                 type: "task_finished",
                 taskId: parsedData.taskId,
-                pid: parsedData.pid,
                 exitCode: parsedData.exitCode,
                 terminalOutput: parsedData.terminalOutput,
               });
             }
-            if (parsedData.taskId && pendingTasks.has(parsedData.taskId)) {
-              const handler = pendingTasks.get(parsedData.taskId)!;
+            // Wake up the waiting backend loop
+            const handler = pendingTasks.get(parsedData.taskId);
+            if (handler) {
               clearTimeout(handler.timer);
-              handler.resolve({
-                exitCode: parsedData.exitCode,
-                terminalOutput: parsedData.terminalOutput,
-                terminalError: parsedData.terminalError || "",
-              });
+              handler.resolve(parsedData);
               pendingTasks.delete(parsedData.taskId);
             }
             break;
           }
+
           case "revoke-device": {
             if (!ws.isAuthenticated) break;
             let targetDeviceId = parsedData.deviceId;
@@ -699,7 +703,7 @@ const startParingHandler = async (req: any, res: any) => {
   });
 };
 
-export function waitForTaskCompletion(
+function waitForTaskCompletion(
   taskId: string,
   timeoutMs: number = 300000,
 ): Promise<{
@@ -721,4 +725,10 @@ export function waitForTaskCompletion(
   });
 }
 
-export { initWebsocket, sendToUser, startParingHandler, sendCmdRequest };
+export {
+  initWebsocket,
+  sendToUser,
+  startParingHandler,
+  sendCmdRequest,
+  waitForTaskCompletion,
+};

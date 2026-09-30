@@ -28,6 +28,8 @@ type ChatStore = {
   clearLiveTerminal: () => void;
   liveExecutions: any[];
   setLiveExecutions: (liveExecutions: any[]) => void;
+  middleMsg: string | null;
+  setMiddleMsg: (msg: string | null) => void;
 };
 const useChat = create<ChatStore>((set) => ({
   chat: [],
@@ -45,5 +47,7 @@ const useChat = create<ChatStore>((set) => ({
   appendLiveTerminal: (chunk: string) =>
     set((state) => ({ liveTerminal: state.liveTerminal + chunk })),
   clearLiveTerminal: () => set({ liveTerminal: "" }),
+  middleMsg: null,
+  setMiddleMsg: (middleMsg: string | null) => set({ middleMsg }),
 }));
 export default useChat;

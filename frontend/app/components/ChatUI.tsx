@@ -7,12 +7,16 @@ import useChat from "../store/useChat";
 import { Bot } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import { useRouter } from "next/navigation";
+import { motion } from "motion/react";
 import ExecutionSteps from "./ExecutionsStep";
+import ReactMarkdown from "react-markdown";
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const workingOn = useChat((state) => state.workingOn);
   // const workingOn = "Testing ui..."; //for ui fixes
+  // const middleMsg = "Testing the ai ui message.."; // for ui fixes
+  const workingOn = useChat((state) => state.workingOn);
+  const middleMsg = useChat((state) => state.middleMsg);
   const user = useUserCredentials.getState().user;
   const liveExecutions = useChat((state) => state.liveExecutions);
   const [liveSeconds, setLiveSeconds] = React.useState(0);
@@ -83,22 +87,71 @@ const ChatUI = () => {
             }
           })
         )}
-        {workingOn && (
-          <div className="flex flex-col items-start w-full max-w-2xl px-2">
-            <div className="flex items-center gap-2 mb-1">
-              <Bot className="h-8 w-8 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
+        {/* Unified AI Working State (Middle Message + Live Steps) */}
+        {(middleMsg || workingOn) && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.22,
+              ease: "easeOut",
+            }}
+            className="w-full max-w-2xl px-2"
+          >
+            {/* Nexus identity */}
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-border/60 bg-brand-surface/70">
+                <Bot className="h-3.5 w-3.5 text-brand-hover" />
+              </div>
+
               <span className="text-xs font-semibold text-zinc-300">
                 Nexus AI
               </span>
+
+              {middleMsg && (
+                <span className="text-[10px] text-brand-hover/80">
+                  In Progress
+                </span>
+              )}
             </div>
-            <ExecutionSteps
-              executions={liveExecutions}
-              isWorking={true}
-              currentWorkingOn={workingOn}
-              workedSeconds={liveSeconds}
-            />
-          </div>
+
+            {/* AI progress message */}
+            {middleMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="
+          mb-3
+          w-full
+          rounded-xl
+          rounded-tl-sm
+          border border-brand-border/50
+          bg-brand-surface/55
+          px-3.5 py-3
+          text-sm
+          leading-6
+          text-zinc-200
+        "
+              >
+                <div className="relative z-10">
+                  <ReactMarkdown>{middleMsg}</ReactMarkdown>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Execution workflow */}
+            {workingOn && (
+              <ExecutionSteps
+                executions={liveExecutions}
+                isWorking={true}
+                currentWorkingOn={workingOn}
+                workedSeconds={liveSeconds}
+              />
+            )}
+          </motion.div>
         )}
+
         <div ref={messagesEndRef} />
       </div>
 

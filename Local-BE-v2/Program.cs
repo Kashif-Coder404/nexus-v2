@@ -17,12 +17,17 @@ using System.Runtime.InteropServices;
 #if !DEBUG
 
 [DllImport("kernel32.dll")]
-static extern bool FreeConsole();
+static extern bool AttachConsole(int dwProcessId);
 
-if (args.Contains("--service", StringComparer.OrdinalIgnoreCase))
+const int ATTACH_PARENT_PROCESS = -1;
+
+// If executed from an existing terminal with CLI commands (not background --service),
+// attach to that terminal so 'nexus --help' / 'nexus --version' prints normally.
+if (!args.Contains("--service", StringComparer.OrdinalIgnoreCase))
 {
-    FreeConsole();
+    AttachConsole(ATTACH_PARENT_PROCESS);
 }
+
 if (!SetupServices.IsInstalled())
 {
     SetupServices.EnsureElevated(args.Length > 0 ? args : ["--install"]);

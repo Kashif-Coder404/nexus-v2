@@ -67,11 +67,17 @@ const WebSocketInit = async () => {
         }
       } else if (payload.type === "ai_done") {
         useChat.getState().setWorkingOn(null);
+        useChat.getState().setMiddleMsg(null); // Clears when final response arrives!
         useChat.getState().setLiveExecutions([]);
       } else if (payload.type === "cmd_chunk") {
         if (payload.chunk) {
           useChat.getState().appendLiveTerminal(payload.chunk);
         }
+      } else if (payload.type === "background_running") {
+        useChat.getState().setMiddleMsg(payload.msg);
+        useChat
+          .getState()
+          .setWorkingOn(payload.workingon || "Executing in background...");
       }
     } catch {
       // ignore parse error

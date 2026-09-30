@@ -221,43 +221,46 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
 
     public static async Task TaskWatcher(IPtyConnection pty, string currentTaskId, int pid, StringBuilder outputBuilder, TaskCompletionSource<int> exitTcs, bool isDaemon)
     {
+        string type = isDaemon ? "daemon_stopped" : "task_finished";
+        string taskId = currentTaskId;
+        int exitCode = 0;
+        bool crashed = false;
+        string terminalOutput = "";
+        string terminalError = "";
         try
         {
             int finalExit = await exitTcs.Task;
             await Task.Delay(100);
             TaskExitCodes[currentTaskId] = finalExit;
             ActiveTasks.TryRemove(currentTaskId, out _);
+            exitCode = finalExit;
+            crashed = finalExit != 0;
 
-            if (isDaemon)
-            {
-                await WebSocketClientService.BroadcastEventAsync(new
-                {
-                    type = "daemon_stopped",
-                    taskId = currentTaskId,
-                    pid,
-                    exitCode = finalExit,
-                    crashed = finalExit != 0,
-                    terminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
-                    terminalError = ""
-                });
-            }
-            else
-            {
-                await WebSocketClientService.BroadcastEventAsync(new
-                {
-                    type = "task_finished",
-                    taskId = currentTaskId,
-                    pid,
-                    exitCode = finalExit,
-                    terminalOutput = SanitizeTerminalOutput(outputBuilder.ToString()),
-                    terminalError = ""
-                });
-            }
+            // Take the last ~40 lines so we don't flood the AI with thousands of progress bar lines
+            string fullSanitized = SanitizeTerminalOutput(outputBuilder.ToString());
+            var lines = fullSanitized.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            terminalOutput = string.Join("\n", lines.TakeLast(40));
         }
-        finally
+        catch (Exception ex)
         {
-            pty.Dispose();
+            exitCode = 1;
+            crashed = true;
+            terminalError = ex.Message;
         }
+
+
+        await WebSocketClientService.BroadcastEventAsync(new
+        {
+            type,
+            taskId,
+            pid,
+            exitCode,
+            crashed,
+            terminalOutput,
+            terminalError
+        });
+        pty.Dispose();
+
     }
 
     public static CommandResponse PeekTask(string taskId, int limit = 50)

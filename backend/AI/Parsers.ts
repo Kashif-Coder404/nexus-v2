@@ -1,17 +1,15 @@
-import { executeCmd, ExecutionResponse } from "../services/execute.service.js";
 import {
   updateMemory,
   getMemory,
   deleteMemory,
   accessMemory,
 } from "../services/memory.service.js";
-import { search, search_app } from "../services/search.service.js";
 import {
   sendCmdRequest,
+  sendToUser,
   waitForTaskCompletion,
 } from "../services/websocket.service.js";
-import getSystemInfo from "../tools/getSystemInfo.js";
-import { imageSet, summarizeBase64Image } from "./Helper/image.summarizer.js";
+import { summarizeBase64Image } from "./Helper/image.summarizer.js";
 import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
@@ -377,19 +375,18 @@ export const commandParser = async (
         finalResponse.terminalError = executionResponse?.terminalError || "";
         finalResponse.exitCode = executionResponse?.exitCode;
         finalResponse.isSuccess = Boolean(executionResponse?.isSuccess);
-
-        // If the task was promoted to background (>5s) and is NOT a daemon, await its completion
-        if (
-          executionResponse?.exitCode === null &&
-          executionResponse?.taskId &&
-          !commandPayload.IsDaemon
-        ) {
-          const completed = await waitForTaskCompletion(
+        if (executionResponse?.exitCode === null && executionResponse?.taskId) {
+          // 1. Tell the user right now via WebSocket (middle message + unlock UI)
+          sendToUser(userId, {
+            type: "background_running",
+            taskId: executionResponse.taskId,
+            msg: `I am currently running "${commandPayload.Command}" in the background. Please wait a short moment...`,
+          });
+          // 2. Hold the line! (Waits until websocket.service.ts wakes it up)
+          const completed: any = await waitForTaskCompletion(
             executionResponse.taskId,
-            timeoutMs,
           );
           finalResponse.terminalOutput = completed.terminalOutput;
-          finalResponse.terminalError = completed.terminalError;
           finalResponse.exitCode = completed.exitCode;
           finalResponse.isSuccess = completed.exitCode === 0;
         }
