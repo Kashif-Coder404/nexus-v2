@@ -375,8 +375,8 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
 
         return false;
     }
-    public static async Task StartApplication()
-    {
-        //Start application here ....
-    }
+    // public static async Task StartApplication()
+    // {
+    //     //Start application here ....
+    // }
 }

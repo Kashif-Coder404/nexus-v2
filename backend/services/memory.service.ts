@@ -24,13 +24,22 @@ const categoryClean = async (category: string) => {
 const standardizePath = async (val: string) => {
   return val.replace(/\\/g, "/").trim();
 };
-
+type CleanDoc = {
+  alias: string[];
+  value?: string;
+  category?: string | string[];
+};
+export type MemoryResponseType = {
+  success: boolean;
+  msg: string;
+  document: CleanDoc | CleanDoc[] | null;
+};
 export async function updateMemory(
   userId: string,
   alias: string,
   value: string,
   category: string,
-): Promise<object | null> {
+): Promise<MemoryResponseType> {
   // console.log("UPDATE FUNCTION IS CALLING...");
   if (!category) throw "[UPDATE MEMORY] Category part is Empty";
   if (!alias) throw "[UPDATE MEMORY] Alias part is Empty";
@@ -52,16 +61,21 @@ export async function updateMemory(
       { upsert: true, returnDocument: "after" },
     );
     if (memoryUpdate) {
+      const cleanDoc: CleanDoc = {
+        alias: (memoryUpdate as any).aliases || cleanedAlias,
+        value: (memoryUpdate as any).value || cleanedValue,
+        category: (memoryUpdate as any).category || cleanedCategory,
+      };
       return {
         success: true,
         msg: `Saved to Memory: [${alias}] -> "${value}" as ${cleanedCategory}`,
-        document: memoryUpdate,
+        document: cleanDoc,
       };
     }
     return {
       success: false,
       msg: `Cannot save to Memory: [${alias}] -> "${value}" as ${cleanedCategory}`,
-      document: memoryUpdate,
+      document: null,
     };
   } catch (error: any) {
     console.error("[MEMORY SERVICE] ❌ Error saving memory:", error);
@@ -77,7 +91,7 @@ export async function getMemory(
   userId: string,
   alias: string,
   category: string = "",
-): Promise<object | object[] | null> {
+): Promise<MemoryResponseType> {
   try {
     const orConditions: any[] = [];
     if (alias) {
@@ -108,9 +122,9 @@ export async function getMemory(
       };
     }
 
-    const searchResults = dbResults.map((el) => ({
-      value: el.value,
+    const searchResults: CleanDoc[] = dbResults.map((el) => ({
       alias: el.aliases,
+      value: el.value,
       category: el.category,
     }));
     if (searchResults)
@@ -139,7 +153,7 @@ export const deleteMemory = async (
   value: string = "",
   alias: string = "",
   category: string = "",
-) => {
+): Promise<MemoryResponseType> => {
   // 1. Initialize an array for dynamic OR conditions
   const orConditions: Record<string, any>[] = [];
 
@@ -167,7 +181,11 @@ export const deleteMemory = async (
 
   // 3. Fallback check: If no arguments were provided, exit early without querying
   if (orConditions.length === 0) {
-    return { success: false, msg: "No valid delete parameters provided!" };
+    return {
+      success: false,
+      msg: "No valid delete parameters provided!",
+      document: null,
+    };
   }
 
   try {
@@ -177,26 +195,33 @@ export const deleteMemory = async (
       $or: orConditions,
     });
 
-    if (deletedMemory) {
+    if (!deletedMemory)
       return {
-        success: true,
-        msg: "Document deleted successfully!",
-        deletedDocument: deletedMemory,
+        success: false,
+        msg: "Document was not found to delete!",
+        document: null,
       };
-    }
-
+    const cleanDoc = {
+      alias: deletedMemory.aliases,
+      value: deletedMemory.value,
+      category: deletedMemory.category,
+    };
     return {
-      success: false,
-      msg: "Document was not found to delete!",
-      deletedDocument: null,
+      success: true,
+      msg: "Document deleted successfully!",
+      document: cleanDoc,
     };
   } catch (error) {
     console.error("[MEMORY SERVICE] Error executing findOneAndDelete:", error);
-    return { success: false, msg: "An error occurred during deletion." };
+    return {
+      success: false,
+      msg: "An error occurred during deletion.",
+      document: null,
+    };
   }
 };
 
-type ActionTypes = {
+type MemoryActionTypes = {
   memory_write: (
     alias: string,
     category: string,
@@ -210,13 +235,15 @@ type ActionTypes = {
   memory_delete: (
     alias: string,
     category: string,
-    value: string,
+    value?: string,
   ) => Promise<object | null>;
 };
+
+//Future Full combined function...
 export async function accessMemory(
   userId: string,
-  action: keyof ActionTypes,
-  ...args: Parameters<ActionTypes[keyof ActionTypes]>
+  action: keyof MemoryActionTypes,
+  ...args: Parameters<MemoryActionTypes[keyof MemoryActionTypes]>
 ) {
   const alias = args[0];
   const category = args[1];

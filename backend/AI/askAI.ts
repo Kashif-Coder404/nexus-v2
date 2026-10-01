@@ -180,7 +180,7 @@ export const askAI = async (
             action: parsedCMD.action,
             param: parsedCMD.param,
           },
-          msg: aiResponse?.msg || "",
+          msg: commandOutput.msg || aiResponse?.msg || "",
           terminalError: commandOutput.terminalError || "",
           terminalOutput: commandOutput.terminalOutput || "",
           isSuccess: commandOutput.isSuccess,
@@ -228,6 +228,7 @@ export const askAI = async (
         const feedbackContent: any = {
           status: isSuccessState ? "success" : "failed",
           command_executed: command || "",
+          summary: commandOutput.msg || "",
           terminal_output: terminalOutput || "No output",
           terminal_error: aiTerminalError || "",
         };

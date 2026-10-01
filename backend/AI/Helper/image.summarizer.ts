@@ -23,7 +23,7 @@ export const summarizeBase64Image = async (
   base64Raw: string,
   chatMessages: ChatMessageType[],
   moreContext: string,
-): Promise<{ summary: string; base64: string } | false> => {
+): Promise<{ summary: string; base64: string; msg: string } | false> => {
   if (!base64Raw) return false;
   const base64Str = base64Raw.startsWith("data:")
     ? base64Raw
@@ -48,16 +48,23 @@ export const summarizeBase64Image = async (
     ],
   };
   const chatToPass = [...chatMessages, toPass];
-  const response = await geminiAICall({
+  const response = await callAI("gemini", {
     chatMessages: chatToPass,
-    retryCount: 0,
-    model: "gemini-3.5-flash-lite",
-    instructionString: imageInstructions,
+    session: "",
+    instructions: imageInstructions,
     isJson: false,
+    isLiveModel: true,
+    model: "gemini-3.1-flash-live-preview", // This one always works
+    retryCount: 0,
   });
-  if (!response.success) return false;
-  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${JSON.stringify(response.content)}`;
-  return { summary, base64: base64Str };
+  if (!response.success)
+    return {
+      summary: "Failed To Give Context About image",
+      base64: base64Str,
+      msg: response.msg,
+    };
+  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${response.rawContent}`;
+  return { summary, base64: base64Str, msg: response.msg };
 };
 
 export const imageSet = async (

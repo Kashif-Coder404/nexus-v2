@@ -59,6 +59,7 @@ const WebSocketInit = async () => {
               .devices.filter((d) => d.id !== payload.deviceId),
           );
       } else if (payload.type === "ai_data") {
+        useChat.getState().setMiddleMsg(null);
         if (payload.data?.workingon) {
           useChat.getState().setWorkingOn(payload.data.workingon);
         }

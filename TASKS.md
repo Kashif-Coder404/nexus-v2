@@ -1,7 +1,7 @@
 # 📋 Nexus v2 — Master Task Tracker & Roadmap (`TASKS.md`)
 
 > **Single Source of Truth** for current progress, active goals, and upcoming features across the Nexus ecosystem.  
-> **Last Updated:** September 29, 2026
+> **Last Updated:** September 30, 2026
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Component | Status | Health | Active Branch / Process |
 | :--- | :--- | :--- | :--- |
-| **`Local-BE-v2`** (C# .NET 8) | 🟢 Operational | 0 Errors | Elevated Service (`dotnet watch -- --service`) |
+| **`Local-BE-v2`** (C# .NET 8) | 🟢 Operational | 0 Errors | Elevated Service (`dotnet watch -- --service`) / Binary in `dist/nexus.exe` |
 | **`backend`** (Node.js/Express) | 🟢 Operational | 0 Errors | Running on port `3100` (`npm run dev:server`) |
 | **`frontend`** (Next.js 16) | 🟢 Operational | 0 Errors | Running on port `3000` (`npm run dev`) |
 
@@ -33,42 +33,44 @@
 - [x] **Safe Catch Block in `RunAsync`**: Fallback to raw string output on execution errors to prevent secondary crashes.
 - [x] **Background Task Completion Routing**: Implemented `waitForTaskCompletion(taskId, timeoutMs)` and `task_finished` resolution in `websocket.service.ts` so background tasks (>5s) report their final exit codes cleanly.
 
-### 4. AI Orchestration & Token Optimization
-- [x] **Scoped Step Error Tracking**: Scoped `terminal_error` in `askAI.ts` to the step currently executed (`currentError`) rather than accumulating past errors. Prevents previous failed steps from poisoning subsequent successful steps.
-- [x] **Base64 History Token Stripping**: When `askAI.ts` loads conversation history (`prevChat`) from MongoDB, it replaces heavy `imageBase64` strings with `[Image Attached]` so Gemini's context window isn't flooded with millions of tokens.
-- [x] **Resilient AI Inference Routing**: Implemented error-handling boundaries and normalized payload structures across model calls.
+### 4. Continuous Process & Daemon Handling
+- [x] **Daemon Non-Blocking Execution**: Fixed the infinite-wait blunder in `Parsers.ts` where continuous/daemon processes (e.g. `ping -t`, dev servers) blocked the chat turn for 300s. Daemons now return immediately with their `taskId` so the AI can report status.
+- [x] **Generalized Lifecycle Instructions**: Updated `main.Instructions.ts` to instruct the AI on evaluating command lifecycle (finite vs. continuous background services) rather than hardcoded rules.
+
+### 5. UI Polish & Packaging
+- [x] **Execution HUD Typography Scaling**: Scaled typography in `ExecutionsStep.tsx` (badges `text-xs`, counters `text-[11px]`, terminal output `text-[11px]`, action titles `text-xs`) and stripped verbose divider banner comments from `ExecutionsStep.tsx` and `ChatUI.tsx`.
+- [x] **Single-File Standalone Release**: Compiled standalone self-contained binary `Local-BE-v2/dist/nexus.exe` (47.16 MB) via `build-agent.ps1` and deployed to `%LOCALAPPDATA%\Programs\Nexus\nexus.exe`.
 
 ---
 
 ## 🎯 Section 2: Active & Immediate Goals
 
-### Phase 1: Chat Schema Modernization (Completed ✅)
-- [x] **Mongoose Schema Separation (`chat-schema.ts`)**:
-  - Stored `content` as pure conversational text (`finalMsg`).
-  - Stored `executions` as its own top-level array property (`{ steps, cmd: { action, param }, msg, terminalOutput, terminalError, isSuccess, exitCode, duration, cwd }`).
-  - Stored `imageBase64` and `workedSeconds` as distinct document fields instead of packing them into a serialized JSON string.
-- [x] **Decoupled Context Compression (`context.summarize.ts`)**:
-  - Implemented `buildAiContext` to summarize intentions, actions, and the last 40 words of output/error to protect token budgets.
-- [x] **Frontend Message Extraction (`AIMsgBox.tsx` & `ChatUI.tsx`)**:
-  - Passed `chMsg` directly to `AIMsgBox` and bound `content` and `executions` directly.
-  - Cleaned up dead prototype code (`CommandBox`, `TerminalBox`, `Executions`).
+### Phase 1: Verified App Launching & Process Management (Current Priority)
+- [ ] **Application Launch Verification (`launch_app`)**:
+  - Add native verification in `Local-BE-v2` (`ExecuteServices.cs`): After starting a process or shortcut, wait up to 1.5s to confirm PID creation and main window handle existence.
+  - Return structured verification: `{ "started": true, "pid": 1234, "processName": "Discord", "hasWindow": true }`.
+  - Expose as first-class tool intercept or structured feedback so the AI knows with 100% certainty if the app actually opened.
+- [ ] **First-Class Process Management (`kill_process` & `peek_processes`)**:
+  - `peek_processes`: C# native method to query top CPU/RAM processes or search running processes by name/PID without heavy PowerShell startup overhead.
+  - `kill_process`: First-class C# handler supporting both graceful (`CloseMainWindow`) and force-kill (`Kill(entireProcessTree: true)`) by PID or ProcessName.
+  - Expose `kill_process` and `peek_processes` in `ParserTypes.ts`, `Parsers.ts`, and `main.Instructions.ts`.
 
-### Phase 2: Live Terminals & Background Process Management
+### Phase 2: Live Terminals & UI Polish
+- [ ] **Beautify Tool Output in `ExecutionsStep.tsx`**:
+  - Replace raw JSON `<pre>` blocks for `search_app` and `memory_*` with responsive, styled cards (app icon, badges, file path, one-click copy).
 - [ ] **Active Terminals Drawer / Sidebar UI**:
   - Add visual indicator badge (`Active Tasks: X / 4`) in the web sidebar.
   - Display list of background tasks (PID, command, elapsed uptime, status).
 - [ ] **One-Click Task Termination**:
   - Add `[Kill]` button next to each running task in the web UI that dispatches `{ "type": "kill_task", "taskId": ..., "pid": ... }` to `Local-BE-v2`.
-- [ ] **Disconnect/Reconnect Log Stream**:
-  - Replay rolling circular buffer (last 150 lines) from `TaskLogBuffers` in C# when opening a background task drawer.
 
-### Phase 3: Standalone Packaging & Elevation Polish (`Local-BE-v2`)
+### Phase 3: Hardware Sensors & Elevation Polish
+- [ ] **CPU Temperature / HVCI Blocklist Documentation & Workaround**:
+  - Note root cause: `WinRing0x64.sys` used by LibreHardwareMonitor is blocked by Windows Code Integrity / HVCI driver blocklist on Windows 11.
+  - Provide fallback / user toggle guide for Core Isolation Vulnerable Driver Blocklist or investigate alternative WMI / vendor SDKs for AMD Ryzen SMU temps.
 - [ ] **UAC Elevation Refinement**:
   - Distinguish read-only commands (`--version`, `--status`) from elevated commands (`--install`, `--service`).
   - Eliminate flashing UAC windows when run from non-elevated prompts; display clean console notice: `"[!] Error: This command requires Administrator privileges."`
-- [ ] **Single-File Self-Contained Binary (`nexus.exe`)**:
-  - Configure `dotnet publish` profile (`PublishSingleFile=true`, `SelfContained=true`, `win-x64`) producing a portable ~50MB executable.
-  - Silent background service mode (`<OutputType>WinExe</OutputType>`).
 
 ---
 

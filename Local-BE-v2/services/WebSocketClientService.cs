@@ -283,7 +283,7 @@ public class WebSocketClientService : BackgroundService
                                 "file" => SearchType.File,
                                 _ => SearchType.Both
                             };
-                            var searchResults = SearchServices.Search(sType, query, string.IsNullOrWhiteSpace(customPath) ? null : customPath, maxResult: 10, maxLimit: maxDepth);
+                            var searchResults = await SearchServices.Search(sType, query, string.IsNullOrWhiteSpace(customPath) ? null : customPath, maxResult: 10, maxLimit: maxDepth);
                             response = new CommandResponse
                             {
                                 Cmd = rawCmd,
@@ -299,7 +299,7 @@ public class WebSocketClientService : BackgroundService
                             string appName = appParam?["name"]?.GetValue<string>()
                                           ?? appParam?["appName"]?.GetValue<string>()
                                           ?? "";
-                            var appResults = SearchServices.SearchApp(appName);
+                            var appResults = await SearchServices.SearchApp(appName);
                             response = new CommandResponse
                             {
                                 Cmd = rawCmd,

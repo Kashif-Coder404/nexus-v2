@@ -19,13 +19,48 @@ using System.Runtime.InteropServices;
 [DllImport("kernel32.dll")]
 static extern bool AttachConsole(int dwProcessId);
 
+[DllImport("kernel32.dll")]
+static extern bool FreeConsole();
+
 const int ATTACH_PARENT_PROCESS = -1;
 
-// If executed from an existing terminal with CLI commands (not background --service),
-// attach to that terminal so 'nexus --help' / 'nexus --version' prints normally.
-if (!args.Contains("--service", StringComparer.OrdinalIgnoreCase))
+// If executed as background service, detach and destroy console to run silently without terminal pollution.
+// Otherwise, attach to existing parent terminal so 'nexus --help' / 'nexus --version' prints normally.
+if (args.Contains("--service", StringComparer.OrdinalIgnoreCase))
+{
+    FreeConsole();
+}
+else
 {
     AttachConsole(ATTACH_PARENT_PROCESS);
+}
+
+// Allow read-only CLI commands (--version, --help) without elevation or install check
+if (args.Length > 0)
+{
+    string cmd = args[0].ToLowerInvariant();
+    if (cmd is "--version" or "-v")
+    {
+        Console.WriteLine("Nexus Companion Agent v2.6.1 (x64 Windows)");
+        return;
+    }
+
+    if (cmd is "--help" or "-h" or "/?")
+    {
+        Console.WriteLine("==================================================");
+        Console.WriteLine("   Nexus Companion Agent v2.6.1 (x64 Windows)");
+        Console.WriteLine("   Pairing Dashboard: http://localhost:4100/");
+        Console.WriteLine("==================================================");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  nexus --start          : Start background agent");
+        Console.WriteLine("  nexus --stop           : Stop background agent");
+        Console.WriteLine("  nexus --install   (-i) : Install & register background service");
+        Console.WriteLine("  nexus --uninstall (-u) : Remove & clean files");
+        Console.WriteLine("  nexus --version   (-v) : Print current version");
+        Console.WriteLine("  nexus --help      (-h) : Show this help message");
+        return;
+    }
 }
 
 if (!SetupServices.IsInstalled())
@@ -371,9 +406,30 @@ app.MapPost("/test-cmd", async (RunCommandDto body) =>
     var response = await ExecuteServices.RunAsync(body);
     return Results.Ok(response);
 });
-
+app.MapPost("/test-search_app", async (JsonElement body) =>
+{
+    string searchToken = body.GetProperty("searchToken").ToString();
+    int maxResult = int.Parse(body.GetProperty("maxResult").ToString());
+    var response = await SearchServices.SearchApp(searchToken, maxResult);
+    return Results.Ok(response);
+});
+app.MapPost("/test-search", async (JsonElement body) =>
+{
+    string searchToken = body.GetProperty("searchToken").ToString();
+    int maxResult = int.Parse(body.GetProperty("maxResult").ToString());
+    string type = body.GetProperty("type").ToString();
+    SearchType searchType = type.ToLower() switch
+    {
+        "file" => SearchType.File,
+        "folder" => SearchType.Folder,
+        _ => SearchType.Both
+    };
+    var response = await SearchServices.Search(searchType, searchToken, maxResult);
+    return Results.Ok(response);
+});
 app.MapGet("/api/tasks/{taskId}/logs", (string taskId, int lines = 50) =>
 {
+
     var response = ExecuteServices.PeekTask(taskId, lines);
     return Results.Ok(response);
 });

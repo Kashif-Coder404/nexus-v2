@@ -9,6 +9,7 @@ Set-Location $CurrentDir
 
 # 1. Stop any currently running instances so dist/nexus.exe is not locked
 Write-Host "`n[*] Stopping running Nexus instances..." -ForegroundColor Yellow
+schtasks /end /tn "NexusBackgroundService" 2>$null | Out-Null
 Get-Process -Name "nexus", "Nexus.Agent" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 # Clean previous dist artifacts to avoid nested build outputs
@@ -28,7 +29,7 @@ if ($LASTEXITCODE -ne 0) {
 Set-Location $CurrentDir
 
 # 3. Compile C# .NET 8 Standalone Single-File Binary
-Write-Host "`n[*] [2/2] Compiling nexus.exe (.NET 8 Win-x64 SingleFile + WinExe)..." -ForegroundColor Yellow
+Write-Host "`n[*] [2/2] Compiling nexus.exe (.NET 8 Win-x64 SingleFile Standalone Binary)..." -ForegroundColor Yellow
 dotnet publish -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `

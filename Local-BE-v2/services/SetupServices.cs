@@ -207,7 +207,10 @@ public static class SetupServices
 
     public static async Task InstallAsync()
     {
-        Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine("==================================================");
+        Console.WriteLine("   Nexus Companion Agent - Installing");
+        Console.WriteLine("==================================================");
         Console.WriteLine("[*] Preparing installation...");
 
         try
@@ -253,7 +256,9 @@ public static class SetupServices
                         FileName = TargetExePath,
                         Arguments = "--service",
                         CreateNoWindow = true,
-                        UseShellExecute = false
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
                     });
                 }
             }
@@ -264,17 +269,21 @@ public static class SetupServices
                     FileName = TargetExePath,
                     Arguments = "--service",
                     CreateNoWindow = true,
-                    UseShellExecute = false
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 });
             }
 
             OpenDashboard();
 
             Console.WriteLine("[SUCCESS] All done! Opening pairing dashboard...");
+            await Task.Delay(2500);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[!] Installation failed: {ex.Message}");
+            await Task.Delay(3000);
         }
 
         await Task.CompletedTask;

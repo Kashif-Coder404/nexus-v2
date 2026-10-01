@@ -13,8 +13,8 @@ import ReactMarkdown from "react-markdown";
 const ChatUI = () => {
   const chat = useChat((state) => state.chat);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  // const workingOn = "Testing ui..."; //for ui fixes
-  // const middleMsg = "Testing the ai ui message.."; // for ui fixes
+  // const workingOn = "Testing ui..."; // for ui fixes (TESTING PURPOSE)
+  // const middleMsg = "Testing the ai ui message.."; // for ui fixes(TESTING PURPOSE)
   const workingOn = useChat((state) => state.workingOn);
   const middleMsg = useChat((state) => state.middleMsg);
   const user = useUserCredentials.getState().user;

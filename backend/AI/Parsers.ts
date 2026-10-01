@@ -3,6 +3,7 @@ import {
   getMemory,
   deleteMemory,
   accessMemory,
+  MemoryResponseType,
 } from "../services/memory.service.js";
 import {
   sendCmdRequest,
@@ -229,15 +230,14 @@ export const commandParser = async (
     memory_write: async () => {
       const { alias, value, category } =
         cmd.param as ParametersType<"memory_write">;
-      const result: any = await updateMemory(userId, alias, value, category);
-      const result1: any = await accessMemory(
+      const result: MemoryResponseType = await updateMemory(
         userId,
-        "memory_read",
-        alias || "",
-        category || "",
+        alias,
+        value,
+        category,
       );
       finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
+      finalResponse.msg = result.msg;
       finalResponse.terminalOutput = JSON.stringify(
         result?.document || result,
         null,
@@ -248,15 +248,13 @@ export const commandParser = async (
     },
     memory_read: async () => {
       const { alias, category } = cmd.param as ParametersType<"memory_read">;
-      const result: any = await getMemory(userId, alias || "", category || "");
-      const result1: any = await accessMemory(
+      const result: MemoryResponseType = await getMemory(
         userId,
-        "memory_read",
         alias || "",
         category || "",
       );
       finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
+      finalResponse.msg = result.msg;
       finalResponse.terminalOutput = JSON.stringify(
         result?.document || result,
         null,
@@ -268,16 +266,16 @@ export const commandParser = async (
     memory_delete: async () => {
       const { value, alias, category } =
         cmd.param as ParametersType<"memory_delete">;
-      const result: any = await deleteMemory(
+      const result: MemoryResponseType = await deleteMemory(
         userId,
         value,
         alias || "",
         category || "",
       );
       finalResponse.cmd = returningCmd;
-      finalResponse.msg = "";
+      finalResponse.msg = result.msg;
       finalResponse.terminalOutput = JSON.stringify(
-        result?.deletedDocument || result,
+        result?.document || result,
         null,
         2,
       );

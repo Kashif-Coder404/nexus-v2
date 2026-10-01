@@ -21,15 +21,28 @@ interface Props {
 
 function getCommand(cmd: any): string {
   if (!cmd) return "";
-
+  let actualCommand = "";
   if (typeof cmd === "object") {
-    if (cmd.param?.command) return cmd.param.command;
-    if (typeof cmd.param === "string") return cmd.param;
-    if (cmd.command) return cmd.command;
-    if (cmd.param) return JSON.stringify(cmd.param);
+    const action = cmd.action;
+    const param = cmd.param;
+    actualCommand += action+ " ";
+    if (param) {
+      if (typeof param === "object") {
+        for (const key of Object.keys(param)) {
+          actualCommand += `-${key} ${param[key]} `;
+        }
+      } else {
+        actualCommand += param;
+      }
+    }
+    // if (!cmd.param) return cmd.action;
+    // if (cmd.param?.command) return cmd.param.command;
+    // if (typeof cmd.param === "string") return cmd.param;
+    // if (cmd.command) return cmd.command;
+    // if (cmd.param) return cmd.param;
   }
 
-  return String(cmd);
+  return actualCommand;
 }
 
 export default function ExecutionSteps({
@@ -65,7 +78,6 @@ export default function ExecutionSteps({
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-brand-border/45 bg-brand-surface/45">
-
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
@@ -134,7 +146,6 @@ export default function ExecutionSteps({
         />
       </button>
 
-
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -145,7 +156,6 @@ export default function ExecutionSteps({
             className="overflow-hidden"
           >
             <div className="border-t border-brand-border/30">
-
               <div className="px-3 py-1.5">
                 {executions.map((step, idx) => {
                   const isExpanded = expandedStepIdx === idx;
@@ -156,7 +166,7 @@ export default function ExecutionSteps({
                     (step.cmd as any)?.action || step.action || "command";
 
                   const command = getCommand(step.cmd);
-
+                  console.log(command);
                   const output = [step.terminalOutput, step.terminalError]
                     .filter(Boolean)
                     .join("\n\n");
@@ -169,7 +179,6 @@ export default function ExecutionSteps({
                       {idx < executions.length - 1 && (
                         <div className="absolute left-[7px] top-6 bottom-0 w-px bg-brand-border/35" />
                       )}
-
 
                       <button
                         type="button"
@@ -242,7 +251,6 @@ export default function ExecutionSteps({
                           `}
                         />
                       </button>
-
 
                       <AnimatePresence initial={false}>
                         {isExpanded && (
@@ -356,7 +364,6 @@ export default function ExecutionSteps({
                   );
                 })}
 
-
                 {isWorking && currentWorkingOn && (
                   <div className="relative mt-0.5">
                     {/* Timeline continuation */}
@@ -413,7 +420,6 @@ export default function ExecutionSteps({
                   </div>
                 )}
               </div>
-
 
               {isWorking && (
                 <div className="flex items-center gap-2 border-t border-brand-border/25 px-3.5 py-2">
