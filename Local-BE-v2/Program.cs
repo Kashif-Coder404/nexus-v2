@@ -409,24 +409,35 @@ app.MapPost("/test-cmd", async (RunCommandDto body) =>
 app.MapPost("/test-search_app", async (JsonElement body) =>
 {
     string searchToken = body.GetProperty("searchToken").ToString();
-    int maxResult = int.Parse(body.GetProperty("maxResult").ToString());
-    var response = await SearchServices.SearchApp(searchToken, maxResult);
+    int maxResult = body.TryGetProperty("maxResult", out var mr) ? int.Parse(mr.ToString()) : 10;
+    string? extension = body.TryGetProperty("extension", out var ext) ? ext.GetString() : null;
+
+    var response = await SearchServices.SearchApp(searchToken, maxResult, extension);
     return Results.Ok(response);
 });
+
 app.MapPost("/test-search", async (JsonElement body) =>
 {
     string searchToken = body.GetProperty("searchToken").ToString();
-    int maxResult = int.Parse(body.GetProperty("maxResult").ToString());
-    string type = body.GetProperty("type").ToString();
+    int maxResult = body.TryGetProperty("maxResult", out var mr) ? int.Parse(mr.ToString()) : 10;
+    string type = body.TryGetProperty("type", out var t) ? t.ToString() : "both";
     SearchType searchType = type.ToLower() switch
     {
         "file" => SearchType.File,
         "folder" => SearchType.Folder,
         _ => SearchType.Both
     };
-    var response = await SearchServices.Search(searchType, searchToken, maxResult);
+
+    HashSet<string>? exts = null;
+    if (body.TryGetProperty("extension", out var ext) && !string.IsNullOrWhiteSpace(ext.GetString()))
+    {
+        exts = [ext.GetString()!];
+    }
+
+    var response = await SearchServices.Search(searchType, searchToken, maxResult, extensions: exts);
     return Results.Ok(response);
 });
+
 app.MapGet("/api/tasks/{taskId}/logs", (string taskId, int lines = 50) =>
 {
 

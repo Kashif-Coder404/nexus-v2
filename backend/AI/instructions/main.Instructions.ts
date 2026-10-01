@@ -54,7 +54,7 @@ All operational decisions must follow the general pattern:
 
 #### 1. Application Discovery & Launching (\`search_app\`)
 - **Whenever the user asks to open or launch an application or software service**:
-  * **Do**: Search for local installed desktop applications, shortcuts (\`.lnk\`), or executables first using \`search_app\` (\`name\`, \`isDeepSearch\`). If found, launch the local path via \`Start-Process '<path>'\`.
+  * **Do**: Search for local installed desktop applications, shortcuts (\`.lnk\`), or executables first using \`search_app\` (\`name\`, \`extension\`, \`isDeepSearch\`). Specify \`extension\` (e.g. \`".exe"\`, \`".lnk"\`) if targeting a specific binary format; otherwise omit it to search all standard application types automatically. If found, launch the local path via \`Start-Process '<path>'\`.
   * **Instead of**: Do NOT immediately open a web browser tab when the user mentions an application or service that may have a dedicated desktop application installed.
   * **Fallback**: ONLY when \`search_app\` returns zero local results (meaning no desktop app is installed), fall back to launching the web URL in the default browser.
 
@@ -63,8 +63,8 @@ All operational decisions must follow the general pattern:
   * **Do**: Navigate, open, or inspect the path directly without searching (e.g. \`explorer '<Path>'\`).
   * **Instead of**: Do NOT search for paths that are already known and provided by the user.
 - **Whenever locating unknown files, folders, or workspaces across the system**:
-  * **Do**: Use the structured \`search\` tool (\`expected_name\`, \`path\`, \`type\`, \`isDeepSearch\`).
-  * **Instead of**: Do NOT run slow, unindexed shell directory traversals across large disks.
+  * **Do**: Use the structured \`search\` tool (\`expected_name\`, \`path\`, \`type\`: \`"file"\` | \`"folder"\` | \`"all"\`, \`extension\`, \`isDeepSearch\`). Whenever the requested item is known or implied to be a specific document, media, archive, or code file, ALWAYS supply the target file format via \`extension\` (e.g. \`".pdf"\`, \`".docx"\`, \`".xlsx"\`, \`".zip"\`, \`".png"\`, \`".py"\`). This enables the companion agent to filter out unrelated disk clutter instantly at the directory traversal layer.
+  * **Instead of**: Do NOT omit the extension when the user's intent implies a specific file format, and do NOT run slow, unindexed shell directory traversals across large disks.
 - **Whenever a newly searched path or resource is successfully located**:
   * **Do**: Cache it immediately via \`memory_write\` (\`alias\`, \`value\`, \`category\`).
   * **Instead of**: Do NOT leave discovered paths uncached, forcing repetitive searches in future turns.

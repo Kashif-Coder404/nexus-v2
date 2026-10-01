@@ -283,7 +283,30 @@ public class WebSocketClientService : BackgroundService
                                 "file" => SearchType.File,
                                 _ => SearchType.Both
                             };
-                            var searchResults = await SearchServices.Search(sType, query, string.IsNullOrWhiteSpace(customPath) ? null : customPath, maxResult: 10, maxLimit: maxDepth);
+
+                            HashSet<string>? exts = null;
+                            if (searchParam?["extensions"] is JsonArray extArr)
+                            {
+                                exts = new HashSet<string>(
+                                    extArr.Select(e => e?.ToString() ?? "").Where(e => !string.IsNullOrWhiteSpace(e)),
+                                    StringComparer.OrdinalIgnoreCase
+                                );
+                            }
+                            else if (searchParam?["extension"]?.GetValue<string>() is string singleExt && !string.IsNullOrWhiteSpace(singleExt))
+                            {
+                                exts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { singleExt };
+                            }
+
+                            var searchResults = await SearchServices.Search(
+                                sType,
+                                query,
+                                string.IsNullOrWhiteSpace(customPath) ? null : customPath,
+                                maxResult: 10,
+                                maxLimit: maxDepth,
+                                null,
+                                null,
+                                exts
+                            );
                             response = new CommandResponse
                             {
                                 Cmd = rawCmd,
@@ -299,7 +322,8 @@ public class WebSocketClientService : BackgroundService
                             string appName = appParam?["name"]?.GetValue<string>()
                                           ?? appParam?["appName"]?.GetValue<string>()
                                           ?? "";
-                            var appResults = await SearchServices.SearchApp(appName);
+                            string? appExt = appParam?["extension"]?.GetValue<string>();
+                            var appResults = await SearchServices.SearchApp(appName, 15, appExt);
                             response = new CommandResponse
                             {
                                 Cmd = rawCmd,
