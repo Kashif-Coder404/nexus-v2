@@ -3,6 +3,7 @@ import { instructions } from "../instructions/main.Instructions.js";
 import type { ChatMessageType } from "../Types.ts";
 import { GEMINI_WEB_2_URL } from "../../EnvVariables.js";
 import { sendToUser } from "../../services/websocket.service.js";
+import { extractJSON } from "../Parsers.js";
 export type LocalGeminiModelsTypes =
   | "gemini-3.7-flash"
   | "gemini-3.1-pro"
@@ -118,30 +119,29 @@ export const localGeminiAICall = async ({
   // 1. Strip thinking tags <thought>...</thought> if thinking model was used
   rawText = rawText.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
 
-  // 2. Strip Markdown code fences if model returned ```json ... ```
-  const codeBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch) {
-    rawText = codeBlockMatch[1].trim();
-  }
+  // 2. Parse structured JSON using resilient extractor
+  const parsed = extractJSON(rawText);
 
-  let parsed: any;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    // Fallback if not pure JSON
-    parsed = {
-      cmd: "",
-      msg: rawText,
-      workingon: "Thinking...",
+  if (parsed && typeof parsed === "object") {
+    return {
+      success: true,
+      content: {
+        cmd: parsed.cmd || "",
+        msg: parsed.msg || "",
+        workingon: parsed.workingon || (parsed.cmd ? "Executing..." : ""),
+      },
     };
   }
+
+  // 3. Fallback if no JSON could be parsed or salvaged: strip any brackets so raw JSON syntax never leaks into the UI
+  const cleanFallbackText = rawText.replace(/\{[\s\S]*\}/, "").trim();
 
   return {
     success: true,
     content: {
-      cmd: parsed.cmd || "",
-      msg: parsed.msg || rawText,
-      workingon: parsed.workingon || "Executing...",
+      cmd: "",
+      msg: cleanFallbackText || rawText,
+      workingon: "",
     },
   };
 };

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import DownloadAlertModal from "./components/DownloadAlertModal";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
       className={cn("min-h-dvh bg-[#080711] antialiased", "font-sans", geist.variable)}
     >
       <body className="min-h-dvh flex flex-col bg-gradient-to-b from-black via-[#0d091a] to-[#080711] bg-no-repeat text-white">
+        <DownloadAlertModal />
         {children}
       </body>
     </html>

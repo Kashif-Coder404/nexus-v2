@@ -1,8 +1,11 @@
 namespace Nexus.Agent.Services;
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Nexus.Agent.Models;
 using Porta.Pty;
 
@@ -375,8 +378,117 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
 
         return false;
     }
-    // public static async Task StartApplication()
-    // {
-    //     //Start application here ....
-    // }
+    public static async Task<CommandResponse> StartApplication(StartAppDto body)
+    {
+        string target = body.Application?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            return new CommandResponse
+            {
+                Cmd = "",
+                Msg = "Application path or name cannot be empty.",
+                IsSuccess = false,
+                ExitCode = 1
+            };
+        }
+
+        try
+        {
+            var beforePids = Process.GetProcesses().Select(p => p.Id).ToHashSet();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = target,
+                WorkingDirectory = Directory.Exists(target) ? target : (File.Exists(target) ? Path.GetDirectoryName(target) : ""),
+                UseShellExecute = true,
+            };
+
+            var process = Process.Start(psi);
+
+            // Wait 5000ms for heavier apps/games to spawn and render their UI
+            await Task.Delay(5000);
+
+            Process? detectedProcess = null;
+
+            var afterProcesses = Process.GetProcesses();
+            var newProcess = afterProcesses.FirstOrDefault(p => !beforePids.Contains(p.Id))
+                          ?? (process != null && !process.HasExited ? process : null);
+
+            int initialPid = newProcess?.Id ?? process?.Id ?? 0;
+            if (initialPid > 0)
+            {
+                try
+                {
+                    var p = Process.GetProcessById(initialPid);
+                    if (!p.HasExited)
+                    {
+                        detectedProcess = p;
+                    }
+                }
+                catch
+                {
+                    // Launcher stub already exited; fall back to name lookup
+                }
+            }
+
+            // Fallback: search by process name if PID exited or lacks a main window
+            if (detectedProcess == null || string.IsNullOrWhiteSpace(detectedProcess.MainWindowTitle))
+            {
+                string appName = Path.GetFileNameWithoutExtension(target);
+                var matchingProcesses = Process.GetProcessesByName(appName);
+
+                // Prefer the process instance holding an active window
+                var processByName = matchingProcesses.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.MainWindowTitle))
+                                 ?? matchingProcesses.FirstOrDefault();
+
+                if (processByName != null)
+                {
+                    detectedProcess = processByName;
+                }
+            }
+
+            if (detectedProcess != null)
+            {
+                int livePid = detectedProcess.Id;
+                string procName = detectedProcess.ProcessName;
+                string windowTitle = detectedProcess.MainWindowTitle;
+
+                Console.WriteLine($"[LAUNCHED] {procName} (PID: {livePid}, Window: '{windowTitle}')");
+
+                string winInfo = string.IsNullOrWhiteSpace(windowTitle) ? "" : $", Window: \"{windowTitle}\"";
+                return new CommandResponse
+                {
+                    Cmd = target,
+                    Msg = $"Application '{procName}' launched successfully.",
+                    TerminalOutput = $"[LAUNCHED] {procName} (PID: {livePid}{winInfo})",
+                    IsSuccess = true,
+                    ExitCode = 0,
+                    Pid = livePid.ToString()
+                };
+            }
+
+            // If neither PID nor Name matched
+            return new CommandResponse
+            {
+                Cmd = target,
+                Msg = $"Failed to detect running process for: {target}",
+                TerminalError = "Process could not be verified after launch.",
+                IsSuccess = false,
+                ExitCode = 1,
+                Pid = ""
+            };
+        }
+        catch (Exception ex)
+        {
+            return new CommandResponse
+            {
+                Cmd = body.Application ?? "",
+                Msg = $"Failed to start application: {ex.Message}",
+                TerminalError = ex.Message,
+                IsSuccess = false,
+                ExitCode = 1,
+                Pid = ""
+            };
+        }
+    }
 }

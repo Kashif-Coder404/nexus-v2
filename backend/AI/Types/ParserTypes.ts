@@ -41,6 +41,9 @@ export interface ActionTypes {
   current_volume: { level?: number; times?: number };
   mute: { level?: number; times?: number };
   unmute: { level?: number; times?: number };
+  launch_app: {
+    application: string,
+  }
 }
 
 export type ParametersType<p extends keyof ActionTypes> = ActionTypes[p];

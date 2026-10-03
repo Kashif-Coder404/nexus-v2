@@ -7,6 +7,7 @@ import { SessionModel } from "../db/schema/session-schema.js";
 import { ModelType } from "../AI/CallAI.js";
 import chatSummarize from "../AI/Helper/chatname.summarizer.js";
 
+const activeSessions = new Set<string>();
 export const sendMessage = async (req: any, res: any) => {
   const defaultModel: ModelType = {
     provider: "gemini",

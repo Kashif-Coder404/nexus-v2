@@ -211,6 +211,22 @@ export const commandParser = async (
         finalResponse.isSuccess = false;
       }
     },
+    launch_app: async () => {
+      try {
+        const results = await sendCmdRequest(userId, returningCmd);
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = results?.msg || "";
+        finalResponse.terminalOutput = results?.terminalOutput || "";
+        finalResponse.terminalError = results?.terminalError || "";
+        finalResponse.isSuccess = Boolean(results?.isSuccess);
+      } catch (err: any) {
+        finalResponse.cmd = returningCmd;
+        finalResponse.msg = "Local backend connection error";
+        finalResponse.terminalOutput = "";
+        finalResponse.terminalError = `Command execution failed: ${err.message}.`;
+        finalResponse.isSuccess = false;
+      }
+    },
     system_info: async () => {
       try {
         const sysInfo = await sendCmdRequest(userId, returningCmd);

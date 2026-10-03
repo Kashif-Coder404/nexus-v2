@@ -7,7 +7,10 @@ public class RunCommandDto
     public bool IsDaemon { get; set; } = false;
     public string? TaskId { get; set; }
 }
-
+public class StartAppDto
+{
+    public string Application { get; set; } = "";
+}
 public class CommandResponse
 {
     public string Cmd { get; set; } = "";

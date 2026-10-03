@@ -290,7 +290,7 @@ app.MapGet("/api/pairing-status", async () =>
 {
     string? token = await WebSocketClientService.GetTokenAsync();
     string? code = DeviceStateManager.CurrentPairingCode;
-    if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(token))
+    if (DeviceStateManager.IsConnectedToBackend && string.IsNullOrEmpty(code) && string.IsNullOrEmpty(token))
     {
         code = DeviceStateManager.GenerateNewPairingCode();
         _ = WebSocketClientService.SendPairingInitAsync();
@@ -302,7 +302,7 @@ app.MapGet("/api/pairing-status", async () =>
         isConnected = DeviceStateManager.IsConnectedToBackend,
         isPaired = !string.IsNullOrEmpty(token),
         isEnable = DeviceStateManager.IsServiceEnabled,
-        code = code,
+        code,
         expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
         remainingSeconds = DeviceStateManager.RemainingSeconds,
         cooldown = DeviceStateManager.CooldownSecondsRemaining,
@@ -314,6 +314,20 @@ app.MapGet("/api/pairing-status", async () =>
 app.MapGet("/getParingCode", () =>
 {
     string? code = DeviceStateManager.CurrentPairingCode;
+    if (!DeviceStateManager.IsConnectedToBackend)
+    {
+        return Results.Ok(new
+        {
+            success = false,
+            hasCode = !string.IsNullOrEmpty(code),
+            code,
+            expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
+            remainingSeconds = DeviceStateManager.RemainingSeconds,
+            cooldown = DeviceStateManager.CooldownSecondsRemaining,
+            isConnected = false,
+            message = "Backend server is not connected."
+        });
+    }
     if (string.IsNullOrEmpty(code))
     {
         code = DeviceStateManager.GenerateNewPairingCode();
@@ -323,7 +337,7 @@ app.MapGet("/getParingCode", () =>
     {
         success = true,
         hasCode = !string.IsNullOrEmpty(code),
-        code = code,
+        code,
         expiresat = DeviceStateManager.CodeExpiresAt?.ToString("o"),
         remainingSeconds = DeviceStateManager.RemainingSeconds,
         cooldown = DeviceStateManager.CooldownSecondsRemaining,
@@ -437,10 +451,14 @@ app.MapPost("/test-search", async (JsonElement body) =>
     var response = await SearchServices.Search(searchType, searchToken, maxResult, extensions: exts);
     return Results.Ok(response);
 });
+app.MapPost("/test-startApplication", async (StartAppDto body) =>
+{
+    var response = await ExecuteServices.StartApplication(body);
+    return Results.Ok(response);
+});
 
 app.MapGet("/api/tasks/{taskId}/logs", (string taskId, int lines = 50) =>
 {
-
     var response = ExecuteServices.PeekTask(taskId, lines);
     return Results.Ok(response);
 });

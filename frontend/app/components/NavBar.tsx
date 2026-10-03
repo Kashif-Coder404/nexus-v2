@@ -10,7 +10,11 @@ interface NavItem {
   href: string;
 }
 
+import useData from "../store/useData";
+
 export default function NavBar() {
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+  const openDownloadAlert = useData((state) => state.openDownloadAlert);
   const pathname = usePathname();
   const user = useUserCredentials((state) => state.user);
   const { toggleSidebar, isSidebarOpen } = useSideBar();
@@ -22,10 +26,7 @@ export default function NavBar() {
     { label: "Chat", href: isChat },
   ];
   const handleDownloadNexus = () => {
-    window.open(
-      "https://github.com/Kashif-Coder404/nexus-v2/releases/latest",
-      "_blank",
-    );
+    openDownloadAlert();
   };
   return (
     <header className={style.navCont}>
@@ -91,7 +92,7 @@ export default function NavBar() {
               title="Download latest Windows Companion"
             >
               <Download className="w-3.5 h-3.5 text-brand-hover group-hover:translate-y-0.5 transition-transform" />
-              <span>v2.6.1</span>
+              <span>Nexus v{localBackendVersion}</span>
             </button>
             <div
               className="rounded-full bg-gradient-to-tr from-brand-surface via-brand to-brand-hover border border-brand-border/50 w-8 h-8 text-xs font-bold text-white flex justify-center items-center shadow-md shadow-brand/30 cursor-default"

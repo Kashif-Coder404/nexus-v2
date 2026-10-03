@@ -306,13 +306,18 @@ const PairingPage = () => {
         <div className="space-y-4">
           <div className="p-4 rounded-lg bg-zinc-800/40 border border-zinc-800 text-center space-y-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-              Temporary Pairing Code
+              {status?.isConnected ? (
+                `Temporary Pairing Code`
+              ) : (
+                <span className="flex justify-center items-center gap-2">
+                  Connecting to Backend{" "}
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                </span>
+              )}
             </span>
 
             <div className="text-4xl sm:text-5xl font-mono font-bold tracking-widest text-purple-300 py-1">
-              {status?.code
-                ? `NX-${status.code.replaceAll("NX-", "")}`
-                : "NX------"}
+              {status?.isConnected ? `${status?.code || "NX-----"}` : "NX-----"}
             </div>
 
             {status?.remainingSeconds ? (
@@ -327,7 +332,9 @@ const PairingPage = () => {
             <button
               type="button"
               onClick={handleCopy}
-              disabled={!status?.code || status.code === "------"}
+              disabled={
+                !status?.isConnected || !status?.code || status?.code === "------"
+              }
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-40"
             >
               {copied ? (
@@ -341,7 +348,7 @@ const PairingPage = () => {
             <button
               type="button"
               onClick={handleRegenerate}
-              disabled={codeLoading || cooldown > 0}
+              disabled={!status?.isConnected || codeLoading || cooldown > 0}
               className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <RefreshCw

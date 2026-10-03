@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
+  Download,
   EllipsisVertical,
   ExternalLink,
   Laptop,
@@ -14,8 +15,11 @@ import {
 import { useUserCredentials } from "../../store/useUserCredentials";
 import { useDevices } from "../../store/useDevices";
 import { useSideBar } from "../../store/useSideBar";
+import useData from "../../store/useData";
 
 export default function SidebarFooter() {
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+  const openDownloadAlert = useData((state) => state.openDownloadAlert);
   const router = useRouter();
   const user = useUserCredentials((state) => state.user);
   const logout = useUserCredentials((state) => state.logout);
@@ -91,6 +95,22 @@ export default function SidebarFooter() {
                 <span>Pair New Companion</span>
               </button>
 
+              <button
+                onClick={() => {
+                  openDownloadAlert();
+                  setLogoutShown(false);
+                }}
+                className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-brand-surface/80 transition-colors cursor-pointer w-full text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Download className="w-4 h-4 text-brand shrink-0" />
+                  <span>Download Nexus</span>
+                </div>
+                <span className="text-[10px] text-brand-hover font-mono bg-brand-surface/60 px-1.5 py-0.5 rounded border border-brand-border/50">
+                  v{localBackendVersion}
+                </span>
+              </button>
+
               <a
                 href="https://github.com/Kashif-Coder404/nexus-v2"
                 target="_blank"
@@ -102,7 +122,7 @@ export default function SidebarFooter() {
                   <span>GitHub Repository</span>
                 </div>
                 <span className="text-[10px] text-brand-hover font-mono bg-brand-surface/60 px-1.5 py-0.5 rounded border border-brand-border/50">
-                  v2.6.1
+                  Nexus v{localBackendVersion}
                 </span>
               </a>
 

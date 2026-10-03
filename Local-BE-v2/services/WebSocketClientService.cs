@@ -333,6 +333,17 @@ public class WebSocketClientService : BackgroundService
                                 ExitCode = 0
                             };
                             break;
+                        case "launch_app":
+                        case "start_app":
+                            var targetApp = cmdNode?["param"]?["application"] ?? cmdNode?["param"]?["path"] ?? cmdNode?["application"] ?? cmdNode?["param"];
+                            if (string.IsNullOrWhiteSpace(targetApp?.ToString()))
+                            {
+                                response = new CommandResponse { Cmd = rawCmd, Msg = "Application name is required", TerminalOutput = "Application name is required", IsSuccess = false, ExitCode = 1 };
+                                break;
+                            }
+                            var app = targetApp.ToString().Trim();
+                            response = await ExecuteServices.StartApplication(new StartAppDto { Application = app });
+                            break;
                         case "peek_task":
                         case "task_logs":
                             var peekParam = cmdNode["param"];

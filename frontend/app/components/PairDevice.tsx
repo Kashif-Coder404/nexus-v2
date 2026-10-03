@@ -13,40 +13,90 @@ import {
   Download,
 } from "lucide-react";
 import { requestDevices } from "@/services/ws.service";
+import useData from "../store/useData";
 const WindowAlert = ({
   setWindowAlert,
 }: {
-  setWindowAlert: (val: boolean) => void;
+  setWindowAlert?: (val: boolean) => void;
 }) => {
+  const isDownloadAlertOpen = useData((state) => state.isDownloadAlertOpen);
+  const closeDownloadAlert = useData((state) => state.closeDownloadAlert);
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+
+  const handleClose = () => {
+    if (setWindowAlert) setWindowAlert(false);
+    closeDownloadAlert();
+  };
+
   const realNexusDownloadHandler = () => {
-    setWindowAlert(false);
+    handleClose();
     window.location.href =
       "https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe";
   };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 z-999">
-      <div className=" relative w-full flex flex-col p-2 justify-center items-center gap-2">
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 z-[9999]"
+      onClick={handleClose}
+    >
+      <div
+        className="relative w-full max-w-lg bg-zinc-900/95 border border-brand-border/70 rounded-2xl p-6 sm:p-7 shadow-2xl shadow-brand/20 text-white flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          onClick={() => setWindowAlert(false)}
-          className="absolute top-3 right-3 text-zinc-400 hover:text-white p-1 rounded-lg transition"
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 rounded-lg transition"
+          aria-label="Close"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
-        <div className="flex flex-col justify-center items-center gap-2 md:flex-row">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-          <span className="text-lg sm:text-base text-red-300">
-            <span className=" text-red-500 text-xl font-medium">Note:</span>{" "}
-            Since it was free . Window defender can mark it as a trojan . It's
-            safe . No worries . Don't believe window defender click more info
-            and run anyway.
-          </span>
+
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col gap-1.5 text-left">
+            <h3 className="text-base font-semibold text-white">
+              Download Nexus v{localBackendVersion} (Windows)
+            </h3>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              <strong className="text-amber-400 font-medium">Notice:</strong> Because Nexus is a free open-source companion, browsers and Windows Defender may flag the download or mark it as unverified.
+            </p>
+          </div>
         </div>
-        <button
-          onClick={realNexusDownloadHandler}
-          className="px-3 py-1.5 bg-brand-surface hover:bg-brand-surface/90 transition-colors border border-brand-border/60 text-brand-glow text-md rounded-lg font-medium flex items-center gap-1.5 shrink-0 shadow-sm"
-        >
-          <Download className="w-3.5 h-3.5 text-brand-hover" /> Download Nexus
-        </button>
+
+        <div className="bg-brand-surface/40 border border-brand-border/40 rounded-xl p-3.5 space-y-2 text-xs text-zinc-300">
+          <div className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-hover shrink-0 mt-1.5" />
+            <span><strong>Browser warning:</strong> If Chrome/Edge blocks the file, click &quot;Keep&quot; or &quot;Download unverified file&quot;.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-hover shrink-0 mt-1.5" />
+            <span><strong>SmartScreen alert:</strong> Click &quot;More info&quot; &rarr; &quot;Run anyway&quot;.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-hover shrink-0 mt-1.5" />
+            <span><strong>Run with Administrator rights:</strong> Required for live hardware sensors (CPU/GPU temps) and background service auto-start.</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={realNexusDownloadHandler}
+            className="px-5 py-2.5 bg-gradient-to-r from-brand to-brand-hover hover:brightness-110 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-lg shadow-brand/30 cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Nexus.exe</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -54,10 +104,12 @@ const WindowAlert = ({
 const PairDevice = ({
   setWindowAlert,
 }: {
-  setWindowAlert: (val: boolean) => void;
+  setWindowAlert?: (val: boolean) => void;
 }) => {
   const { isPairModalOpen, closePairModal } = useDevices();
   const token = useUserCredentials((state) => state.token);
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+  const openDownloadAlert = useData((state) => state.openDownloadAlert);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +192,8 @@ const PairDevice = ({
     }
   };
   const handleDownloadNexus = () => {
-    setWindowAlert(true);
+    if (setWindowAlert) setWindowAlert(true);
+    openDownloadAlert();
   };
   return (
     <div
@@ -265,7 +318,7 @@ const PairDevice = ({
               className="flex items-center gap-2 px-3 py-1.5 bg-brand/20 hover:bg-brand/35 border border-brand-border/50 text-brand-glow hover:text-white rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <Download className="w-3.5 h-3.5 text-brand-hover" />
-              <span>nexus.exe (v2.6.1)</span>
+              <span>Nexus.exe (v{localBackendVersion})</span>
             </button>
           </div>
 

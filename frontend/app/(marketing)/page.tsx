@@ -15,9 +15,12 @@ import {
   Code,
 } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
+import useData from "../store/useData";
 
 export default function Home() {
   const user = useUserCredentials((state) => state.user);
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+  const openDownloadAlert = useData((state) => state.openDownloadAlert);
   const [copied, setCopied] = useState(false);
 
   const copyCommand = () => {
@@ -38,7 +41,7 @@ export default function Home() {
           {/* Release Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/80 border border-brand-border/40 text-xs font-medium text-brand-glow mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Nexus v2.6.1 • Windows Companion</span>
+            <span>Nexus v{localBackendVersion} • Windows Companion</span>
           </div>
 
           {/* Heading */}
@@ -87,14 +90,14 @@ export default function Home() {
               <ArrowRight className="w-4 h-4" />
             </Link>
 
-            <a
-              href="https://github.com/Kashif-Coder404/nexus-v2/releases"
-              target="_blank"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-brand-surface/60 hover:bg-brand-surface border border-brand-border/40 hover:border-brand-border/70 text-zinc-300 hover:text-white text-sm font-semibold transition-all cursor-pointer"
+            <button
+              type="button"
+              onClick={openDownloadAlert}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-brand-surface/60 hover:bg-brand-surface border border-brand-border/40 hover:border-brand-border/70 text-zinc-300 hover:text-white text-sm font-semibold transition-all cursor-pointer active:scale-95"
             >
               <Download className="w-4 h-4 text-brand-hover" />
-              <span>Download .exe</span>
-            </a>
+              <span>Download Nexus.exe</span>
+            </button>
           </div>
 
           {/* Quick CLI command */}

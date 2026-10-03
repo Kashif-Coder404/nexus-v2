@@ -17,7 +17,13 @@ export interface CustomWebSocket extends WebSocket {
   ipAddress?: string;
   watchdogTimer?: boolean;
 }
+
+export interface ActiveSessions {
+  
+}
+
 // Practice Promise for ws await function!
+const activeSessions = new Map<string, any>();
 const pendingRequests = new Map();
 export interface ActiveBackgroundTask {
   userId: string;

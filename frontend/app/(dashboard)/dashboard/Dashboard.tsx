@@ -28,6 +28,7 @@ import { useUserCredentials } from "@/app/store/useUserCredentials";
 import { useDevices } from "@/app/store/useDevices";
 import useChat from "@/app/store/useChat";
 import { requestDevices } from "@/services/ws.service";
+import useData from "@/app/store/useData";
 
 interface ChatSession {
   id: string;
@@ -36,6 +37,8 @@ interface ChatSession {
 }
 
 export default function DashboardUI() {
+  const localBackendVersion = useData((state) => state.localBackendVersion);
+  const openDownloadAlert = useData((state) => state.openDownloadAlert);
   const router = useRouter();
   const user = useUserCredentials((state) => state.user);
   const token = useUserCredentials((state) => state.token);
@@ -123,15 +126,14 @@ export default function DashboardUI() {
             <IconDeviceDesktopPlus className="w-5 h-5 text-brand-base" />
             <span className="hidden md:block">Pair Device</span>
           </button>
-          <a
-            href="https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:border-brand-border/70 hover:text-white transition-all"
+          <button
+            type="button"
+            onClick={openDownloadAlert}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:border-brand-border/70 hover:text-white transition-all cursor-pointer shadow-sm shadow-brand/20 active:scale-95"
           >
             <Download className="w-4 h-4 text-brand-hover" />
-            <span className="hidden md:block"> Download v2.6.1</span>
-          </a>
+            <span className="hidden md:block">Download Nexus v{localBackendVersion}</span>
+          </button>
         </div>
       </div>
 
@@ -197,7 +199,7 @@ export default function DashboardUI() {
             </p>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-2xl font-bold text-white">
-                Nexus v2.6.1
+                Nexus v{localBackendVersion}
               </span>
             </div>
             <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
@@ -259,12 +261,14 @@ export default function DashboardUI() {
                 >
                   Pair Device Now
                 </button>
-                <a
-                  href="https://github.com/Kashif-Coder404/nexus-v2/releases/latest/download/nexus.exe"
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:text-white transition"
+                <button
+                  type="button"
+                  onClick={openDownloadAlert}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-brand-surface/60 border border-brand-border/40 hover:text-white transition cursor-pointer active:scale-95 flex items-center gap-1.5"
                 >
-                  Download .exe
-                </a>
+                  <Download className="w-3.5 h-3.5 text-brand-hover" />
+                  <span>Download Nexus.exe</span>
+                </button>
               </div>
             </div>
           ) : (
@@ -305,7 +309,7 @@ export default function DashboardUI() {
 
                   <div className="pt-2 border-t border-brand-border/20 flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
-                      Companion v2.6.1
+                      Companion v{localBackendVersion}
                     </span>
                     <Link
                       href="/chat"
