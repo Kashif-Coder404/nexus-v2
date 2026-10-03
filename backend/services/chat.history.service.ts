@@ -7,6 +7,9 @@ const getChat = async (
   lastMsgCount: number = 10,
 ): Promise<{ success: boolean; chat: ChatMessageType[] | [] }> => {
   try {
+    if (!userId || !session) {
+      return { success: false, chat: [] };
+    }
     const chatHistory: any = await ChatModel.findOne(
       { userId: userId, sessionId: session },
       { chatMessages: { $slice: -lastMsgCount } },

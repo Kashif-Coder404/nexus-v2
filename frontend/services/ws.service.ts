@@ -59,6 +59,13 @@ const WebSocketInit = async () => {
               .devices.filter((d) => d.id !== payload.deviceId),
           );
       } else if (payload.type === "ai_data") {
+        const currentSession = useChat.getState().session;
+        const isMatchedToCurrSession =
+          Boolean(currentSession) &&
+          (!payload.sessionId || payload.sessionId === currentSession);
+        if (!isMatchedToCurrSession) {
+          return;
+        }
         useChat.getState().setMiddleMsg(null);
         if (payload.data?.workingon) {
           useChat.getState().setWorkingOn(payload.data.workingon);
@@ -67,9 +74,100 @@ const WebSocketInit = async () => {
           useChat.getState().setLiveExecutions(payload.data.executions);
         }
       } else if (payload.type === "ai_done") {
-        useChat.getState().setWorkingOn(null);
-        useChat.getState().setMiddleMsg(null); // Clears when final response arrives!
-        useChat.getState().setLiveExecutions([]);
+        const currentSession = useChat.getState().session;
+        const isMatchedToCurrSession =
+          Boolean(currentSession) &&
+          (!payload.sessionId || payload.sessionId === currentSession);
+        if (isMatchedToCurrSession) {
+          useChat.getState().setWorkingOn(null);
+          useChat.getState().setMiddleMsg(null);
+          useChat.getState().setLiveExecutions([]);
+        }
+        const result = payload.data?.message?.content ?? payload.data?.message;
+        if (result && isMatchedToCurrSession) {
+          const chatList = useChat.getState().chat;
+          const lastMsg = chatList[chatList.length - 1];
+          const newAIMsg = result.msg || result.lastAIMsg || "";
+          const alreadyAdded =
+            lastMsg &&
+            lastMsg.role === "assistant" &&
+            (typeof lastMsg.content === "object"
+              ? lastMsg.content.lastAIMsg === newAIMsg ||
+                lastMsg.content.msg === newAIMsg
+              : lastMsg.content === newAIMsg);
+
+          if (!alreadyAdded) {
+            useChat.getState().addChat({
+              role: "assistant",
+              content: {
+                lastAIMsg: result.msg || result.lastAIMsg || "",
+                lastCMD: result.cmd || result.lastCMD || "",
+                terminal: result.terminalOutput || result.terminal || "",
+                terminalError: result.terminalError || "",
+                imageBase64: result.imageBase64 || "",
+                workedSeconds: result.workedSeconds || 0,
+              },
+              executions: result.executions || [],
+              imageBase64: result.imageBase64 || "",
+              workedSeconds: result.workedSeconds || 0,
+            });
+          }
+        }
+        // Unlock the send button on the active chat
+        window.dispatchEvent(
+          new CustomEvent("nexus_ai_done", {
+            detail: { sessionId: payload.sessionId },
+          }),
+        );
+      } else if (payload.type === "session_state") {
+        const currentSession = useChat.getState().session;
+        if (payload.sessionId === currentSession) {
+          if (payload.isRunning && payload.data) {
+            useChat
+              .getState()
+              .setWorkingOn(payload.data.workingon || "Nexus is working...");
+            useChat.getState().setLiveExecutions(payload.data.executions || []);
+            if (payload.data.userMessage) {
+              const chatList = useChat.getState().chat;
+              const exists = chatList.some(
+                (m) =>
+                  m.role === "user" && m.content === payload.data.userMessage,
+              );
+              !exists &&
+                useChat.getState().addChat({
+                  role: "user",
+                  content: payload.data.userMessage,
+                  timestamp: payload.data.timestamp,
+                });
+            }
+          } else {
+            useChat.getState().setWorkingOn(null);
+            useChat.getState().setLiveExecutions([]);
+          }
+        }
+      } else if (payload.type === "session_created") {
+        if (payload.sessionId) {
+          useChat.getState().setSession(payload.sessionId);
+          window.dispatchEvent(
+            new CustomEvent("nexus_session_created", {
+              detail: { sessionId: payload.sessionId },
+            }),
+          );
+        }
+      } else if (payload.type === "new_user_message") {
+        const currentSession = useChat.getState().session;
+        if (payload.sessionId === currentSession) {
+          const chatList = useChat.getState().chat;
+          const lastMsg = chatList[chatList.length - 1];
+          if (
+            lastMsg &&
+            lastMsg.role === "user" &&
+            lastMsg.content === payload.message?.content
+          ) {
+            return;
+          }
+          useChat.getState().addChat(payload.message);
+        }
       } else if (payload.type === "cmd_chunk") {
         if (payload.chunk) {
           useChat.getState().appendLiveTerminal(payload.chunk);
@@ -108,6 +206,14 @@ const WebSocketInit = async () => {
 export const requestDevices = () => {
   if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
     activeSocket.send(JSON.stringify({ type: "get_devices" }));
+  } else {
+    console.warn("WebSocket not connected");
+  }
+};
+
+export const sendWsJson = (payload: object) => {
+  if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+    activeSocket.send(JSON.stringify(payload));
   } else {
     console.warn("WebSocket not connected");
   }

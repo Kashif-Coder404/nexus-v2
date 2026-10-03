@@ -7,7 +7,7 @@ import {
 } from "./Types/ParserTypes.js";
 
 import { callAI, ModelType } from "./CallAI.js";
-import { sendToUser } from "../services/websocket.service.js";
+import { sendToUser, activeSessions } from "../services/websocket.service.js";
 import { behaviourPrompt } from "./instructions/behaviour.instructions.js";
 import {
   instructions,
@@ -82,13 +82,16 @@ export const askAI = async (
     //Broadcasting here...
     sendToUser(userId, {
       type: "ai_data",
+      sessionId: session,
       data: {
-        workingon: "Nexus is thinking...",
+        workingon: "Working...",
         msg: "",
         cmd: command || lastExecutedCmd || "",
         executions,
       },
     });
+    const _ls0 = activeSessions.get(session);
+    if (_ls0) { _ls0.workingon = "Working..."; _ls0.executions = executions; }
     try {
       aiResponse = await callAI(model.provider, {
         userId: userId,
@@ -110,6 +113,7 @@ export const askAI = async (
         aiResponse.workingon || (aiResponse as any).workingOn || "Thinking...";
       sendToUser(userId, {
         type: "ai_data",
+        sessionId: session,
         data: {
           workingon: workingOn,
           msg: aiResponse.msg || "",
@@ -117,6 +121,8 @@ export const askAI = async (
           executions,
         },
       });
+      const _ls1 = activeSessions.get(session);
+      if (_ls1) { _ls1.workingon = workingOn; _ls1.executions = executions; }
       const actualContent = aiResponse;
       if (!actualContent || actualContent.success === false) {
         break;
@@ -153,12 +159,16 @@ export const askAI = async (
         );
         sendToUser(userId, {
           type: "ai_data",
+          sessionId: session,
           data: {
             workingon: actionDesc,
             msg: aiResponse?.msg || "",
             cmd: command,
+            executions,
           },
         });
+        const _ls2 = activeSessions.get(session);
+        if (_ls2) { _ls2.workingon = actionDesc; _ls2.executions = executions; }
         const stepStart = Date.now();
         const commandOutput: CommandParserResponseType = await commandParser(
           userId,
@@ -190,13 +200,16 @@ export const askAI = async (
         });
         sendToUser(userId, {
           type: "ai_data",
+          sessionId: session,
           data: {
             workingon: "Completed " + actionDesc,
             msg: "",
             cmd: command,
-            executions, // <-- Send the updated steps list!
+            executions,
           },
         });
+        const _ls3 = activeSessions.get(session);
+        if (_ls3) { _ls3.workingon = "Completed " + actionDesc; _ls3.executions = executions; }
 
         let currentError = commandOutput.terminalError || "";
 
@@ -234,12 +247,16 @@ export const askAI = async (
         };
         sendToUser(userId, {
           type: "ai_data",
+          sessionId: session,
           data: {
             workingon: "✍️ Finalizing response...",
             msg: "",
             cmd: "",
+            executions,
           },
         });
+        const _ls4 = activeSessions.get(session);
+        if (_ls4) { _ls4.workingon = "Finalizing response..."; _ls4.executions = executions; }
         commandRunningMsgs.push({
           role: "user",
           content: JSON.stringify(feedbackContent, null, 2),

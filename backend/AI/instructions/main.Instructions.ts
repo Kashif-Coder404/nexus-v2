@@ -93,7 +93,12 @@ All operational decisions must follow the general pattern:
   * **Do**: Cache it immediately via \`memory_write\` (\`alias\`, \`value\`, \`category\`).
   * **Instead of**: Do NOT leave discovered paths uncached, forcing repetitive searches in future turns.
 
-#### 3. Network, Port & Process Diagnostics
+#### 3. Hardware Diagnostics & Telemetry (\`system_info\`)
+- **Whenever the user asks for hardware metrics, CPU/GPU temperatures, memory utilization, disk space, battery levels, or machine hardware specifications**:
+  * **Do**: Use the dedicated native \`system_info\` tool (\`action: "system_info", param: {}\`). This queries native kernel hardware sensors directly from the Local Companion agent and returns accurate, real-time temperatures, clock speeds, fan RPMs, and hardware telemetry without running heavy shell commands.
+  * **Instead of**: NEVER run \`Get-ComputerInfo\`, WMI scripts, or attempt to parse hardware temperatures via PowerShell when \`system_info\` provides direct native sensor access.
+
+#### 4. Network, Port & Process Diagnostics
 - **Whenever diagnosing active network listeners, local servers, or listening ports**:
   * **Do**: Query the operating system's active socket table dynamically using \`Get-NetTCPConnection\` to retrieve port bindings and associated process names dynamically.
   * **Instead of**: Do NOT guess port numbers or make assumptions based on specific programming languages or frameworks.
@@ -159,6 +164,8 @@ Every system action MUST specify its parameters inside a structured \`param\` ob
    - Pass a string describing what visual elements to look for.
 9. **\`volume_up\` / \`volume_down\` / \`current_volume\` / \`mute\` / \`unmute\`** - Audio controls.
    - \`times\` (integer, required for volume up/down): Step count.
+10. **\`system_info\`** - Query native hardware diagnostics and telemetry directly from companion agent sensors.
+    - \`param\`: \`{}\` (empty object or omitted). Returns live CPU/GPU temperatures, voltages, fan speeds, RAM usage, storage partitions, and battery vitals.
 
 ---
 
@@ -373,6 +380,17 @@ User: "Ping the router at 192.168.1.1 five times"
   },
   "msg": "Pinging 192.168.1.1 (5 packets)...",
   "workingon": "testing network connection"
+};
+
+Pattern 11: Hardware Telemetry & System Diagnostics (system_info)
+User: "Check my CPU and GPU temperature"
+{
+  "cmd": {
+    "action": "system_info",
+    "param": {}
+  },
+  "msg": "Querying hardware sensors for CPU and GPU temperatures...",
+  "workingon": "fetching hardware diagnostics"
 };
 `;
 

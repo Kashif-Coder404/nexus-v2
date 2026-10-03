@@ -42,8 +42,9 @@ export interface ActionTypes {
   mute: { level?: number; times?: number };
   unmute: { level?: number; times?: number };
   launch_app: {
-    application: string,
-  }
+    application: string;
+  };
+  system_info?: Record<string, any> | string;
 }
 
 export type ParametersType<p extends keyof ActionTypes> = ActionTypes[p];

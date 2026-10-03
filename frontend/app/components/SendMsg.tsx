@@ -5,11 +5,15 @@ import {
   Sparkles,
   ChevronDown,
   CheckCircle2,
+  StopCircle,
+  SquareEqual,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useChat from "../store/useChat";
 import { useRouter } from "next/navigation";
+import { sendWsJson } from "@/services/ws.service";
+import { IconStopwatch } from "@tabler/icons-react";
 
 export type ModelType = {
   provider: "gemini" | "local_gemini";
@@ -56,11 +60,33 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
   const [isSending, setIsSending] = useState<boolean>(false);
   const [model, setModel] = useState<ModelType>(Models[0]);
 
-  const token = useUserCredentials((state) => state.token);
-  const session = useChat((state) => state.session);
+  // const token = useUserCredentials((state) => state.token);
+  const sessionId = useChat((state) => state.session);
   const addChat = useChat((state) => state.addChat);
-  const setSession = useChat((state) => state.setSession);
+  const isWorking = Boolean(useChat((state) => state.workingOn));
+  const isDisabled = isSending || isWorking;
+  // const setSession = useChat((state) => state.setSession);
   const router = useRouter();
+
+  // Unlock send button when ai_done arrives from WS
+  useEffect(() => {
+    const handler = () => setIsSending(false);
+    window.addEventListener("nexus_ai_done", handler);
+    return () => window.removeEventListener("nexus_ai_done", handler);
+  }, []);
+
+  // Listen for session_created to automatically navigate to the new chat URL
+  useEffect(() => {
+    const sessionHandler = (e: any) => {
+      const newSid = e.detail?.sessionId;
+      if (newSid) {
+        router.replace(`/chat/${newSid}`);
+      }
+    };
+    window.addEventListener("nexus_session_created", sessionHandler);
+    return () =>
+      window.removeEventListener("nexus_session_created", sessionHandler);
+  }, [router]);
 
   const handleSendMsg = async () => {
     const actualMessage = msg.trim();
@@ -70,67 +96,23 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
     addChat({
       role: "user",
       content: actualMessage,
+      timestamp: new Date().toISOString(),
     });
     setMsg("");
     setIsSending(true);
-
-    const backendUrl = sendingUrl || process.env.NEXT_PUBLIC_BACKEND_URL;
-
     try {
-      const res = await fetch(`${backendUrl}/api/chat/message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "x-session-id": session || "",
-        },
-        body: JSON.stringify({
-          role: "user",
-          content: actualMessage,
-          model: {
-            provider: model.provider,
-            name: model.name,
-            isLiveModel: model.isLiveModel,
-          },
-        }),
-      });
-
-      if (res.status === 401) {
-        useUserCredentials.getState().logout();
-        router.push("/auth/login");
-        return;
-      }
-
-      const data = await res.json();
-      if (data.success) {
-        addChat({
-          role: "assistant",
-          content: data.data || data,
-        });
-        if (data.sessionId) {
-          setSession(data.sessionId);
-          router.replace(`/chat/${data.sessionId}`);
-        }
-      } else {
-        addChat({
-          role: "assistant",
-          content: {
-            lastAIMsg: data.message || "Failed to process message.",
-            terminalError: data.data?.terminalError || "Request failed",
-          },
-        });
-      }
-    } catch (error: any) {
-      console.error("[SEND ERROR]:", error);
-      addChat({
-        role: "assistant",
-        content: {
-          lastAIMsg:
-            "Encountered a network error connecting to the Nexus server.",
-          terminalError: error?.message || "Connection failed",
+      sendWsJson({
+        type: "chat_send",
+        sessionId,
+        content: actualMessage,
+        model: {
+          provider: model.provider,
+          name: model.name,
+          isLiveModel: model.isLiveModel,
         },
       });
-    } finally {
+    } catch (err) {
+      console.error(err);
       setIsSending(false);
     }
   };
@@ -197,18 +179,23 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
                 handleSendMsg();
               }
             }}
-            disabled={isSending}
+            disabled={isDisabled}
           />
 
           {/* Send Button */}
           <button
             onClick={handleSendMsg}
-            disabled={isSending || !msg.trim()}
+            disabled={isDisabled}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand to-brand-hover text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand/40 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
             title="Send message"
           >
-            {isSending ? (
-              <Loader2 className="h-5 w-5 animate-spin text-white" />
+            {isDisabled ? (
+              // <SquareEqual className="h-5 w-5 animate-pulse text-white" />
+              <div className="flex gap-1">
+                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_infinite]"></div>
+                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_0.2s_infinite]"></div>
+                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_0.4s_infinite]"></div>
+              </div>
             ) : (
               <SendHorizonal className="h-5 w-5" />
             )}

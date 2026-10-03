@@ -2,28 +2,19 @@ import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { generateToken, verifyToken } from "./jwt.service.js";
 import { UserModel } from "../db/schema/user-schema.js";
-import { commandParserType } from "../AI/Types.js";
 import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
 import { Types } from "mongoose";
+import { askAI } from "../AI/askAI.js";
+import { SessionModel } from "../db/schema/session-schema.js";
+import chatSummarize from "../AI/Helper/chatname.summarizer.js";
+import { getChat, setChat } from "./chat.history.service.js";
+import { summarize } from "../AI/Helper/para.summarizer.js";
+import { ChatMessageType } from "../AI/Types.js";
+import { newSession } from "../middlewares/auth/sessionVerification.js";
+import { ActiveSessions, CustomWebSocket } from "./websocket/Types.js";
 
-export interface CustomWebSocket extends WebSocket {
-  isAlive?: boolean;
-  userId?: string;
-  deviceId?: string;
-  deviceName?: string;
-  isAuthenticated?: boolean;
-  pairingCode?: string;
-  service?: boolean;
-  ipAddress?: string;
-  watchdogTimer?: boolean;
-}
+export const activeSessions = new Map<string, ActiveSessions>();
 
-export interface ActiveSessions {
-  
-}
-
-// Practice Promise for ws await function!
-const activeSessions = new Map<string, any>();
 const pendingRequests = new Map();
 export interface ActiveBackgroundTask {
   userId: string;
@@ -189,6 +180,8 @@ const initWebsocket = (server: Server) => {
 
         const { type } = parsedData;
 
+        //Need to make it to the OOPs but later
+
         switch (type) {
           case "ping": {
             resetWatchdog(ws);
@@ -347,7 +340,200 @@ const initWebsocket = (server: Server) => {
             });
             break;
           }
+          case "chat_send": {
+            if (!ws.isAuthenticated || !ws.userId) break;
+            const currUserId = ws.userId;
+            const { content, behaviour = "friendly", model } = parsedData;
+            let targetSessionId = parsedData.sessionId;
 
+            console.log("[WS chat_send] Received:", {
+              userId: currUserId,
+              sessionId: targetSessionId,
+              content,
+              behaviour,
+              model,
+            });
+
+            if (!content || !content.toString().trim()) break;
+
+            const defaultModel = {
+              provider: "local_gemini",
+              name: "gemini-3.7-flash",
+              isLiveModel: false,
+            };
+            const selectedModel = model || defaultModel;
+
+            if (!targetSessionId) {
+              const newSess = await newSession(currUserId);
+              if (!newSess.success || !newSess.sessionId) {
+                console.error("[WS chat_send] Failed to create new session");
+                break;
+              }
+              targetSessionId = newSess.sessionId.toString();
+              sendJson(ws, {
+                type: "session_created",
+                sessionId: targetSessionId,
+              });
+            }
+
+            // Check if this session is already running
+            const liveState = activeSessions.get(targetSessionId);
+            if (liveState !== undefined) {
+              sendJson(ws, {
+                type: "session_state",
+                sessionId: targetSessionId,
+                isRunning: true,
+                data: {
+                  workingon: liveState.workingon,
+                  executions: liveState.executions,
+                  userMessage: liveState.userMessage,
+                },
+              });
+              break;
+            }
+
+            // Register session in authoritative server hub
+            activeSessions.set(targetSessionId, {
+              userId: currUserId,
+              sessionId: targetSessionId,
+              userMessage: content.toString(),
+              workingon: "Analyzing your request...",
+              executions: [],
+            });
+
+            // Immediately broadcast new_user_message to all user tabs/devices (PC + Mobile)
+            sendToUser(currUserId, {
+              type: "new_user_message",
+              sessionId: targetSessionId,
+              message: {
+                role: "user",
+                content,
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            // Update session updatedAt in background
+            SessionModel.updateOne(
+              { _id: targetSessionId, userId: currUserId },
+              { updatedAt: new Date() },
+            ).catch(() => {});
+
+            // Background title generation for newly created/default sessions
+            SessionModel.findOne({
+              _id: targetSessionId,
+              userId: currUserId,
+              title: "New Chat",
+            })
+              .then(async (existingSession) => {
+                if (existingSession) {
+                  const titleSnippet =
+                    (await chatSummarize([
+                      { role: "user", content: content.toString() },
+                    ])) || content.split(" ").slice(0, 4).join(" ");
+
+                  await SessionModel.updateOne(
+                    {
+                      _id: targetSessionId,
+                      userId: currUserId,
+                      title: "New Chat",
+                    },
+                    { title: titleSnippet },
+                  );
+                }
+              })
+              .catch((err) =>
+                console.error("[WS chat_send] Title generation error:", err),
+              );
+
+            // Execute AI turn
+            askAI(
+              currUserId,
+              targetSessionId,
+              content,
+              behaviour,
+              selectedModel,
+            )
+              .then((result) => {
+                sendToUser(currUserId, {
+                  type: "ai_done",
+                  sessionId: targetSessionId,
+                  data: {
+                    workingon: "",
+                    message: {
+                      role: "assistant",
+                      content: {
+                        lastAIMsg: result.msg || "No message from AI",
+                        lastCMD: result.cmd || "",
+                        terminal: result.terminalOutput || "",
+                        terminalError: result.terminalError || "",
+                        executions: result.executions || [],
+                        imageBase64: result.imageBase64 || "",
+                        workedSeconds: result.workedSeconds || 0,
+                      },
+                      executions: result.executions || [],
+                      imageBase64: result.imageBase64 || "",
+                      workedSeconds: result.workedSeconds || 0,
+                    },
+                  },
+                });
+
+                // Trigger background conversation summarization if long chat
+                triggerBackgroundSummarize(currUserId, targetSessionId);
+              })
+              .catch((err: any) => {
+                console.error(
+                  "[WS chat_send] askAI error:",
+                  err?.message || err,
+                );
+                sendToUser(currUserId, {
+                  type: "ai_done",
+                  sessionId: targetSessionId,
+                  data: {
+                    workingon: "",
+                    message: {
+                      role: "assistant",
+                      content: {
+                        lastAIMsg:
+                          err?.message ||
+                          "An error occurred while processing your request.",
+                        lastCMD: "",
+                        terminal: "",
+                        terminalError: err?.message || "Internal server error",
+                        executions: [],
+                        imageBase64: "",
+                        workedSeconds: 0,
+                      },
+                      executions: [],
+                      imageBase64: "",
+                      workedSeconds: 0,
+                    },
+                  },
+                });
+              })
+              .finally(() => {
+                activeSessions.delete(targetSessionId);
+              });
+            break;
+          }
+          case "sync_session": {
+            if (!ws.isAuthenticated) break;
+            const { sessionId } = parsedData;
+            if (!sessionId) break;
+            const liveState = activeSessions.get(sessionId);
+            sendJson(ws, {
+              type: "session_state",
+              sessionId,
+              isRunning: !!liveState,
+              data: liveState
+                ? {
+                    workingon: liveState.workingon,
+                    executions: liveState.executions,
+                    userMessage: liveState.userMessage,
+                  }
+                : null,
+            });
+            break;
+          }
           default:
             console.log(`[WS] Unhandled event type: ${type}`);
             break;
@@ -385,18 +571,6 @@ const initWebsocket = (server: Server) => {
     });
   });
 };
-//Client check pinging...
-// setInterval(() => {
-//   if (!wss) return;
-//   wss.clients.forEach((client: CustomWebSocket) => {
-//     if (client.deviceId === "web_client") return; // skip browser clients
-//     if (client.isAlive === false) {
-//       return client.terminate();
-//     }
-//     client.isAlive = false; // assume dead until pong proves otherwise
-//     client.ping(); // triggers Local-BE auto-pong
-//   });
-// }, 30000);
 
 const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
   const userDoc = await UserModel.findById(userId);
@@ -416,6 +590,41 @@ const sendDeviceStatus = async (ws: WebSocket, userId: string) => {
     }),
   });
 };
+
+async function triggerBackgroundSummarize(userId: string, sessionId: string) {
+  try {
+    const prevChatMessages: ChatMessageType[] =
+      (await getChat(userId, sessionId, 20))?.chat || [];
+    if (prevChatMessages.length < 10) return;
+
+    const summaryTitle = `summary_chat_${sessionId}`;
+    let summarySessionDoc: any = await SessionModel.findOne({
+      userId,
+      title: summaryTitle,
+    });
+
+    const prevSummary: ChatMessageType[] = summarySessionDoc
+      ? (await getChat(userId, summarySessionDoc._id.toString(), 1))?.chat || []
+      : [];
+
+    const allContextToSummarize = [...prevSummary, ...prevChatMessages];
+    const summaryResult = await summarize(allContextToSummarize, sessionId);
+    if (summaryResult && summaryResult.length > 0) {
+      if (!summarySessionDoc) {
+        summarySessionDoc = await SessionModel.create({
+          userId,
+          title: summaryTitle,
+        });
+      }
+      await setChat(userId, summarySessionDoc._id.toString(), {
+        role: "assistant",
+        content: summaryResult,
+      });
+    }
+  } catch (err) {
+    console.error("[BACKGROUND SUMMARY ERROR]:", err);
+  }
+}
 
 const sendToUser = (userId: string, data: any, deviceId?: string) => {
   if (!wss) return;
