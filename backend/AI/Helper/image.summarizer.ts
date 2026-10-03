@@ -47,24 +47,50 @@ export const summarizeBase64Image = async (
       },
     ],
   };
-  const chatToPass = [...chatMessages, toPass];
-  const response = await callAI("gemini", {
-    chatMessages: chatToPass,
+  // 1. Try Local Gemini first with gemini-3.6-flash (Free, zero token cost)
+  let response = await callAI("gemini", {
+    chatMessages: [toPass],
     session: "",
     instructions: imageInstructions,
     isJson: false,
-    isLiveModel: true,
-    model: "gemini-3.1-flash-live-preview", // This one always works
+    modeltype: "live",
+    model: "gemini-3.1-flash-live-preview",
     retryCount: 0,
   });
+
+  // 2. If Local fails, fall back to Live Gemini
+  if (!response || !response.success) {
+    console.warn(
+      "[IMAGE SUMMARIZER] Local model failed, falling back to Live model...",
+    );
+    response = await callAI("gemini", {
+      chatMessages: [toPass],
+      session: "",
+      instructions: imageInstructions,
+      isJson: false,
+      modeltype: "api",
+      model: "gemini-3.5-flash-lite",
+      retryCount: 0,
+    });
+  }
+
+  console.log("Image Context MSG: ", response.msg);
   if (!response.success)
     return {
-      summary: "Failed To Give Context About image",
+      summary: "Image Captured But Failed To Give Context About image",
       base64: base64Str,
-      msg: response.msg,
+      msg: response.msg || "Failed To Give Context About image",
     };
-  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${response.rawContent}`;
-  return { summary, base64: base64Str, msg: response.msg };
+
+  const visualText =
+    response.msg ||
+    (typeof response.rawContent === "string"
+      ? response.rawContent
+      : response.rawContent?.msg ||
+        response.rawContent?.text ||
+        JSON.stringify(response.rawContent));
+  const summary = `[VISUAL CONTEXT SUMMARIZED BY AI]: ${visualText}`;
+  return { summary, base64: base64Str, msg: visualText };
 };
 
 export const imageSet = async (
@@ -94,9 +120,8 @@ export const imageSet = async (
       },
     ],
   };
-  const chatToPass = [...chatMessages, toPass];
   const response = await geminiAICall({
-    chatMessages: chatToPass,
+    chatMessages: toPass,
     retryCount: 0,
     model: "gemini-3.5-flash-lite",
     instructionString: imageInstructions,
@@ -114,7 +139,6 @@ export const summarize_image = async (
   session: string,
   userId: string,
 ) => {
-  const chatHistory = (await getChat(userId, session, 10))?.chat || [];
   const base64Str = `data:image/png;base64,${imageBuffer?.toString("base64")}`;
   const toPass: any = {
     role: "user",
@@ -135,9 +159,8 @@ export const summarize_image = async (
       },
     ],
   };
-  const chatMessages: ChatMessageType[] = [...chatHistory, toPass];
   const summary = await callAI("gemini", {
-    chatMessages: chatMessages,
+    chatMessages: toPass,
     session: session,
     instructions: imageInstructions,
     isJson: false,

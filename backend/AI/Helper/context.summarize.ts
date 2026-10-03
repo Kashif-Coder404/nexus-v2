@@ -1,6 +1,4 @@
-import { error } from "node:console";
 import { ChatMessageType } from "../Types/ChatTypes.js";
-import { exitCode } from "node:process";
 
 export const buildAiContext = (chatHistory: ChatMessageType[]) => {
   return chatHistory.map((message) => ({

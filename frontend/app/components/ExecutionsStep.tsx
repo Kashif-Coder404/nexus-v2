@@ -25,7 +25,7 @@ function getCommand(cmd: any): string {
   if (typeof cmd === "object") {
     const action = cmd.action;
     const param = cmd.param;
-    actualCommand += action+ " ";
+    actualCommand += action + " ";
     if (param) {
       if (typeof param === "object") {
         for (const key of Object.keys(param)) {
@@ -166,7 +166,7 @@ export default function ExecutionSteps({
                     (step.cmd as any)?.action || step.action || "command";
 
                   const command = getCommand(step.cmd);
-                  console.log(command);
+
                   const output = [step.terminalOutput, step.terminalError]
                     .filter(Boolean)
                     .join("\n\n");

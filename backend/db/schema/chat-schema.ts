@@ -50,6 +50,10 @@ const CommandExecutionSchema = new Schema(
       type: String,
       required: false,
     },
+    imageBase64: {
+      type: String,
+      default: "",
+    },
   },
   { _id: false },
 );

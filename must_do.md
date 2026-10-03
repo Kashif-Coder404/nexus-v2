@@ -226,3 +226,26 @@ When a user opens Chat A on their phone or refreshes their browser:
 - **askAI State Updating:** ~10 minutes
 - **Frontend WS Event Hookup:** ~15 minutes
 - **Total:** ~35–45 minutes
+
+---
+
+## 8. Dynamic Agent Skills Architecture (MongoDB + In-Memory LRU Cache)
+> **Core Concept:** *"Separate identity from domain tools. Load skills dynamically on-demand."*
+
+### Motivation:
+Currently, `main.Instructions.ts` is ~470 lines long (~10,000 tokens). Every single chat request (even a simple "hey") sends this massive payload, causing:
+1. High token usage and latency.
+2. Prompt noise leading to unsolicited command execution on casual greetings.
+
+### Architectural Solution:
+1. **Core Prompt (~40 lines):** Persona, strict JSON-only output format, conversational greeting rule.
+2. **MongoDB `Skills` Collection:** Stores domain manuals (`app_launcher`, `powershell`, `diagnostics`, `vision`, `filesystem`). Enables instant prompt tuning without Docker re-deployments.
+3. **Class-Level `static` LRU Cache (In-Memory):**
+   - Stored on `AskAI.skillCache` so **all users share a single cache instance**.
+   - Capped at max 50 skills, 15-minute TTL.
+   - Total memory footprint < 250 KB across the entire server.
+4. **On-Demand / Pre-routed Skill Loading:**
+   - Query contains "open" / "launch" ➔ loads `app_launcher`.
+   - Query contains "screenshot" / "screen" ➔ loads `screen_vision`.
+   - Query is casual greeting ➔ 0 skills loaded (only ~40-line core prompt).
+

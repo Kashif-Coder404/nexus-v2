@@ -17,6 +17,7 @@ export interface ExecutionStep {
   terminalError?: string;
   duration?: string;
   cwd?: string;
+  imageBase64?: string;
 }
 
 export interface AiData {
@@ -61,10 +62,11 @@ const AIMsgBox = ({
   const executionsRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [imagesBase64, setImagesBase64] = useState<any>([]);
 
   // Safely parse and normalize data whether it's a string, JSON string, or object
   let parsedData: any = data;
-  const chat = useChat((state) => state.chat);
+
   if (typeof data === "string") {
     try {
       parsedData = JSON.parse(data);
@@ -148,6 +150,22 @@ const AIMsgBox = ({
     : Array.isArray(parsedContentObj?.executions)
       ? parsedContentObj.executions
       : [];
+  const capturedImages = executions
+    .filter((step) => step.imageBase64)
+    .map((step) => {
+      if (step.imageBase64)
+        return {
+          step: step.steps,
+          src: step.imageBase64.startsWith("data:")
+            ? step.imageBase64
+            : `data:image/png;base64,${step.imageBase64}`,
+        };
+    });
+  console.log(capturedImages);
+
+  useEffect(() => {
+    setImagesBase64(capturedImages);
+  }, [executions]);
 
   const rawImage: string | undefined =
     normalized.imageBase64 || parsedContentObj?.imageBase64;
@@ -179,15 +197,25 @@ const AIMsgBox = ({
   return (
     <div className="flex flex-col justify-center items-start w-full max-w-2xl sm:max-w-2xl p-2">
       {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}
-      {imageSrc && (
-        <div className="flex justify-center items-center rounded-2xl overflow-hidden">
-          <img
-            className="rounded-2xl w-full h-full object-contain"
-            src={imageSrc}
-            alt=""
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-2">
+        {imagesBase64.length > 0 &&
+          imagesBase64.map((imageBase64: any, index: number) => (
+            <div
+              key={index}
+              className="relative flex justify-center items-center rounded-2xl overflow-hidden"
+            >
+              <img
+                className="rounded-2xl w-full h-full object-contain opacity-75"
+                src={imageBase64.src}
+                alt=""
+              />
+              <span className="absolute top-0 left-2 text-xl font-semibold text-white bg-black/30 p-1 rounded-full">
+                {imageBase64.step}
+              </span>
+            </div>
+          ))}
+      </div>
+
       <div className="flex items-center gap-2 m-2">
         <Bot className="h-10 w-10 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
         {/* <span className="text-sm font-semibold text-white">Nexus AI</span> */}

@@ -10,6 +10,7 @@ import {
 } from "./Providers/tokenRouterAI.js";
 import { instructions as defaultInstructions } from "./instructions/main.Instructions.js";
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
+import { localGeminiAICall } from "./Providers/localGeminiCall.js";
 
 export type AIName = "nvidia" | "gemini" | "tokenrouter" | "local_gemini";
 export type GeminiModels = GeminiModelsTypes;
@@ -28,9 +29,10 @@ export type TokenRouterModels =
 
 export type ModelType = {
   provider: AIName;
-  name: GeminiModels | TokenRouterModels | LocalGeminiModels | string;
+  name: GeminiModels | TokenRouterModels | LocalGeminiModels;
   isLiveModel?: boolean;
 };
+export type AIProviderType = "live" | "api" | "local";
 export type AIProviderParams = {
   chatMessages: ChatMessageType[];
   session: string;
@@ -38,10 +40,10 @@ export type AIProviderParams = {
   instructions?: string;
   isJson?: boolean;
   isLiveModel?: boolean;
-
+  modeltype?: AIProviderType;
   // Specific to Gemini / TokenRouter / Local Gemini
   retryCount?: number;
-  model?: GeminiModels | TokenRouterModels | LocalGeminiModels | string;
+  model?: GeminiModels | TokenRouterModels | LocalGeminiModels;
 
   // Specific to Nvidia
   workingOn?: string;
@@ -68,6 +70,11 @@ export const callAI = async (
     isJson = true,
     isLiveModel = false,
   } = params;
+
+  // Alias local_gemini to gemini for backwards compatibility
+  if ((name as string) === "local_gemini") {
+    name = "gemini";
+  }
 
   if (name === "nvidia") {
     const res = await callNvidia(
@@ -107,10 +114,12 @@ export const callAI = async (
   }
 
   if (name === "gemini") {
-    const isLive =
-      isLiveModel || params.model === "gemini-3.1-flash-live-preview";
-    const res = isLive
-      ? await liveGeminiAICall({
+    const modelType = params.modeltype;
+    let res: GeminiResponse = {} as GeminiResponse;
+
+    try {
+      if (modelType === "live") {
+        res = await liveGeminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
           model:
@@ -119,8 +128,9 @@ export const callAI = async (
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
-        })
-      : await geminiAICall({
+        });
+      } else if (modelType === "api") {
+        res = await geminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
           model: (params.model as GeminiModelsTypes) || "gemini-3.5-flash-lite",
@@ -128,16 +138,76 @@ export const callAI = async (
           isJson: isJson,
           keyIndex: geminiKeyIndex,
         });
+      } else {
+        // Default to local Gemini
+        res = await localGeminiAICall({
+          chatMessages,
+          model: (params.model as string) || "gemini-3.7-flash",
+          instructionString: instructions,
+          userId: params.userId,
+          isJson,
+        });
+      }
+    } catch (err: any) {
+      console.warn(
+        `[GEMINI CALL ERROR] Failed with modelType '${modelType}':`,
+        err?.message || err,
+      );
+      res = { success: false } as GeminiResponse;
+    }
+
+    // Fallback if local or primary call was unsuccessful
+    if (!res || !res.success) {
+      console.warn(
+        "[GEMINI FALLBACK] Falling back to official Gemini API (gemini-3.5-flash-lite)...",
+      );
+      try {
+        res = await geminiAICall({
+          chatMessages,
+          retryCount: params.retryCount || 0,
+          model: "gemini-3.5-flash-lite",
+          instructionString: instructions,
+          isJson: isJson,
+          keyIndex: geminiKeyIndex,
+        });
+      } catch (fallbackErr: any) {
+        console.error(
+          "[GEMINI FALLBACK ERROR]:",
+          fallbackErr?.message || fallbackErr,
+        );
+        res = {
+          success: false,
+          content: {
+            msg:
+              fallbackErr?.message || "AI failed to respond. Please try again.",
+          },
+        } as GeminiResponse;
+      }
+    }
+
     const actualContent = res.content || {};
     if (res.usedKeyIndex !== undefined) {
       geminiKeyIndex = res.success ? res.usedKeyIndex : res.usedKeyIndex + 1;
     }
 
+    let cmd = "";
+    let msg = "";
+    let workingon = "";
+
+    const contentObj = actualContent as any;
+    if (typeof actualContent === "string") {
+      msg = actualContent;
+    } else if (actualContent && typeof actualContent === "object") {
+      cmd = contentObj.cmd || "";
+      msg = contentObj.msg || contentObj.message || contentObj.text || "";
+      workingon = contentObj.workingon || "";
+    }
+
     return {
-      cmd: actualContent.cmd || "",
-      msg: actualContent.msg || "",
-      workingon: actualContent.workingon || "",
-      success: res.success,
+      cmd,
+      msg,
+      workingon,
+      success: res.success ?? false,
       rawContent: actualContent,
     };
   }
@@ -160,57 +230,6 @@ export const callAI = async (
       success: res.success,
       rawContent: actualContent,
     };
-  }
-
-  if (name === "local_gemini") {
-    try {
-      // Dynamic import so it compiles smoothly even when local file is gitignored
-      // @ts-ignore
-      const { localGeminiAICall } =
-        await import("./Providers/localGeminiCall.js");
-      const res = await localGeminiAICall({
-        chatMessages,
-        model: (params.model as string) || "gemini-3.7-flash",
-        instructionString: instructions,
-        userId: params.userId,
-      });
-      const actualContent = res.content || {};
-
-      if (res.success) {
-        return {
-          cmd: actualContent.cmd || "",
-          msg: actualContent.msg || "",
-          workingon: actualContent.workingon || "",
-          success: res.success,
-          rawContent: actualContent,
-        };
-      }
-      const fallbackModel =
-        params.model === "gemini-3.1-pro"
-          ? "gemini-3.7-flash"
-          : (params.model as any) || "gemini-3.7-flash";
-
-      console.warn(
-        `[LOCAL GEMINI WARNING] Request was unsuccessful (${actualContent.msg || "unknown"}). Falling back to official Gemini API...`,
-      );
-      return await callAI("gemini", {
-        ...params,
-        model: fallbackModel,
-      });
-    } catch (err: any) {
-      console.error("[LOCAL GEMINI ROUTING ERROR]:", err);
-      console.warn(
-        "[LOCAL GEMINI] Falling back to official Gemini API due to error...",
-      );
-      const fallbackModel =
-        params.model === "gemini-3.1-pro"
-          ? "gemini-3.7-flash"
-          : (params.model as any) || "gemini-3.7-flash";
-      return await callAI("gemini", {
-        ...params,
-        model: fallbackModel,
-      });
-    }
   }
 
   throw new Error(`AI Provider '${name}' is not supported.`);

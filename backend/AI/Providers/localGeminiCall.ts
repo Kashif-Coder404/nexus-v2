@@ -18,11 +18,13 @@ export const localGeminiAICall = async ({
   model = "gemini-3.7-flash",
   instructionString = instructions,
   userId,
+  isJson = true,
 }: {
   chatMessages: ChatMessageType[];
   model?: string;
   instructionString?: string;
   userId?: string;
+  isJson?: boolean;
 }): Promise<{
   content: {
     cmd: string;
@@ -46,8 +48,7 @@ export const localGeminiAICall = async ({
     },
     ...chatMessages.map((m) => ({
       role: m.role === "assistant" ? "assistant" : "user",
-      content:
-        typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      content: m.content,
     })),
   ];
   let response: any = null;
@@ -120,6 +121,16 @@ export const localGeminiAICall = async ({
   rawText = rawText.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
 
   // 2. Parse structured JSON using resilient extractor
+  if(!isJson){
+    return {
+      success: true,
+      content: {
+        cmd: "",
+        msg: rawText,
+        workingon: "",
+      }
+    }
+  }
   const parsed = extractJSON(rawText);
 
   if (parsed && typeof parsed === "object") {

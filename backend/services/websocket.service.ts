@@ -4,33 +4,26 @@ import { generateToken, verifyToken } from "./jwt.service.js";
 import { UserModel } from "../db/schema/user-schema.js";
 import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
 import { Types } from "mongoose";
-import { askAI } from "../AI/askAI.js";
 import { SessionModel } from "../db/schema/session-schema.js";
 import chatSummarize from "../AI/Helper/chatname.summarizer.js";
 import { getChat, setChat } from "./chat.history.service.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { newSession } from "../middlewares/auth/sessionVerification.js";
-import { ActiveSessions, CustomWebSocket } from "./websocket/Types.js";
+import {
+  ActiveBackgroundTask,
+  ActiveSessions,
+  CustomWebSocket,
+  PendingTask,
+} from "./websocket/Types.js";
+import { JwtPayload } from "jsonwebtoken";
+import { askAI } from "../AI/AskAI.js";
 
 export const activeSessions = new Map<string, ActiveSessions>();
 
 const pendingRequests = new Map();
-export interface ActiveBackgroundTask {
-  userId: string;
-  sessionId: string;
-  command: string;
-  model?: any;
-}
 export const activeBackgroundTasks = new Map<string, ActiveBackgroundTask>();
-const pendingTasks = new Map<
-  string,
-  {
-    resolve: (value: any) => void;
-    reject: (reason?: any) => void;
-    timer: NodeJS.Timeout;
-  }
->();
+const pendingTasks = new Map<string, PendingTask>();
 
 //Main
 let wss: WebSocketServer;
@@ -39,13 +32,7 @@ function sendJson(ws: WebSocket, payload: Record<string, any>) {
     ws.send(JSON.stringify(payload));
   }
 }
-type JwtPayload = {
-  token: {
-    userId: string;
-    deviceId: string;
-  };
-  success: boolean;
-};
+
 function resetWatchdog(ws: CustomWebSocket) {
   if (ws.deviceId === "web_client" && (ws as any).watchdogTimer) {
     clearTimeout((ws as any).watchdogTimer);
@@ -446,13 +433,7 @@ const initWebsocket = (server: Server) => {
               );
 
             // Execute AI turn
-            askAI(
-              currUserId,
-              targetSessionId,
-              content,
-              behaviour,
-              selectedModel,
-            )
+            askAI(currUserId, targetSessionId, content, selectedModel)
               .then((result) => {
                 sendToUser(currUserId, {
                   type: "ai_done",

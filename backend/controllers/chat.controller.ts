@@ -1,7 +1,7 @@
 import { sendToUser } from "../services/websocket.service.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
-import { askAI } from "../AI/askAI.js";
+import { askAI } from "../AI/AskAI.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
 import { SessionModel } from "../db/schema/session-schema.js";
 import { ModelType } from "../AI/CallAI.js";

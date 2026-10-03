@@ -20,3 +20,19 @@ export type AIResponse = {
   terminalError: string;
   imageBase64?: string;
 };
+
+export type CommandExecutionType = {
+  steps: number;
+  cmd: {
+    action?: string;
+    param?: any;
+  };
+  msg: string;
+  terminalOutput: string;
+  terminalError: string;
+  isSuccess: boolean;
+  exitCode?: string;
+  duration?: string;
+  cwd?: string;
+  imageBase64?: string;
+};

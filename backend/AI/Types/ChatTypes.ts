@@ -1,4 +1,4 @@
-import { CommandExecutionType } from "../askAI.js";
+import { CommandExecutionType } from "./AIResponseTypes.js";
 
 export type ChatMessageType = {
   role: string;
