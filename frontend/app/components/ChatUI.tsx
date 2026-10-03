@@ -19,6 +19,7 @@ const ChatUI = () => {
   const middleMsg = useChat((state) => state.middleMsg);
   const user = useUserCredentials.getState().user;
   const liveExecutions = useChat((state) => state.liveExecutions);
+  const isLoadingChat = useChat((state) => state.isLoadingChat);
   const [liveSeconds, setLiveSeconds] = React.useState(0);
 
   useEffect(() => {
@@ -46,7 +47,22 @@ const ChatUI = () => {
     <div className="flex flex-col h-full w-full text-white overflow-hidden">
       {/* 1. Scrollable Message Feed */}
       <div className="flex-1 overflow-y-auto scroll-smooth px-4 sm:px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
-        {chat.length === 0 ? (
+        {isLoadingChat ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute h-16 w-16 rounded-full border border-brand/40 animate-ping" />
+              <div className="h-12 w-12 rounded-full border-2 border-brand-border/40 border-t-brand-hover animate-spin" />
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-sm font-medium text-zinc-200">
+                Loading conversation...
+              </p>
+              <p className="text-xs text-zinc-500">
+                Retrieving messages and visual history
+              </p>
+            </div>
+          </div>
+        ) : chat.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
             <img
               src="https://i.ibb.co/NgXjccp7/Neon-Purple-Orbital-N-Emblem.png"

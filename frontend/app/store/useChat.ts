@@ -30,6 +30,8 @@ type ChatStore = {
   setLiveExecutions: (liveExecutions: any[]) => void;
   middleMsg: string | null;
   setMiddleMsg: (msg: string | null) => void;
+  isLoadingChat: boolean;
+  setIsLoadingChat: (isLoadingChat: boolean) => void;
 };
 const useChat = create<ChatStore>((set) => ({
   chat: [],
@@ -49,5 +51,7 @@ const useChat = create<ChatStore>((set) => ({
   clearLiveTerminal: () => set({ liveTerminal: "" }),
   middleMsg: null,
   setMiddleMsg: (middleMsg: string | null) => set({ middleMsg }),
+  isLoadingChat: false,
+  setIsLoadingChat: (isLoadingChat: boolean) => set({ isLoadingChat }),
 }));
 export default useChat;

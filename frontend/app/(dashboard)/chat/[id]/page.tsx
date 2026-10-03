@@ -19,6 +19,7 @@ export default function ChatSessionPage() {
   const setChat = useChat((state) => state.setChat);
   const setWorkingOn = useChat((state) => state.setWorkingOn);
   const setLiveExecutions = useChat((state) => state.setLiveExecutions);
+  const setIsLoadingChat = useChat((state) => state.setIsLoadingChat);
 
   useEffect(() => {
     if (!sessionId || !token) return;
@@ -32,6 +33,9 @@ export default function ChatSessionPage() {
     const loadSessionData = async () => {
       setWorkingOn(null);
       setLiveExecutions([]);
+      setIsLoadingChat(true);
+      setChat([]);
+
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
         const res = await fetch(`${backendUrl}/api/chat/history`, {
@@ -53,6 +57,8 @@ export default function ChatSessionPage() {
         }
       } catch (err) {
         console.error("[LOAD SESSION ERROR]:", err);
+      } finally {
+        setIsLoadingChat(false);
       }
     };
 
