@@ -60,12 +60,10 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
   const [isSending, setIsSending] = useState<boolean>(false);
   const [model, setModel] = useState<ModelType>(Models[0]);
 
-  // const token = useUserCredentials((state) => state.token);
   const sessionId = useChat((state) => state.session);
   const addChat = useChat((state) => state.addChat);
   const isWorking = Boolean(useChat((state) => state.workingOn));
   const isDisabled = isSending || isWorking;
-  // const setSession = useChat((state) => state.setSession);
   const router = useRouter();
 
   // Unlock send button when ai_done arrives from WS
@@ -88,8 +86,17 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
       window.removeEventListener("nexus_session_created", sessionHandler);
   }, [router]);
 
-  const handleSendMsg = async () => {
+  const handleSendMsg = async (isStop?: boolean) => {
     const actualMessage = msg.trim();
+    if (isStop) {
+      if (!sessionId) return;
+      sendWsJson({
+        type: "stop_ai",
+        sessionId,
+      });
+      setIsSending(false);
+      return;
+    }
     if (!actualMessage || isSending) return;
 
     // 1. Optimistically display user's message right away
@@ -184,22 +191,29 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
 
           {/* Send Button */}
           <button
+            onClick={() => handleSendMsg(isDisabled)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand to-brand-hover text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand/40 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isDisabled ? (
+              <div className="w-4 h-4 bg-white rounded-full animate"></div>
+            ) : (
+              <SendHorizonal className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* 
+          <button
             onClick={handleSendMsg}
             disabled={isDisabled}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand to-brand-hover text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand/40 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
             title="Send message"
           >
             {isDisabled ? (
-              // <SquareEqual className="h-5 w-5 animate-pulse text-white" />
-              <div className="flex gap-1">
-                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_infinite]"></div>
-                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_0.2s_infinite]"></div>
-                <div className="w-1 h-1 bg-white rounded-full animate-[bounce_0.6s_ease-in-out_0.4s_infinite]"></div>
-              </div>
+              <div className="w-4 h-4 bg-white rounded"></div>
             ) : (
               <SendHorizonal className="h-5 w-5" />
             )}
-          </button>
+          </button> */}
         </div>
 
         <div className="flex items-center justify-between px-2 pt-1.5 text-[11px] text-zinc-400">

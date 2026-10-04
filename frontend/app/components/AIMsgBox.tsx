@@ -161,7 +161,6 @@ const AIMsgBox = ({
             : `data:image/png;base64,${step.imageBase64}`,
         };
     });
-  console.log(capturedImages);
 
   useEffect(() => {
     setImagesBase64(capturedImages);

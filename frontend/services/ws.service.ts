@@ -32,6 +32,8 @@ const WebSocketInit = async () => {
 
       if (payload.type === "device_list") {
         useDevices.getState().setDevices(payload.devices);
+      } else if (payload.type === "stoped_response") {
+        useChat.getState().setWorkingOn(null);
       } else if (payload.type === "device_status") {
         const deviceId = payload.device?.id || payload.deviceId;
         if (deviceId) {

@@ -16,6 +16,15 @@ import {
 } from "./Types/ParserTypes.js";
 
 export class AskAI {
+  public static activeRunners = new Map<string, AskAI>();
+  private isAborted = false;
+
+  public abort() {
+    activeSessions.delete(this.sessionId);
+    this.isAborted = true;
+    AskAI.activeRunners.delete(this.sessionId);
+  }
+
   private userId: string;
   private sessionId: string;
   private userMessage: string;
@@ -58,11 +67,15 @@ export class AskAI {
       steps: execution.steps,
       executed: `with intension:'${execution.msg}' does action:'${JSON.stringify(execution.cmd.action)}' performed with parameters '${JSON.stringify(execution.cmd.param)}'`,
       output:
-        (execution.terminalOutput || "").split(" ").slice(-40).join(" ") +
-        " [Last 40 words]",
+        this.CleanTerminalText(execution.terminalOutput || "")
+          .split(/\r?\n/)
+          .slice(-40)
+          .join("\n") + " [Last 40 Lines]",
       error:
-        (execution.terminalError || "").split(" ").slice(-40).join(" ") +
-        " [Last 40 words]",
+        this.CleanTerminalText(execution.terminalError || "")
+          .split(/\r?\n/)
+          .slice(-40)
+          .join("\n") + " [Last 40 Lines]",
       success: execution.isSuccess + `(${execution.exitCode})`,
     }));
     const imageBase64 =
@@ -152,12 +165,30 @@ export class AskAI {
       return "💻 Executing command...";
     }
   }
-
+  private CleanTerminalText(output: string): string {
+    if (!output.trim()) return "";
+    return output
+      .replace(/[\u001b\x1b]\[[0-9;?]*[a-zA-Z]/g, "") // Strip ANSI colors
+      .replace(
+        /(?:\x1b\]|\u001b\]|\])9;4;[^\x1b\x07\r\n]*(?:\x07|\x1b\\|\\)?/g,
+        "",
+      ) // Strip winget progress
+      .split(/\r?\n/)
+      .filter((line) => !/^[\s\\|\/\-]+$/.test(line.trim())) // Strip spinner lines
+      .slice(-40)
+      .join("\n")
+      .trim();
+  }
   private async StartLoopChat(
     maxLimit: number = 15,
     chatHistory: ChatMessageType[],
   ) {
+    AskAI.activeRunners.set(this.sessionId, this);
     while (this.retries <= maxLimit) {
+      if (this.isAborted) {
+        this.aiResponse = { msg: "Generation stopped by user." };
+        break;
+      }
       const ChatMsgs: ChatMessageType[] = [
         ...chatHistory,
         ...this.commandRunningMsgs,
@@ -244,33 +275,37 @@ export class AskAI {
     if (commandOutput.imageBase64) {
       this.capturedImage = commandOutput.imageBase64;
     }
-    const rawOutput = commandOutput.terminalOutput || "";
-    if (rawOutput.split(" ").length > 50) {
-      this.terminalOutput =
-        "[...truncated earlier lines...]\n" +
-        rawOutput.split(" ").slice(-50).join(" ");
-    } else {
-      this.terminalOutput = rawOutput;
-    }
-    this.executions.push({
+    const RawOutput = commandOutput.terminalOutput || "";
+    const RawError = commandOutput.terminalError || "";
+    const displayOutput = RawOutput.split(/\r?\n/).slice(-150).join("\r\n");
+    const displayError = RawError.split(/\r?\n/).slice(-150).join("\r\n");
+    const CleanedOutput = this.CleanTerminalText(RawOutput);
+    const CleanedError = this.CleanTerminalText(RawError);
+    this.terminalOutput =
+      "[Last 40 Lines]\n" + CleanedOutput + "\n[End of Last 40 Lines]";
+    this.terminalError =
+      "[Last 40 Lines]\n" + CleanedError + "\n[End of Last 40 Lines]";
+
+    const StepExecution = {
       steps: this.executions.length + 1,
       cmd: {
         action: action,
         param: params,
       },
       msg: commandOutput.msg || this.aiResponse?.msg || "",
-      terminalError: commandOutput.terminalError || "",
-      terminalOutput: commandOutput.terminalOutput || "",
+      terminalOutput: displayOutput || "",
+      terminalError: displayError || "",
       isSuccess: commandOutput.isSuccess,
       exitCode: commandOutput.exitCode?.toString() || "",
       duration: stepDuration,
       cwd: currentCwd,
       imageBase64: commandOutput.imageBase64 || "",
-    });
+    };
+    this.executions.push(StepExecution); // Push to exections to show in the Frontend + Save to DB
     const actionDesc = this.ExplainAction(action, params);
     this.BroadCastTheState("Completed " + actionDesc, "", this.command);
 
-    let currentError = commandOutput.terminalError || "";
+    let currentError = CleanedError || "";
     if (
       commandOutput.exitCode !== undefined &&
       commandOutput.exitCode !== null
@@ -338,8 +373,13 @@ export class AskAI {
     };
   }
   public async run() {
-    const chatHistory = await this.BuildContext();
-    await this.StartLoopChat(15, chatHistory);
-    return await this.SaveTurn();
+    try {
+      AskAI.activeRunners.set(this.sessionId, this);
+      const chatHistory = await this.BuildContext();
+      await this.StartLoopChat(15, chatHistory);
+      return await this.SaveTurn();
+    } finally {
+      AskAI.activeRunners.delete(this.sessionId);
+    }
   }
 }

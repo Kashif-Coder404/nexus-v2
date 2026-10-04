@@ -18,6 +18,7 @@ import {
 } from "./websocket/Types.js";
 import { JwtPayload } from "jsonwebtoken";
 import { askAI } from "../AI/AskAI.js";
+import { AskAI } from "../AI/AskAI_OOP.js";
 
 export const activeSessions = new Map<string, ActiveSessions>();
 
@@ -194,7 +195,19 @@ const initWebsocket = (server: Server) => {
             }
             break;
           }
-
+          case "stop_ai": {
+            if (ws.isAuthenticated && ws.userId) {
+              const runner = AskAI.activeRunners.get(parsedData.sessionId);
+              if (runner) {
+                runner.abort();
+                //Stop the workingon message on the frontend
+                sendToUser(ws.userId, {
+                  type: "stoped_response",
+                });
+              }
+            }
+            break;
+          }
           case "get_devices": {
             if (ws.isAuthenticated && ws.userId) {
               await sendDeviceStatus(ws, ws.userId);
@@ -265,7 +278,16 @@ const initWebsocket = (server: Server) => {
             }
             break;
           }
-
+          case "task_promoted": {
+            if (!ws.isAuthenticated || !ws.userId) break;
+            sendToUser(ws.userId, {
+              type: "task_promoted",
+              taskId: parsedData.taskId,
+              pid: parsedData.pid,
+              cmd: parsedData.cmd,
+            });
+            break;
+          }
           case "revoke-device": {
             if (!ws.isAuthenticated) break;
             let targetDeviceId = parsedData.deviceId;

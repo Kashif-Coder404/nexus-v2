@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { ExecutionStep } from "./AIMsgBox";
+import StepTerminal from "./StepTerminal";
 
 interface Props {
   executions: ExecutionStep[];
@@ -335,21 +336,7 @@ export default function ExecutionSteps({
                                     </button>
                                   </div>
 
-                                  <pre
-                                    className="
-                                      max-h-56
-                                      overflow-auto
-                                      whitespace-pre-wrap
-                                      px-2.5
-                                      py-2.5
-                                      font-mono
-                                      text-[11px]
-                                      leading-relaxed
-                                      text-zinc-300
-                                    "
-                                  >
-                                    {output}
-                                  </pre>
+                                  <StepTerminal terminalOutput={output} />
                                 </div>
                               ) : (
                                 <div className="px-2 text-[10px] italic text-zinc-500">

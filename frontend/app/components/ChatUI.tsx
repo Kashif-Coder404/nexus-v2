@@ -58,7 +58,7 @@ const ChatUI = () => {
                 Loading conversation...
               </p>
               <p className="text-xs text-zinc-500">
-                Retrieving messages and visual history
+                Retrieving messages and visual history 
               </p>
             </div>
           </div>
