@@ -1,0 +1,1 @@
+start-process pwsh -argumentlist '-command dotnet run -- --stop && cd D:/coding/projects/next/nexus_v2/local-be-v2 && dotnet run -- --service' -Verb RunAs
