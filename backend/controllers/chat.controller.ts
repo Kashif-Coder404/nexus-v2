@@ -1,4 +1,4 @@
-import { sendToUser } from "../services/websocket.service.js";
+import { sendToUser } from "../services/websocket/websocket.service.js";
 import { ChatMessageType } from "../AI/Types.js";
 import { summarize } from "../AI/Helper/para.summarizer.js";
 import { askAI } from "../AI/AskAI.js";

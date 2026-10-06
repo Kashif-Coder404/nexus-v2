@@ -179,6 +179,8 @@ const WebSocketInit = async () => {
         useChat
           .getState()
           .setWorkingOn(payload.workingon || "Executing in background...");
+      } else if (payload.type === "PairingSuccess") {
+        console.info("\x1b[32m[WS] Paring Successfull!\x1b[0m");
       }
     } catch {
       // ignore parse error

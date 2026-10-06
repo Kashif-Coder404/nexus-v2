@@ -9,7 +9,7 @@ import {
   sendCmdRequest,
   sendToUser,
   waitForTaskCompletion,
-} from "../services/websocket.service.js";
+} from "../services/websocket/websocket.service.js";
 import { summarizeBase64Image } from "./Helper/image.summarizer.js";
 import { ChatMessageType } from "./Types.js";
 import {

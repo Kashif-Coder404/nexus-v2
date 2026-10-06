@@ -1,6 +1,9 @@
 import { SessionModel } from "../db/schema/session-schema.js";
 import { getChat, setChat } from "../services/chat.history.service.js";
-import { activeSessions, sendToUser } from "../services/websocket.service.js";
+import {
+  activeSessions,
+  sendToUser,
+} from "../services/websocket/websocket.service.js";
 import { callAI, ModelType } from "./CallAI.js";
 import { buildAiContext } from "./Helper/context.summarize.js";
 import {

@@ -2,7 +2,7 @@ import axios from "axios";
 import { instructions } from "../instructions/main.Instructions.js";
 import type { ChatMessageType } from "../Types.ts";
 import { GEMINI_WEB_2_URL } from "../../EnvVariables.js";
-import { sendToUser } from "../../services/websocket.service.js";
+import { sendToUser } from "../../services/websocket/websocket.service.js";
 import { extractJSON } from "../Parsers.js";
 export type LocalGeminiModelsTypes =
   | "gemini-3.7-flash"
@@ -121,15 +121,15 @@ export const localGeminiAICall = async ({
   rawText = rawText.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
 
   // 2. Parse structured JSON using resilient extractor
-  if(!isJson){
+  if (!isJson) {
     return {
       success: true,
       content: {
         cmd: "",
         msg: rawText,
         workingon: "",
-      }
-    }
+      },
+    };
   }
   const parsed = extractJSON(rawText);
 

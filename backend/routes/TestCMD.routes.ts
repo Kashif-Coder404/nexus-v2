@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { sendCmdRequest } from "../services/websocket.service.js";
+import { sendCmdRequest } from "../services/websocket/websocket.service.js";
 
 const router = Router();
 

@@ -1,24 +1,24 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
-import { generateToken, verifyToken } from "./jwt.service.js";
-import { UserModel } from "../db/schema/user-schema.js";
-import { CommandParserResponseType } from "../AI/Types/ParserTypes.js";
+import { generateToken, verifyToken } from "../jwt.service.js";
+import { UserModel } from "../../db/schema/user-schema.js";
+import { CommandParserResponseType } from "../../AI/Types/ParserTypes.js";
 import { Types } from "mongoose";
-import { SessionModel } from "../db/schema/session-schema.js";
-import chatSummarize from "../AI/Helper/chatname.summarizer.js";
-import { getChat, setChat } from "./chat.history.service.js";
-import { summarize } from "../AI/Helper/para.summarizer.js";
-import { ChatMessageType } from "../AI/Types.js";
-import { newSession } from "../middlewares/auth/sessionVerification.js";
+import { SessionModel } from "../../db/schema/session-schema.js";
+import chatSummarize from "../../AI/Helper/chatname.summarizer.js";
+import { getChat, setChat } from "../chat.history.service.js";
+import { summarize } from "../../AI/Helper/para.summarizer.js";
+import { ChatMessageType } from "../../AI/Types.js";
+import { newSession } from "../../middlewares/auth/sessionVerification.js";
 import {
   ActiveBackgroundTask,
   ActiveSessions,
   CustomWebSocket,
   PendingTask,
-} from "./websocket/Types.js";
+} from "./Types.js";
 import { JwtPayload } from "jsonwebtoken";
-import { askAI } from "../AI/AskAI.js";
-import { AskAI } from "../AI/AskAI_OOP.js";
+import { askAI } from "../../AI/AskAI.js";
+import { AskAI } from "../../AI/AskAI_OOP.js";
 
 export const activeSessions = new Map<string, ActiveSessions>();
 

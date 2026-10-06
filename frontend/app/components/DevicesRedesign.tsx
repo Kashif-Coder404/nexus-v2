@@ -317,7 +317,7 @@ const DevicesRedesign = ({ device }: { device: Device }) => {
     Boolean(telemetry?.gpu_vram_total && telemetry.gpu_vram_total > 0);
 
   return (
-    <div className="group relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0912] text-white shadow-2xl shadow-black/30">
+    <div className="group relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0912] text-white shadow-2xl shadow-black/30 m-2">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl transition-all duration-700 group-hover:bg-violet-600/15" />
 
