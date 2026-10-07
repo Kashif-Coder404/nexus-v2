@@ -10,15 +10,15 @@ export default function MarketingLayout({
   return (
     <div className="relative min-h-screen flex flex-col bg-[#080711] overflow-x-hidden">
       {/* Interactive Background CursorGrid Layer */}
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-50">
+      <div className="fixed inset-0 pointer-events-none z-0">
         <CursorGrid
           cellSize={60}
           color="#a855f7"
           radius={160}
-          falloff="smooth"
+          falloff="sharp"
           holdTime={400}
-          fadeDuration={800}
-          lineWidth={1.2}
+          fadeDuration={300}
+          lineWidth={1}
           maxOpacity={0.95}
           fillOpacity={0.08}
           gridOpacity={0.07}

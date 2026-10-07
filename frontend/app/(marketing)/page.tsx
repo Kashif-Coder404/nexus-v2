@@ -37,7 +37,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
 
   const copyCommand = () => {
-    navigator.clipboard.writeText("nexus --start-server");
+    navigator.clipboard.writeText("nexus --start");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -123,7 +123,7 @@ export default function Home() {
           {/* Quick CLI command */}
           <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-surface/50 border border-brand-border/30 text-xs font-mono text-zinc-400">
             <span className="text-brand-hover">$</span>
-            <span>nexus --start-server</span>
+            <span>nexus --start</span>
             <button
               onClick={copyCommand}
               className="p-1 hover:text-white transition-colors cursor-pointer ml-1 text-zinc-400"
@@ -401,7 +401,7 @@ export default function Home() {
             <p className="text-xs text-zinc-400 leading-relaxed">
               Run{" "}
               <code className="text-brand-glow font-mono">
-                nexus --start-server
+                nexus --start
               </code>{" "}
               in PowerShell to initiate the authenticated WebSocket daemon.
             </p>
