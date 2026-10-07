@@ -58,21 +58,21 @@ const hexToRgb = (hex: string): [number, number, number] => {
 };
 
 const CursorGrid = ({
-  cellSize = 70,
+  cellSize = 60,
   color = '#a855f7',
-  radius = 140,
+  radius = 160,
   falloff = 'smooth',
   holdTime = 400,
   fadeDuration = 800,
   lineWidth = 1.2,
-  maxOpacity = 1,
-  fillOpacity = 0,
-  gridOpacity = 0,
-  cellRadius = 0,
+  maxOpacity = 0.9,
+  fillOpacity = 0.08,
+  gridOpacity = 0.08,
+  cellRadius = 4,
   clickPulse = true,
   pulseSpeed = 600,
   className = '',
-  listenOnWindow = false,
+  listenOnWindow = true,
 }: CursorGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,7 +102,7 @@ const CursorGrid = ({
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2);
 
     let cols = 0;
     let rows = 0;
@@ -119,8 +119,8 @@ const CursorGrid = ({
 
     const rebuild = () => {
       const p = propsRef.current;
-      w = container.offsetWidth;
-      h = container.offsetHeight;
+      w = container.offsetWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+      h = container.offsetHeight || (typeof window !== 'undefined' ? window.innerHeight : 800);
       canvas.width = Math.max(1, Math.round(w * dpr));
       canvas.height = Math.max(1, Math.round(h * dpr));
       canvas.style.width = `${w}px`;
@@ -132,6 +132,7 @@ const CursorGrid = ({
       offY = (h - rows * p.cellSize) / 2;
       alphas = new Float32Array(cols * rows);
       touched = new Float64Array(cols * rows);
+      wake();
     };
 
     const cellCenter = (i: number): [number, number] => {
@@ -174,6 +175,7 @@ const CursorGrid = ({
       ctx.clearRect(0, 0, w, h);
       const [cr, cg, cb] = hexToRgb(p.color);
 
+      // Faint ambient lattice
       if (p.gridOpacity > 0) {
         ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${p.gridOpacity})`;
         ctx.lineWidth = 1;
@@ -191,6 +193,7 @@ const CursorGrid = ({
         ctx.stroke();
       }
 
+      // Click pulse propagation
       for (let pi = pulses.length - 1; pi >= 0; pi--) {
         const pulse = pulses[pi];
         const age = (now - pulse.t0) / 1000;
@@ -271,22 +274,22 @@ const CursorGrid = ({
     };
     wakeRef.current = wake;
 
-    const toLocal = (e: PointerEvent): [number, number] => {
+    const toLocal = (clientX: number, clientY: number): [number, number] => {
       const rect = canvas.getBoundingClientRect();
-      return [e.clientX - rect.left, e.clientY - rect.top];
+      return [clientX - rect.left, clientY - rect.top];
     };
 
-    const onPointerMove = (e: PointerEvent) => {
-      const [x, y] = toLocal(e);
+    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
+      const [x, y] = toLocal(e.clientX, e.clientY);
       const p = propsRef.current;
       if (x < -p.radius || x > w + p.radius || y < -p.radius || y > h + p.radius) return;
       energize(x, y);
       wake();
     };
 
-    const onPointerDown = (e: PointerEvent) => {
+    const handlePointerDown = (e: MouseEvent | PointerEvent) => {
       if (!propsRef.current.clickPulse) return;
-      const [x, y] = toLocal(e);
+      const [x, y] = toLocal(e.clientX, e.clientY);
       if (x < -50 || x > w + 50 || y < -50 || y > h + 50) return;
       pulses.push({ x, y, t0: performance.now() });
       wake();
@@ -294,21 +297,32 @@ const CursorGrid = ({
 
     const ro = new ResizeObserver(() => {
       rebuild();
-      wake();
     });
     ro.observe(container);
     rebuild();
-    wake();
 
-    const target: EventTarget = listenOnWindow ? window : container;
-    target.addEventListener('pointermove', onPointerMove as EventListener);
-    target.addEventListener('pointerdown', onPointerDown as EventListener);
+    if (listenOnWindow) {
+      window.addEventListener('pointermove', handlePointerMove as EventListener);
+      window.addEventListener('mousemove', handlePointerMove as EventListener);
+      window.addEventListener('pointerdown', handlePointerDown as EventListener);
+      window.addEventListener('mousedown', handlePointerDown as EventListener);
+    } else {
+      container.addEventListener('pointermove', handlePointerMove as EventListener);
+      container.addEventListener('pointerdown', handlePointerDown as EventListener);
+    }
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      target.removeEventListener('pointermove', onPointerMove as EventListener);
-      target.removeEventListener('pointerdown', onPointerDown as EventListener);
+      if (listenOnWindow) {
+        window.removeEventListener('pointermove', handlePointerMove as EventListener);
+        window.removeEventListener('mousemove', handlePointerMove as EventListener);
+        window.removeEventListener('pointerdown', handlePointerDown as EventListener);
+        window.removeEventListener('mousedown', handlePointerDown as EventListener);
+      } else {
+        container.removeEventListener('pointermove', handlePointerMove as EventListener);
+        container.removeEventListener('pointerdown', handlePointerDown as EventListener);
+      }
     };
   }, [cellSize, listenOnWindow]);
 
@@ -317,8 +331,8 @@ const CursorGrid = ({
   }, [gridOpacity, color, lineWidth, maxOpacity, fillOpacity, cellRadius]);
 
   return (
-    <div ref={containerRef} className={`relative h-full w-full overflow-hidden${className ? ` ${className}` : ''}`}>
-      <canvas ref={canvasRef} className="block h-full w-full" />
+    <div ref={containerRef} className={`relative h-full w-full overflow-hidden ${className}`}>
+      <canvas ref={canvasRef} className="block h-full w-full pointer-events-none" />
     </div>
   );
 };

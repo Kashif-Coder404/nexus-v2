@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useData from "../store/useData";
-import CursorGrid from "../components/CursorGrid";
 
 export default function Home() {
   const user = useUserCredentials((state) => state.user);
@@ -67,27 +66,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative flex flex-1 flex-col items-center px-4 py-8 sm:py-14 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-24">
-      {/* Interactive Cursor Grid Ambient Background */}
-      <div className="absolute top-0 left-0 right-0 h-[680px] sm:h-[760px] overflow-hidden pointer-events-none -z-10 opacity-75">
-        <CursorGrid
-          cellSize={64}
-          color="#a855f7"
-          radius={150}
-          falloff="smooth"
-          holdTime={400}
-          fadeDuration={800}
-          lineWidth={1.2}
-          maxOpacity={0.8}
-          fillOpacity={0.04}
-          gridOpacity={0.03}
-          cellRadius={2}
-          clickPulse
-          pulseSpeed={650}
-          listenOnWindow
-        />
-      </div>
-
+    <div className="flex flex-1 flex-col items-center px-4 py-8 sm:py-14 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-24">
       {/* Ambient Radial Lighting Glow */}
       <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[680px] h-[320px] bg-brand/15 blur-[150px] rounded-full pointer-events-none -z-10" />
 
