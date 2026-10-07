@@ -21,7 +21,9 @@ export const generateToken = (
   }
 };
 
-export const verifyToken = (token: string) => {
+export const verifyToken = (
+  token: string,
+): { success: boolean; token: any | null; error?: string } => {
   try {
     const decodedToken = jwt.verify(token, JWT_SECRET!);
     return { success: true, token: decodedToken };

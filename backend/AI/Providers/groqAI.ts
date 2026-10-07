@@ -53,6 +53,7 @@ async function checkGroqApi() {
         httpsAgent: agent,
       },
     );
+    console.log(response);
   } catch (error: any) {
     console.error("[GROQ AI] API STATUS: FAILED");
     // Axios captures API error details in error.response.data
@@ -65,7 +66,7 @@ async function checkGroqApi() {
   }
 }
 
-// checkGroqApi();
+checkGroqApi();
 
 // MAIN: API CALL FUNCTION
 
