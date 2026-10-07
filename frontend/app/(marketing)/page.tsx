@@ -24,6 +24,9 @@ import {
   Radio,
   Eye,
   CheckCircle2,
+  XCircle,
+  Clock,
+  Flame,
 } from "lucide-react";
 import { useUserCredentials } from "../store/useUserCredentials";
 import useData from "../store/useData";
@@ -63,24 +66,24 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-20">
-      {/* Subtle Background Lighting Accent */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[600px] h-[280px] bg-brand/15 blur-[140px] rounded-full pointer-events-none -z-10" />
+    <div className="flex flex-1 flex-col items-center px-4 py-8 sm:py-14 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-24">
+      {/* Ambient Radial Lighting Glow */}
+      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[680px] h-[320px] bg-brand/15 blur-[150px] rounded-full pointer-events-none -z-10" />
 
       {/* ============================================================
           1. HERO SECTION
           ============================================================ */}
       <section className="flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto gap-12 lg:gap-16 pt-2">
-        {/* Left Side: Pitch, CTAs & Command */}
+        {/* Left Side: Copy, CTAs & Command */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left flex-1 max-w-xl">
           {/* Release Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/80 border border-brand-border/40 text-xs font-medium text-brand-glow mb-6 shadow-sm shadow-brand/20">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Nexus v{localBackendVersion} • Autonomous Windows Agent</span>
+            <span>Nexus v{localBackendVersion} • Autonomous Windows Platform</span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
             Stop Chatting. <br />
             <span className="bg-gradient-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent">
               Put Things to Work.
@@ -88,28 +91,28 @@ export default function Home() {
           </h1>
 
           {/* Description */}
-          <p className="mt-5 text-base sm:text-lg text-zinc-300 leading-relaxed">
-            Control your Windows PC using natural language and vision AI.
-            Nexus connects high-speed Groq reasoning to your local machine via
-            sub-50ms WebSockets—running shell commands, inspecting UI, and
-            streaming telemetry to a unified console.
+          <p className="mt-5 text-base sm:text-lg text-zinc-300 leading-relaxed font-normal">
+            Control your Windows PC from anywhere with natural language and vision AI.
+            Nexus connects high-speed Groq reasoning to your local operating system
+            via sub-50ms WebSockets—running shell scripts, navigating UI, and streaming
+            hardware vitals in real time.
           </p>
 
-          {/* Example Command Chips */}
+          {/* Prompt Chips */}
           <div className="mt-5 flex flex-wrap gap-2 justify-center lg:justify-start">
-            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition">
+            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition cursor-default">
               <span className="flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-brand-hover shrink-0" />
-                "Check CPU & GPU telemetry"
+                "Check CPU & GPU thermals"
               </span>
             </span>
-            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition">
+            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition cursor-default">
               <span className="flex items-center gap-1.5">
                 <Folder className="w-3.5 h-3.5 text-brand-hover shrink-0" />
                 "Find all .env files on Desktop"
               </span>
             </span>
-            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition">
+            <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition cursor-default">
               <span className="flex items-center gap-1.5">
                 <Code className="w-3.5 h-3.5 text-brand-hover shrink-0" />
                 "Open project in VSCode"
@@ -165,7 +168,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Side: Hero App Window Frame */}
+        {/* Right Side: Hero Window Preview */}
         <div className="w-full flex-1 max-w-xl lg:max-w-2xl flex flex-col rounded-2xl border border-brand-border/40 bg-brand-surface/40 shadow-2xl backdrop-blur-md overflow-hidden transition-all hover:border-brand-border/70">
           {/* Window Top Bar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-brand-border/30 bg-brand-surface/70">
@@ -176,14 +179,14 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
               <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>Nexus Console • WebSocket Live</span>
+              <span>Nexus Console • Duplex Stream</span>
             </div>
             <span className="text-[11px] font-mono text-brand-hover px-2 py-0.5 rounded bg-brand/10 border border-brand-border/30">
               42ms RTT
             </span>
           </div>
 
-          {/* Real App Screenshot Preview */}
+          {/* App Screenshot */}
           <div className="p-2.5 bg-black/60 relative group">
             <img
               src="https://i.ibb.co/LXdJ74yJ/Screenshot-2026-09-12-202908.png"
@@ -204,7 +207,7 @@ export default function Home() {
       </section>
 
       {/* ============================================================
-          2. RECORDLY VIDEO DEMO SECTION (FOR JUDGES & VISITORS)
+          2. DEMO VIDEO SECTION
           ============================================================ */}
       <section
         id="demo-video"
@@ -214,21 +217,21 @@ export default function Home() {
         <div className="space-y-3 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/70 border border-brand-border/40 text-xs font-medium text-brand-glow">
             <Video className="w-3.5 h-3.5 text-brand-hover" />
-            <span>Field Recording • Live Video Demo</span>
+            <span>Product Walkthrough • Real Execution</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            See Nexus v2 in Action
+            See Nexus in Action
           </h2>
           <p className="text-sm sm:text-base text-zinc-400">
             Watch how Nexus parses complex natural language instructions,
             analyzes the desktop screen with vision models, executes native
-            Windows PowerShell commands, and streams step-by-step logs.
+            PowerShell routines, and streams live telemetry.
           </p>
         </div>
 
-        {/* Video Player Window Container */}
+        {/* Video Player Frame */}
         <div className="w-full rounded-2xl border border-brand-border/40 bg-brand-surface/30 shadow-2xl backdrop-blur-md overflow-hidden text-left">
-          {/* Player Window Top Bar */}
+          {/* Top Bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border/30 bg-brand-surface/70">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
@@ -242,67 +245,29 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 1080p 60fps
               </span>
-              <button
-                type="button"
-                onClick={() => setShowUrlField(!showUrlField)}
-                className="text-xs text-zinc-400 hover:text-brand-glow transition cursor-pointer flex items-center gap-1 underline underline-offset-4"
-                title="Change video source URL"
-              >
-                <span>{showUrlField ? "Hide URL" : "Custom Video Link"}</span>
-              </button>
             </div>
           </div>
 
-          {/* Optional Custom Video / Recordly Embed Input */}
-          {showUrlField && (
-            <form
-              onSubmit={handleApplyCustomUrl}
-              className="px-4 py-2.5 bg-brand-surface/90 border-b border-brand-border/30 flex items-center gap-2 text-xs"
-            >
-              <span className="text-zinc-400 shrink-0 font-mono">Video URL:</span>
-              <input
-                type="text"
-                placeholder="e.g. /demo.mp4 or https://... (Recordly / MP4)"
-                value={customUrlInput}
-                onChange={(e) => setCustomUrlInput(e.target.value)}
-                className="flex-1 px-3 py-1.5 rounded-lg bg-black/60 border border-brand-border/40 text-white placeholder-zinc-500 focus:outline-none focus:border-brand-hover text-xs"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white font-semibold transition cursor-pointer"
-              >
-                Apply
-              </button>
-            </form>
-          )}
-
-          {/* Main Video Area */}
+          {/* Main Video Viewport */}
           <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
-            {videoSrc.includes("<iframe") ? (
-              <div
-                className="w-full h-full"
-                dangerouslySetInnerHTML={{ __html: videoSrc }}
-              />
-            ) : (
-              <video
-                ref={videoRef}
-                src={videoSrc}
-                poster="https://i.ibb.co/LXdJ74yJ/Screenshot-2026-09-12-202908.png"
-                controls
-                playsInline
-                preload="metadata"
-                className="w-full h-full object-contain bg-black"
-                onError={() => setVideoHasError(true)}
-              >
-                Your browser does not support the video tag.
-              </video>
-            )}
+            <video
+              ref={videoRef}
+              src="/demo.mp4"
+              poster="https://i.ibb.co/LXdJ74yJ/Screenshot-2026-09-12-202908.png"
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-contain bg-black"
+              onError={() => setVideoHasError(true)}
+            >
+              Your browser does not support the video tag.
+            </video>
 
-            {/* Graceful Fallback Overlay if demo.mp4 is not yet uploaded */}
+            {/* Video Placeholder Overlay when video file is pending */}
             {videoHasError && (
               <div className="absolute inset-0 bg-brand-base/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 space-y-4">
                 <div className="w-14 h-14 rounded-full bg-brand-surface/90 border border-brand-border/60 flex items-center justify-center shadow-lg shadow-brand/20">
@@ -310,14 +275,13 @@ export default function Home() {
                 </div>
                 <div className="space-y-1 max-w-md">
                   <h3 className="text-lg font-bold text-white">
-                    Recordly Field Demo Video Slot
+                    Video Demo Player
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
                     Place your demo recording at{" "}
                     <code className="text-brand-glow font-mono px-1 py-0.5 rounded bg-brand-surface border border-brand-border/40">
                       frontend/public/demo.mp4
-                    </code>{" "}
-                    or click "Custom Video Link" above to paste your hosted URL.
+                    </code>
                   </p>
                 </div>
                 <div className="flex items-center gap-3 pt-2">
@@ -333,13 +297,6 @@ export default function Home() {
                     className="px-4 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold shadow-md transition cursor-pointer"
                   >
                     Retry /demo.mp4
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlField(true)}
-                    className="px-4 py-2 rounded-xl bg-brand-surface hover:bg-brand-surface/80 border border-brand-border/40 text-zinc-300 text-xs font-medium transition cursor-pointer"
-                  >
-                    Paste Video URL
                   </button>
                 </div>
               </div>
@@ -400,20 +357,20 @@ export default function Home() {
       </section>
 
       {/* ============================================================
-          3. CORE ARCHITECTURE HIGHLIGHTS (BUILT FOR JUDGES)
+          3. CORE ARCHITECTURE PILLARS
           ============================================================ */}
       <section className="w-full max-w-6xl mx-auto flex flex-col items-center space-y-8">
         <div className="text-center space-y-2 max-w-xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/70 border border-brand-border/40 text-xs font-medium text-brand-glow">
             <Layers className="w-3.5 h-3.5 text-brand-hover" />
-            <span>Under The Hood</span>
+            <span>Architecture & Design</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Built for Real-World Execution
+            Engineered for Low Latency & Control
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">
-            A real-time bridge connecting browser clients directly to Windows
-            operating system kernels without cloud intermediaries.
+            A bi-directional pipeline connecting your web console directly to
+            Windows system internals with zero cloud middleware.
           </p>
         </div>
 
@@ -463,7 +420,7 @@ export default function Home() {
                 <Terminal className="w-5 h-5" />
               </div>
               <h3 className="text-sm font-bold text-white">
-                Native Host Runner
+                Native Host Companion
               </h3>
               <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
                 Lightweight Python & FastMCP companion executing PowerShell 7,
@@ -497,19 +454,90 @@ export default function Home() {
       </section>
 
       {/* ============================================================
-          4. HOW TO TEST & VERIFY (JUDGE'S QUICK CHECKLIST)
+          4. WHY NEXUS IS DIFFERENT (COMPARISON)
+          ============================================================ */}
+      <section className="w-full max-w-5xl mx-auto rounded-2xl border border-brand-border/30 bg-brand-surface/30 p-6 sm:p-8 backdrop-blur-md">
+        <div className="text-center space-y-2 max-w-xl mx-auto mb-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-white">
+            Beyond Browser-Trapped Chatbots
+          </h3>
+          <p className="text-xs sm:text-sm text-zinc-400">
+            Most AI assistants stop at text generation. Nexus bridges thought to action directly on your machine.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Traditional Chatbot */}
+          <div className="p-5 rounded-xl bg-black/40 border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <span className="text-xs font-semibold text-zinc-400">Standard Web Chatbots</span>
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">Text Only</span>
+            </div>
+            <ul className="space-y-3 text-xs text-zinc-400">
+              <li className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Isolated inside the web browser sandbox</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Cannot execute local PowerShell or terminal commands</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Blind to active desktop windows and screen state</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Requires manual copy-pasting of scripts and logs</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Nexus v2 */}
+          <div className="p-5 rounded-xl bg-brand-surface/70 border border-brand-border/50 space-y-4 shadow-lg shadow-brand/10">
+            <div className="flex items-center justify-between pb-3 border-b border-brand-border/30">
+              <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-brand-hover" />
+                Nexus v2 Companion
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 uppercase bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                Action Driven
+              </span>
+            </div>
+            <ul className="space-y-3 text-xs text-zinc-200">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Native Windows OS execution via lightweight companion</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Sub-50ms duplex WebSocket with real-time process control</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Vision OCR screen grounding detects and interacts with UI</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Real-time hardware sensors (CPU, GPU, RAM, temps)</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+          5. QUICKSTART (GET UP & RUNNING IN 60 SECONDS)
           ============================================================ */}
       <section className="w-full max-w-4xl mx-auto rounded-2xl border border-brand-border/40 bg-gradient-to-br from-brand-surface/60 via-brand-surface/30 to-brand-base/80 p-6 sm:p-8 backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/30 pb-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand-hover" />
-              <h3 className="text-lg font-bold text-white">
-                Judge & Reviewer Evaluation Guide
-              </h3>
-            </div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-brand-hover" />
+              Get Started in 60 Seconds
+            </h3>
             <p className="text-xs text-zinc-400">
-              Follow these 3 quick steps to verify local agent execution:
+              Three simple steps to connect and control your Windows machine:
             </p>
           </div>
           <button
@@ -518,7 +546,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold shadow-md transition cursor-pointer shrink-0"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download Companion</span>
+            <span>Download Binary</span>
           </button>
         </div>
 
@@ -529,12 +557,11 @@ export default function Home() {
                 1
               </span>
               <h4 className="text-xs font-semibold text-white">
-                Clone or Download
+                Download Companion
               </h4>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Grab the latest release binary from GitHub Releases or run the
-              Python companion locally.
+              Grab the standalone <code className="text-brand-glow font-mono">nexus.exe</code> binary or run via Python with zero external prerequisites.
             </p>
           </div>
 
@@ -544,11 +571,11 @@ export default function Home() {
                 2
               </span>
               <h4 className="text-xs font-semibold text-white">
-                Start Daemon
+                Launch Daemon
               </h4>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Execute <code className="text-brand-glow font-mono">nexus --start-server</code> in PowerShell to begin listening for incoming WebSocket tasks.
+              Run <code className="text-brand-glow font-mono">nexus --start-server</code> in PowerShell to initiate the authenticated WebSocket daemon.
             </p>
           </div>
 
@@ -558,25 +585,24 @@ export default function Home() {
                 3
               </span>
               <h4 className="text-xs font-semibold text-white">
-                Control from Web
+                Command Anywhere
               </h4>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Launch the web console, send any natural language command, and
-              watch your Windows desktop react in real time.
+              Open the web console from your phone or browser, send prompts, and watch your PC execute in real time.
             </p>
           </div>
         </div>
       </section>
 
       {/* ============================================================
-          5. DEVELOPER FOOTER
+          6. DEVELOPER FOOTER
           ============================================================ */}
       <footer className="w-full max-w-6xl mx-auto pt-8 border-t border-brand-border/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-zinc-300">Nexus v2</span>
           <span>•</span>
-          <span>Autonomous Windows Desktop Agent</span>
+          <span>Autonomous Windows Desktop Platform</span>
           <span>•</span>
           <span className="text-brand-hover font-mono">v{localBackendVersion}</span>
         </div>
