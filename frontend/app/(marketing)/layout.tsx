@@ -9,27 +9,25 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="relative min-h-screen flex flex-col bg-[#080711] overflow-x-hidden">
-      {/* Interactive Background CursorGrid Layer */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <CursorGrid
           cellSize={60}
           color="#a855f7"
           radius={160}
-          falloff="sharp"
-          holdTime={400}
+          falloff="smooth"
+          holdTime={200}
           fadeDuration={300}
           lineWidth={1}
-          maxOpacity={0.95}
+          maxOpacity={0.5}
           fillOpacity={0.08}
           gridOpacity={0.07}
           cellRadius={3}
           clickPulse
-          pulseSpeed={600}
+          pulseSpeed={1000}
           listenOnWindow
         />
       </div>
 
-      {/* Foreground Content Layer */}
       <div className="relative z-10 flex min-h-screen flex-col">
         <NavBar />
         <main className="flex-1 flex flex-col">{children}</main>

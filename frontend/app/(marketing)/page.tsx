@@ -44,16 +44,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-8 sm:py-14 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-24">
-      {/* Ambient Radial Lighting Glow */}
       <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[680px] h-[320px] bg-brand/15 blur-[150px] rounded-full pointer-events-none -z-10" />
 
-      {/* ============================================================
-          1. HERO SECTION
-          ============================================================ */}
       <section className="flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto gap-12 lg:gap-16 pt-2">
-        {/* Left Side: Copy, CTAs & Command */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left flex-1 max-w-xl">
-          {/* Release Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface/80 border border-brand-border/40 text-xs font-medium text-brand-glow mb-6 shadow-sm shadow-brand/20">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>
@@ -61,7 +55,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Heading */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
             Stop Chatting. <br />
             <span className="bg-gradient-to-r from-white via-zinc-100 to-brand-glow bg-clip-text text-transparent">
@@ -69,7 +62,6 @@ export default function Home() {
             </span>
           </h1>
 
-          {/* Description */}
           <p className="mt-5 text-base sm:text-lg text-zinc-300 leading-relaxed font-normal">
             Control your Windows PC from anywhere with natural language and
             vision AI. Nexus connects high-speed Groq reasoning to your local
@@ -77,7 +69,6 @@ export default function Home() {
             navigating UI, and streaming hardware vitals in real time.
           </p>
 
-          {/* Prompt Chips */}
           <div className="mt-5 flex flex-wrap gap-2 justify-center lg:justify-start">
             <span className="text-xs p-2 rounded-lg bg-brand-surface/60 border border-brand-border/30 text-zinc-300 hover:border-brand-border/60 transition cursor-default">
               <span className="flex items-center gap-1.5">
@@ -99,7 +90,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-3 mt-8 justify-center lg:justify-start">
             <Link
               href={user ? `/dashboard` : `/auth/signup`}
@@ -120,7 +110,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Quick CLI command */}
           <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-surface/50 border border-brand-border/30 text-xs font-mono text-zinc-400">
             <span className="text-brand-hover">$</span>
             <span>nexus --start</span>
@@ -138,9 +127,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Side: Hero Window Preview */}
         <div className="w-full flex-1 max-w-xl lg:max-w-2xl flex flex-col rounded-2xl border border-brand-border/40 bg-brand-surface/40 shadow-2xl backdrop-blur-md overflow-hidden transition-all hover:border-brand-border/70">
-          {/* Window Top Bar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-brand-border/30 bg-brand-surface/70">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
@@ -156,7 +143,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* App Screenshot */}
           <div className="p-2.5 bg-black/60 relative">
             <img
               src="https://i.ibb.co/LXdJ74yJ/Screenshot-2026-09-12-202908.png"
@@ -183,7 +169,6 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-          {/* Card 1: WebSocket Gateway */}
           <div className="p-5 rounded-2xl bg-brand-surface/80 border border-brand-border/20 hover:border-brand-border/60 transition-all space-y-3 flex flex-col justify-between">
             <div>
               <div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover mb-3">
@@ -202,7 +187,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Card 2: Groq + Vision AI */}
           <div className="p-5 rounded-2xl bg-brand-surface/80 border border-brand-border/20 hover:border-brand-border/60 transition-all space-y-3 flex flex-col justify-between">
             <div>
               <div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover mb-3">
@@ -221,7 +205,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Card 3: Native Host Runner */}
           <div className="p-5 rounded-2xl bg-brand-surface/80 border border-brand-border/20 hover:border-brand-border/60 transition-all space-y-3 flex flex-col justify-between">
             <div>
               <div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover mb-3">
@@ -240,7 +223,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Card 4: Dual Terminal & Audit */}
           <div className="p-5 rounded-2xl bg-brand-surface/80 border border-brand-border/20 hover:border-brand-border/60 transition-all space-y-3 flex flex-col justify-between">
             <div>
               <div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand-border/40 flex items-center justify-center text-brand-hover mb-3">
@@ -262,9 +244,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================================================
-          4. WHY NEXUS IS DIFFERENT (COMPARISON)
-          ============================================================ */}
       <section className="w-full max-w-5xl mx-auto rounded-2xl border border-brand-border/30 bg-brand-surface/30 p-6 sm:p-8 backdrop-blur-md">
         <div className="text-center space-y-2 max-w-xl mx-auto mb-8">
           <h3 className="text-xl sm:text-2xl font-bold text-white">
@@ -277,7 +256,6 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Traditional Chatbot */}
           <div className="p-5 rounded-xl bg-black/40 border border-zinc-800 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <span className="text-xs font-semibold text-zinc-400">
@@ -309,7 +287,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Nexus v2 */}
           <div className="p-5 rounded-xl bg-brand-surface/70 border border-brand-border/50 space-y-4 shadow-lg shadow-brand/10">
             <div className="flex items-center justify-between pb-3 border-b border-brand-border/30">
               <span className="text-xs font-semibold text-white flex items-center gap-1.5">
@@ -348,9 +325,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================================================
-          5. QUICKSTART (GET UP & RUNNING IN 60 SECONDS)
-          ============================================================ */}
       <section className="w-full max-w-4xl mx-auto rounded-2xl border border-brand-border/40 bg-gradient-to-br from-brand-surface/60 via-brand-surface/30 to-brand-base/80 p-6 sm:p-8 backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/30 pb-6">
           <div className="space-y-1">
@@ -400,9 +374,7 @@ export default function Home() {
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
               Run{" "}
-              <code className="text-brand-glow font-mono">
-                nexus --start
-              </code>{" "}
+              <code className="text-brand-glow font-mono">nexus --start</code>{" "}
               in PowerShell to initiate the authenticated WebSocket daemon.
             </p>
           </div>
@@ -424,9 +396,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================================================
-          6. DEVELOPER FOOTER
-          ============================================================ */}
       <footer className="w-full max-w-6xl mx-auto pt-8 border-t border-brand-border/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-zinc-300">Nexus v2</span>
