@@ -59,6 +59,15 @@ Local-BE/screenshot.png
 backend/screenshot.png
 demo_gemini_live.ts
 run_nexus.vbs
+local-be-v2/companion/setupPage.html
+local-be-v2/companion/dist
+local-be-v2/companion/build
+local-be-v2/companion/bin
+local-be-v2/companion/obj
+local-be-v2/nexus.exe
+local-be-v2/nexus.pdb
+Local-BE-v2/nexus.exe
+Local-BE-v2/nexus.pdb
 
 # .NET Build outputs
 [Bb]in/
@@ -70,5 +79,5 @@ run_nexus.vbs
 Repo/
 *gemini-auth.json
 
-
 hr-ai-helpdesk
+hr-ai-helpdesk/
