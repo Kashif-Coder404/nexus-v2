@@ -200,11 +200,12 @@ const initWebsocket = (server: Server) => {
               const runner = AskAI.activeRunners.get(parsedData.sessionId);
               if (runner) {
                 runner.abort();
-                //Stop the workingon message on the frontend
-                sendToUser(ws.userId, {
-                  type: "stoped_response",
-                });
               }
+              //Stop the workingon message on the frontend
+              sendToUser(ws.userId, {
+                type: "stoped_response",
+                sessionId: parsedData.sessionId,
+              });
             }
             break;
           }
@@ -455,7 +456,14 @@ const initWebsocket = (server: Server) => {
               );
 
             // Execute AI turn
-            askAI(currUserId, targetSessionId, content, selectedModel)
+            const aiRunner = new AskAI(
+              currUserId,
+              targetSessionId,
+              content,
+              selectedModel,
+            );
+            aiRunner
+              .run()
               .then((result) => {
                 sendToUser(currUserId, {
                   type: "ai_done",

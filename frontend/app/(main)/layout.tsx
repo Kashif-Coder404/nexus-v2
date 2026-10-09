@@ -2,11 +2,15 @@
 // import React from "react";
 import SideBar from "@/app/components/SideBar";
 import NavBar from "@/app/components/NavBar";
-import { useUserCredentials, isTokenExpired } from "@/app/store/useUserCredentials";
+import {
+  useUserCredentials,
+  isTokenExpired,
+} from "@/app/store/useUserCredentials";
 import WebSocketInit from "@/services/ws.service";
 import { useEffect, useState, useCallback } from "react";
 import { PairDevice, WindowAlert } from "@/app/components/PairDevice";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -17,33 +21,38 @@ export default function DashboardLayout({
   const token = useUserCredentials((state) => state.token);
   const _hasHydrated = useUserCredentials((state) => state._hasHydrated);
   const router = useRouter();
+  const pathname = usePathname();
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   const verifySession = useCallback(() => {
     if (!_hasHydrated) return;
     if (!token || isTokenExpired(token)) {
       console.warn("🔒 [AUTH] Token expired or missing. Logging out...");
+      setIsAuthorized(false);
+      router.replace("/auth/login");
       useUserCredentials.getState().logout();
-      router.push("/auth/login");
+      return;
     }
-  }, [token, _hasHydrated, router]);
+    setIsAuthorized(true);
+  }, [token, _hasHydrated, router, pathname]);
 
   useEffect(() => {
     verifySession();
 
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") verifySession();
-    };
+    // const handleVisibility = () => {
+    //   if (document.visibilityState === "visible") verifySession();
+    // };
 
-    window.addEventListener("focus", verifySession);
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("resize", verifySession);
+    // window.addEventListener("focus", verifySession);
+    // document.addEventListener("visibilitychange", handleVisibility);
+    // window.addEventListener("resize", verifySession);
 
-    return () => {
-      window.removeEventListener("focus", verifySession);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("resize", verifySession);
-    };
-  }, [verifySession]);
+    // return () => {
+    //   window.removeEventListener("focus", verifySession);
+    //   document.removeEventListener("visibilitychange", handleVisibility);
+    //   window.removeEventListener("resize", verifySession);
+    // };
+  }, [verifySession, pathname]);
 
   useEffect(() => {
     if (!token || isTokenExpired(token)) return;
@@ -57,6 +66,13 @@ export default function DashboardLayout({
       socket?.close();
     };
   }, [token]);
+  if (!_hasHydrated || !isAuthorized) {
+    return (
+      <div className="h-dvh w-full flex items-center justify-center bg-brand-base">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
   return (
     <>
       {isWindowAlert && <WindowAlert setWindowAlert={setIsWindowAlert} />}

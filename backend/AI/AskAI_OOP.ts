@@ -212,6 +212,7 @@ export class AskAI {
         role: "assistant",
         content: JSON.stringify(this.aiResponse.rawContent),
       });
+      if (this.isAborted) break;
       if (!success) break;
       if (
         cmd == null ||

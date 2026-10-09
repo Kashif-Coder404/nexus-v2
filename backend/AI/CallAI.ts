@@ -32,7 +32,7 @@ export type ModelType = {
   name: GeminiModels | TokenRouterModels | LocalGeminiModels;
   isLiveModel?: boolean;
 };
-export type AIProviderType = "live" | "api" | "local";
+export type AIProviderType = "live" | "local";
 export type AIProviderParams = {
   chatMessages: ChatMessageType[];
   session: string;
@@ -68,7 +68,6 @@ export const callAI = async (
     session,
     instructions = defaultInstructions,
     isJson = true,
-    isLiveModel = false,
   } = params;
 
   // Alias local_gemini to gemini for backwards compatibility
@@ -129,7 +128,16 @@ export const callAI = async (
           isJson: isJson,
           keyIndex: geminiKeyIndex,
         });
-      } else if (modelType === "api") {
+      } else if (modelType === "local") {
+        res = await localGeminiAICall({
+          chatMessages,
+          model: (params.model as string) || "gemini-3.7-flash",
+          instructionString: instructions,
+          userId: params.userId,
+          isJson,
+        });
+      } else {
+        // Default to API GEMINI
         res = await geminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
@@ -137,15 +145,6 @@ export const callAI = async (
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
-        });
-      } else {
-        // Default to local Gemini
-        res = await localGeminiAICall({
-          chatMessages,
-          model: (params.model as string) || "gemini-3.7-flash",
-          instructionString: instructions,
-          userId: params.userId,
-          isJson,
         });
       }
     } catch (err: any) {
@@ -158,17 +157,14 @@ export const callAI = async (
 
     // Fallback if local or primary call was unsuccessful
     if (!res || !res.success) {
-      console.warn(
-        "[GEMINI FALLBACK] Falling back to official Gemini API (gemini-3.5-flash-lite)...",
-      );
+      console.warn("[GEMINI FALLBACK] Falling back to local Gemini API...");
       try {
-        res = await geminiAICall({
+        res = await localGeminiAICall({
           chatMessages,
-          retryCount: params.retryCount || 0,
-          model: "gemini-3.5-flash-lite",
+          model: (params.model as string) || "gemini-3.7-flash",
           instructionString: instructions,
-          isJson: isJson,
-          keyIndex: geminiKeyIndex,
+          userId: params.userId,
+          isJson,
         });
       } catch (fallbackErr: any) {
         console.error(

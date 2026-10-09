@@ -90,6 +90,9 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
     const actualMessage = msg.trim();
     if (isStop) {
       if (!sessionId) return;
+      useChat.getState().setWorkingOn(null);
+      useChat.getState().setMiddleMsg(null);
+      useChat.getState().setLiveExecutions([]);
       sendWsJson({
         type: "stop_ai",
         sessionId,

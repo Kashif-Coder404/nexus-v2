@@ -212,7 +212,7 @@ public class WebSocketClientService : BackgroundService
                     }
                     catch { }
                 }
-                string action = cmdNode?["action"]?.GetValue<string>()?.ToLowerInvariant() ?? "";
+                string action = (cmdNode as JsonObject)?["action"]?.GetValue<string>()?.ToLowerInvariant() ?? "";
                 rawCmd = cmdNode?.ToJsonString() ?? "";
                 CommandResponse? response = null;
                 requestId = json?["requestId"]?.GetValue<string>();

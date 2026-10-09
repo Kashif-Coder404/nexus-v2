@@ -34,6 +34,13 @@ const WebSocketInit = async () => {
         useDevices.getState().setDevices(payload.devices);
       } else if (payload.type === "stoped_response") {
         useChat.getState().setWorkingOn(null);
+        useChat.getState().setMiddleMsg(null);
+        useChat.getState().setLiveExecutions([]);
+        window.dispatchEvent(
+          new CustomEvent("nexus_ai_done", {
+            detail: { sessionId: payload.sessionId },
+          }),
+        );
       } else if (payload.type === "device_status") {
         const deviceId = payload.device?.id || payload.deviceId;
         if (deviceId) {

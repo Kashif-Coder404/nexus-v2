@@ -68,7 +68,6 @@ export const summarizeBase64Image = async (
       session: "",
       instructions: imageInstructions,
       isJson: false,
-      modeltype: "api",
       model: "gemini-3.5-flash-lite",
       retryCount: 0,
     });
