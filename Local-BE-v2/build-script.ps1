@@ -16,7 +16,4 @@ set-location ..
 if (Test-Path "./companion/dist/nexus.exe") {
     Copy-Item "./companion/dist/nexus.exe" -Destination "./nexus.exe" -Force
 }
-if (Test-Path "./companion/dist/nexus.pdb") {
-    Copy-Item "./companion/dist/nexus.pdb" -Destination "./nexus.pdb" -Force
-}
 
