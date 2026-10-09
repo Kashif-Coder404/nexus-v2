@@ -1,0 +1,1 @@
+Set-Location setuppage ; npm run build; Set-Location ..

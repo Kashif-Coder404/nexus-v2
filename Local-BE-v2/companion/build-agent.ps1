@@ -19,7 +19,7 @@ if (Test-Path "$CurrentDir\dist") {
 
 # 2. Build SetupPage (Vite / React)
 Write-Host "`n[*] [1/2] Compiling Local Setup UI (SetupPage)..." -ForegroundColor Yellow
-Set-Location "$CurrentDir\SetupPage"
+Set-Location "$CurrentDir\..\SetupPage"
 npm run build
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[!] SetupPage build failed!" -ForegroundColor Red
@@ -31,11 +31,11 @@ Set-Location $CurrentDir
 # 3. Compile C# .NET 8 Standalone Single-File Binary
 Write-Host "`n[*] [2/2] Compiling nexus.exe (.NET 8 Win-x64 SingleFile Standalone Binary)..." -ForegroundColor Yellow
 dotnet publish -c Release -r win-x64 --self-contained `
-  -p:PublishSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true `
-  -p:EnableCompressionInSingleFile=true `
-  -p:OutputType=Exe `
-  -o ./dist
+    -p:PublishSingleFile=true `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:EnableCompressionInSingleFile=true `
+    -p:OutputType=Exe `
+    -o ./dist
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[!] .NET compilation failed!" -ForegroundColor Red
@@ -59,6 +59,7 @@ if (Test-Path $OutputExe) {
     Write-Host "Location: $OutputExe" -ForegroundColor White
     Write-Host "File Size: $SizeMB MB (Fully Self-Contained, No .NET Runtime Required)" -ForegroundColor White
     Write-Host "============================================================`n" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "[!] Output binary not found at $OutputExe" -ForegroundColor Red
 }

@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import DownloadAlertModal from "./components/DownloadAlertModal";
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+const font = Plus_Jakarta_Sans({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Nexus-AI",
@@ -26,7 +30,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("min-h-dvh bg-[#080711] antialiased", "font-sans", geist.variable)}
+      className={cn(
+        "min-h-dvh bg-[#080711] antialiased",
+        "font-sans",
+        font.variable,
+      )}
     >
       <body className="min-h-dvh flex flex-col bg-gradient-to-b from-black via-[#0d091a] to-[#080711] bg-no-repeat text-white">
         <DownloadAlertModal />

@@ -122,7 +122,7 @@ function Read-Host {{ param([Parameter(Position=0)][string]$Prompt) if ($Prompt)
                         string chunk = Encoding.UTF8.GetString(buffer, 0, read);
                         // 1. Strip OSC window title noise and ASCII BEL (\x07) to completely extinguish Windows system chimes
                         chunk = OscTitleRegex.Replace(chunk, string.Empty).Replace("\x07", string.Empty);
-                        Console.Write(chunk);
+                        // Console.Write(chunk);
                         outputBuilder.Append(chunk);
 
                         var queue = TaskLogBuffers.GetOrAdd(currentTaskId, _ => new ConcurrentQueue<string>());

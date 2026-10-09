@@ -195,8 +195,9 @@ const SendMsg = ({ sendingUrl }: { sendingUrl?: string }) => {
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand to-brand-hover text-white transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand/40 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
           >
             {isDisabled ? (
-              <div className="w-4 h-4 bg-white rounded-full animate"></div>
+              <div className="w-4 h-4 bg-white rounded-full"></div>
             ) : (
+              // <StopCircle className="h-5 w-5 animate-spin" />
               <SendHorizonal className="h-5 w-5" />
             )}
           </button>
