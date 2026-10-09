@@ -3,8 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { Bot } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
-import useChat from "../store/useChat";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
+
 import ExecutionSteps from "./ExecutionsStep";
 export interface ExecutionStep {
   steps: number;
@@ -194,47 +195,65 @@ const AIMsgBox = ({
     });
   }, [isOpen]);
   return (
-    <div className="flex flex-col justify-center items-start w-full max-w-2xl sm:max-w-2xl p-2">
-      {/* <div className="flex items-center justify-center rounded-full bg-purple-500 px-2 py-0.5 w-fit text-sm mb-2 text-white">N</div> */}
-      <div className="grid grid-cols-3 gap-2">
-        {imagesBase64.length > 0 &&
-          imagesBase64.map((imageBase64: any, index: number) => (
-            <div
-              key={index}
-              className="relative flex justify-center items-center rounded-2xl overflow-hidden"
-            >
-              <img
-                className="rounded-2xl w-full h-full object-contain opacity-75"
-                src={imageBase64.src}
-                alt=""
-              />
-              <span className="absolute top-0 left-2 text-xl font-semibold text-white bg-black/30 p-1 rounded-full">
-                {imageBase64.step}
-              </span>
-            </div>
-          ))}
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="flex items-start gap-2.5 w-full max-w-2xl sm:max-w-2xl px-2 py-1"
+    >
+      {/* Avatar column */}
 
-      <div className="flex items-center gap-2 m-2">
-        <Bot className="h-10 w-10 text-brand-hover p-1.5 bg-brand-surface/80 rounded-lg border border-brand-border/40" />
-        {/* <span className="text-sm font-semibold text-white">Nexus AI</span> */}
+      {/* Content column — flex-1 min-w-0 prevents overflow */}
+      <div className="flex flex-col flex-1 min-w-0 gap-2">
+        <div className="relative shrink-0 pt-0.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border/60 bg-gradient-to-br from-brand-surface to-brand/20 shadow-[0_0_16px_rgba(168,85,247,0.25)]">
+            <Bot className="h-4 w-4 text-brand-hover shrink-0" />
+          </div>
+        </div>
+        {/* Captured screenshots grid */}
+        {imagesBase64.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {imagesBase64.map((imageBase64: any, index: number) => (
+              <div
+                key={index}
+                className="relative flex justify-center items-center rounded-xl overflow-hidden border border-brand-border/30 bg-black/20"
+              >
+                <img
+                  className="rounded-xl w-full h-full object-contain opacity-80"
+                  src={imageBase64.src}
+                  alt={"screenshotImage " + index}
+                  loading="lazy"
+                />
+                <span className="absolute top-1 left-1.5 text-xs font-bold text-white bg-black/60 px-1.5 py-0.5 rounded-full">
+                  {imageBase64.step}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* AI message bubble */}
+        <div
+          ref={msgRef}
+          className="rounded-2xl rounded-tl-sm m-2 text-xl leading-7 text-zinc-100  wrap-break-word overflow-hidden"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {String(displayedContent)}
+          </ReactMarkdown>
+        </div>
+
+        {/* Execution steps */}
+        {executions.length > 0 && (
+          <div ref={executionsRef}>
+            <ExecutionSteps
+              executions={executions}
+              isWorking={false}
+              workedSeconds={workedSeconds}
+            />
+          </div>
+        )}
       </div>
-      <div
-        ref={msgRef}
-        className="p-3.5 rounded-xl rounded-tl-none text-xl  text-start  font-normal leading-relaxed break-words [overflow-wrap:anywhere]"
-      >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {String(displayedContent)}
-        </ReactMarkdown>
-      </div>
-      {executions.length > 0 && (
-        <ExecutionSteps
-          executions={executions}
-          isWorking={false}
-          workedSeconds={workedSeconds}
-        />
-      )}
-    </div>
+    </motion.div>
   );
 };
 

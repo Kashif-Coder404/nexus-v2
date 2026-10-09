@@ -18,12 +18,12 @@ export default function NavBar() {
   const pathname = usePathname();
   const user = useUserCredentials((state) => state.user);
   const { toggleSidebar, isSidebarOpen } = useSideBar();
-  const isDashboard = user ? "/dashboard" : "/auth/login";
-  const isChat = user ? "/chat" : "/auth/login";
+  // const isDashboard = user ? "/dashboard" : "/auth/login";
+  // const isChat = user ? "/chat" : "/auth/login";
   const navItems: NavItem[] = [
     { label: "Home", href: "/" },
-    { label: "Dashboard", href: isDashboard },
-    { label: "Chat", href: isChat },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Chat", href: "/chat" },
   ];
   const handleDownloadNexus = () => {
     openDownloadAlert();
@@ -60,19 +60,19 @@ export default function NavBar() {
         {/* Center Nav Links */}
         <nav className={style.navLinks}>
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+            // const isActive =
+            //   item.href === "/"
+            //     ? pathname === "/"
+            //     : pathname === item.href ||
+            //       pathname.startsWith(`${item.href}/`);
+            // console.log(isActive, pathname);
             return (
               <Link
                 key={item.label}
-                href={item.href}
+                href={item.href !== "/" && !user ? "/auth/login" : item.href}
                 className={`${style.navLinkItem} ${
-                  isActive ||
-                  (pathname === "/" &&
-                    item.label.toLowerCase().includes("home"))
+                  // isActive ||
+                  pathname === item.href
                     ? `bg-brand/20 text-white border-brand-border/60 shadow-sm shadow-brand/20`
                     : ""
                 }`}

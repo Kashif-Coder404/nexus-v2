@@ -19,6 +19,7 @@
     "ansi-to-react": "^6.2.6",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^1.42.0",
     "motion": "^12.43.0",
     "next": "^16.3.4",

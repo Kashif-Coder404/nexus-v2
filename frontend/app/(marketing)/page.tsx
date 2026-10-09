@@ -149,6 +149,12 @@ export default function Home() {
               alt="Nexus Dashboard Preview"
               className="w-full h-auto object-cover rounded-lg border border-brand-border/20 shadow-inner"
             />
+            {/* <iframe
+              src="https://nexus-pc-ai.netlify.app/chat"
+              frameborder="2"
+              style={{ width: "100%", height: "100%" }}
+              className="w-full h-auto object-cover rounded-lg border border-brand-border/20 shadow-inner"
+            ></iframe> */}
           </div>
         </div>
       </section>
