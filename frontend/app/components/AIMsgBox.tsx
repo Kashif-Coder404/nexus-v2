@@ -235,7 +235,7 @@ const AIMsgBox = ({
         {/* AI message bubble */}
         <div
           ref={msgRef}
-          className="rounded-2xl rounded-tl-sm m-2 text-xl leading-7 text-zinc-100  wrap-break-word overflow-hidden"
+          className="my-2 text-xl leading-7 text-zinc-100  wrap-break-word overflow-hidden"
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {String(displayedContent)}

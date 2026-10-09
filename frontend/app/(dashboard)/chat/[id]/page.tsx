@@ -33,6 +33,7 @@ export default function ChatSessionPage() {
     const loadSessionData = async () => {
       setWorkingOn(null);
       setLiveExecutions([]);
+      useChat.getState().setMiddleMsg(null);
       setIsLoadingChat(true);
       setChat([]);
 

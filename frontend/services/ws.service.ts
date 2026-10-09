@@ -142,9 +142,12 @@ const WebSocketInit = async () => {
                   timestamp: payload.data.timestamp,
                 });
             }
+            if (payload.data.middleMsg)
+              useChat.getState().setMiddleMsg(payload.data.middleMsg);
           } else {
             useChat.getState().setWorkingOn(null);
             useChat.getState().setLiveExecutions([]);
+            useChat.getState().setMiddleMsg(null);
           }
         }
       } else if (payload.type === "session_created") {
@@ -175,10 +178,13 @@ const WebSocketInit = async () => {
           useChat.getState().appendLiveTerminal(payload.chunk);
         }
       } else if (payload.type === "background_running") {
-        useChat.getState().setMiddleMsg(payload.msg);
-        useChat
-          .getState()
-          .setWorkingOn(payload.workingon || "Executing in background...");
+        const currentSession = useChat.getState().session;
+        if (payload.sessionId && currentSession === payload.sessionId) {
+          useChat.getState().setMiddleMsg(payload.msg);
+          useChat
+            .getState()
+            .setWorkingOn(payload.workingon || "Executing in background...");
+        }
       } else if (payload.type === "PairingSuccess") {
         console.info("\x1b[32m[WS] Paring Successfull!\x1b[0m");
       }

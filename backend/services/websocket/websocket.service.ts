@@ -532,6 +532,7 @@ const initWebsocket = (server: Server) => {
                     workingon: liveState.workingon,
                     executions: liveState.executions,
                     userMessage: liveState.userMessage,
+                    middleMsg: liveState.middleMsg || "",
                   }
                 : null,
             });

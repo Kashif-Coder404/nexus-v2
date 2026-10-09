@@ -6,11 +6,13 @@ import {
   MemoryResponseType,
 } from "../services/memory.service.js";
 import {
+  activeSessions,
   sendCmdRequest,
   sendToUser,
   waitForTaskCompletion,
 } from "../services/websocket/websocket.service.js";
 import { summarizeBase64Image } from "./Helper/image.summarizer.js";
+import { getRealMessage } from "./Helper/middleMsg.generator.js";
 import { ChatMessageType } from "./Types.js";
 import {
   CommandParserResponseType,
@@ -160,6 +162,7 @@ export const commandParser = async (
   userId: string,
   cmd: CommandTypes,
   chatMessages: ChatMessageType[],
+  sessionId?: string,
 ): Promise<CommandParserResponseType> => {
   let returningCmd: string = JSON.stringify(cmd);
   let finalResponse: CommandParserResponseType = {
@@ -411,16 +414,36 @@ export const commandParser = async (
             finalResponse.isSuccess = true;
             finalResponse.msg = `Started background daemon "${commandPayload.Command}"`;
           } else {
+            const userGoalMessage =
+              chatMessages[chatMessages.length - 1]?.content ||
+              "user goal not defined!";
+            const aiworkingon =
+              (sessionId ? activeSessions.get(sessionId)?.workingon : "") ||
+              "Executing task in background...";
+            const midProcessMsg = await getRealMessage(
+              userGoalMessage,
+              aiworkingon,
+              commandPayload.Command,
+            );
+            if (sessionId) {
+              const live = activeSessions.get(sessionId);
+              if (live) live.middleMsg = midProcessMsg;
+            }
             // 1. Tell the user right now via WebSocket (middle message + unlock UI)
             sendToUser(userId, {
               type: "background_running",
               taskId: executionResponse.taskId,
-              msg: `I am currently running "${commandPayload.Command}" in the background. Please wait a short moment...`,
+              msg: midProcessMsg,
+              sessionId,
             });
             // 2. Hold the line! (Waits until websocket.service.ts wakes it up)
             const completed: any = await waitForTaskCompletion(
               executionResponse.taskId,
             );
+            if (sessionId) {
+              const live = activeSessions.get(sessionId);
+              if (live) live.middleMsg = "";
+            }
             finalResponse.terminalOutput = completed.terminalOutput;
             finalResponse.exitCode = completed.exitCode;
             finalResponse.isSuccess = completed.exitCode === 0;

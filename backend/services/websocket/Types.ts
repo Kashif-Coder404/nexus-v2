@@ -18,6 +18,7 @@ export interface ActiveSessions {
   userMessage: string;
   workingon: string;
   executions: any[];
+  middleMsg?: string;
 }
 
 export interface ActiveBackgroundTask {

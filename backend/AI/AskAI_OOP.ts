@@ -5,7 +5,7 @@ import {
   sendToUser,
 } from "../services/websocket/websocket.service.js";
 import { callAI, ModelType } from "./CallAI.js";
-import { buildAiContext } from "./Helper/context.summarize.js";
+
 import {
   instructions,
   system_warning,
@@ -41,7 +41,6 @@ export class AskAI {
   private terminalError = "";
   private lastStepError = "";
   private capturedImage = "";
-  private success = false;
   private isSuccessState = false;
   private workingOn = "";
   private executions: CommandExecutionType[] = [];
@@ -268,6 +267,7 @@ export class AskAI {
       this.userId,
       command,
       ChatMsgs,
+      this.sessionId,
     );
     const stepDuration = ((Date.now() - stepStartTime) / 1000).toFixed(1) + "s";
 

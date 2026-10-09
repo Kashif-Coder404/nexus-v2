@@ -2,6 +2,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { IncomingMessage, Server } from "http";
 import { ActiveSessions, CustomWebSocket, PendingTask } from "./Types.js";
 import { verifyToken } from "../jwt.service.js";
+
 //Client = Frontend , ClientDevice = Local Backend WS
 export class ClientSession {
   public isAuthenticated: boolean = false;
