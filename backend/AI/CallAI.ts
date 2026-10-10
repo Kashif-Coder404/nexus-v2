@@ -10,7 +10,7 @@ import {
 } from "./Providers/tokenRouterAI.js";
 import { instructions as defaultInstructions } from "./instructions/main.Instructions.js";
 import type { ChatMessageType, GeminiResponse } from "./Types.ts";
-import { localGeminiAICall } from "./Providers/localGeminiCall.js";
+// import { localGeminiAICall } from "./Providers/localGeminiCall.js";
 
 export type AIName = "nvidia" | "gemini" | "tokenrouter" | "local_gemini";
 export type GeminiModels = GeminiModelsTypes;
@@ -117,7 +117,7 @@ export const callAI = async (
     let res: GeminiResponse = {} as GeminiResponse;
 
     try {
-      if (modelType === "live") {
+      if (modelType === "live" || params.isLiveModel) {
         res = await liveGeminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
@@ -127,14 +127,6 @@ export const callAI = async (
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
-        });
-      } else if (modelType === "local") {
-        res = await localGeminiAICall({
-          chatMessages,
-          model: (params.model as string) || "gemini-3.7-flash",
-          instructionString: instructions,
-          userId: params.userId,
-          isJson,
         });
       } else {
         // Default to API GEMINI
@@ -159,12 +151,13 @@ export const callAI = async (
     if (!res || !res.success) {
       console.warn("[GEMINI FALLBACK] Falling back to local Gemini API...");
       try {
-        res = await localGeminiAICall({
+        res = await geminiAICall({
           chatMessages,
-          model: (params.model as string) || "gemini-3.7-flash",
+          model: "gemini-3.8-live",
           instructionString: instructions,
-          userId: params.userId,
-          isJson,
+          retryCount: params.retryCount || 0,
+          isJson: isJson,
+          keyIndex: geminiKeyIndex,
         });
       } catch (fallbackErr: any) {
         console.error(

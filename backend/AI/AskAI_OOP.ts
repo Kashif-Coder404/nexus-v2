@@ -196,6 +196,7 @@ export class AskAI {
         ...this.commandRunningMsgs,
       ];
       this.BroadCastTheState();
+      console.log("MODEL USE: ", this.model);
       this.aiResponse = await callAI(this.model.provider, {
         userId: this.userId,
         chatMessages: ChatMsgs,
