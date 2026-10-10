@@ -17,7 +17,6 @@ import {
   PendingTask,
 } from "./Types.js";
 import { JwtPayload } from "jsonwebtoken";
-import { askAI } from "../../AI/AskAI.js";
 import { AskAI } from "../../AI/AskAI_OOP.js";
 
 export const activeSessions = new Map<string, ActiveSessions>();
@@ -160,7 +159,7 @@ const initWebsocket = (server: Server) => {
       await connectDevice(ws, authHeader, ipHeader as string);
     }
     resetWatchdog(ws);
-
+ 
     ws.on("message", async (event: any) => {
       try {
         const data = event.toString();
