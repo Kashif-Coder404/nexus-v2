@@ -11,7 +11,7 @@ const activeSessions = new Set<string>();
 export const sendMessage = async (req: any, res: any) => {
   const defaultModel: ModelType = {
     provider: "gemini",
-    name: "gemini-3.5-flash-lite",
+    name: "gemini-3.6-flash",
     isLiveModel: false,
   };
   const { content, behaviour = "friendly", model = defaultModel } = req.body;

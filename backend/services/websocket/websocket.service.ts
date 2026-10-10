@@ -366,7 +366,7 @@ const initWebsocket = (server: Server) => {
             if (!content || !content.toString().trim()) break;
 
             const defaultModel = {
-              provider: "local_gemini",
+              provider: "gemini",
               name: "gemini-3.7-flash",
               isLiveModel: false,
             };

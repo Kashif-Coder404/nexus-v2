@@ -123,7 +123,7 @@ export const callAI = async (
           retryCount: params.retryCount || 0,
           model:
             (params.model as GeminiModelsTypes) ||
-            "gemini-3.1-flash-live-preview",
+            "gemini-3.8-live",
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
@@ -133,7 +133,7 @@ export const callAI = async (
         res = await geminiAICall({
           chatMessages,
           retryCount: params.retryCount || 0,
-          model: (params.model as GeminiModelsTypes) || "gemini-3.5-flash-lite",
+          model: (params.model as GeminiModelsTypes) || "gemini-3.7-flash",
           instructionString: instructions,
           isJson: isJson,
           keyIndex: geminiKeyIndex,
@@ -147,13 +147,13 @@ export const callAI = async (
       res = { success: false } as GeminiResponse;
     }
 
-    // Fallback if local or primary call was unsuccessful
+    // Fallback if primary call was unsuccessful
     if (!res || !res.success) {
-      console.warn("[GEMINI FALLBACK] Falling back to local Gemini API...");
+      console.warn("[GEMINI FALLBACK] Retrying with stable Gemini API...");
       try {
         res = await geminiAICall({
           chatMessages,
-          model: "gemini-3.8-live",
+          model: "gemini-3.7-flash",
           instructionString: instructions,
           retryCount: params.retryCount || 0,
           isJson: isJson,

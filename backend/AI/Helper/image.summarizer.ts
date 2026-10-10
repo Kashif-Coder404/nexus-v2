@@ -53,8 +53,7 @@ export const summarizeBase64Image = async (
     session: "",
     instructions: imageInstructions,
     isJson: false,
-    modeltype: "live",
-    model: "gemini-3.1-flash-live-preview",
+    model: "gemini-3.5-flash-lite",
     retryCount: 0,
   });
 
@@ -68,7 +67,7 @@ export const summarizeBase64Image = async (
       session: "",
       instructions: imageInstructions,
       isJson: false,
-      model: "gemini-3.5-flash-lite",
+      model: "gemini-3.6-flash",
       retryCount: 0,
     });
   }

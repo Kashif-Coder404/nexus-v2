@@ -13,11 +13,13 @@ const GEMINI_API_KEYS = [GEMINI_API_Don_Acc, GEMINI_API_Main_Acc].filter(
   Boolean,
 ) as string[];
 export type GeminiModelsTypes =
-  | "gemini-3.5-flash-lite"
-  | "gemini-3.5-flash"
-  | "gemini-3.6-flash"
   | "gemini-3.7-flash"
+  | "gemini-3.6-flash"
+  | "gemini-3.5-flash"
+  | "gemini-3.5-flash-lite"
   | "gemini-3.1-flash-lite"
+  | "gemini-3.1-pro"
+  | "gemini-3.1-pro-preview"
   | "gemini-3.1-flash-live-preview"
   | "gemini-3.8-live";
 type GeminiAICallOptions = {
@@ -55,6 +57,11 @@ export const geminiAICall = async ({
     };
   }
 
+  let targetModel = model || "gemini-3.7-flash";
+  if (targetModel === "gemini-3.1-pro") {
+    targetModel = "gemini-3.1-pro-preview";
+  }
+
   const MessageToAI = [
     {
       role: "system",
@@ -66,7 +73,7 @@ export const geminiAICall = async ({
     const response = await axios.post(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       {
-        model: model,
+        model: targetModel,
         messages: MessageToAI,
         temperature: 0.5,
         ...(isJson && {
@@ -212,7 +219,7 @@ export const geminiAICall = async ({
 export const liveGeminiAICall = async ({
   chatMessages,
   retryCount = 0,
-  model = "gemini-3.1-flash-live-preview",
+  model = "gemini-3.8-live",
   instructionString = instructions,
   isJson = true,
   keyIndex = 0,
@@ -244,9 +251,11 @@ export const liveGeminiAICall = async ({
     let fullResponseText = "";
 
     try {
+      const liveTargetModel = model || "gemini-3.8-live";
+
       // 1. Establish the real-time bidirectional session
       const session = await ai.live.connect({
-        model: model,
+        model: liveTargetModel,
         config: {
           systemInstruction: {
             parts: [{ text: instructionString }],
